@@ -27,6 +27,7 @@ BITCOIN_TEST_SUITE = \
   test/test_ion.cpp
 # test_ion binary #
 BITCOIN_TESTS =\
+  test/tokengroup_tests.cpp \
   test/zerocoin_implementation_tests.cpp\
   test/zerocoin_denomination_tests.cpp\
   test/zerocoin_transactions_tests.cpp \

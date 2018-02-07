@@ -77,6 +77,7 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
     case TX_ZEROCOINMINT:
         return false;
     case TX_PUBKEY:
+    case TX_GRP_PUBKEYHASH:
         keyID = CPubKey(vSolutions[0]).GetID();
         if(!Sign1(keyID, keystore, hash, nHashType, scriptSigRet))
         {
@@ -98,6 +99,7 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
             scriptSigRet << ToByteVector(vch);
         }
         return true;
+    case TX_GRP_SCRIPTHASH:
     case TX_SCRIPTHASH:
         return keystore.GetCScript(uint160(vSolutions[0]), scriptSigRet);
 
@@ -232,10 +234,12 @@ static CScript CombineSignatures(const CScript& scriptPubKey, const CTransaction
         return PushAll(sigs2);
     case TX_PUBKEY:
     case TX_PUBKEYHASH:
+    case TX_GRP_PUBKEYHASH:
         // Signatures are bigger than placeholders or empty scripts:
         if (sigs1.empty() || sigs1[0].empty())
             return PushAll(sigs2);
         return PushAll(sigs1);
+    case TX_GRP_SCRIPTHASH:
     case TX_SCRIPTHASH:
         if (sigs1.empty() || sigs1.back().empty())
             return PushAll(sigs2);
