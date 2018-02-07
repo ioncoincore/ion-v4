@@ -16,6 +16,7 @@
 #include "chainparams.h"
 #include "checkpoints.h"
 #include "checkqueue.h"
+#include "consensus/tokengroups.h"
 #include "consensus/validation.h"
 #include "init.h"
 #include "kernel.h"
@@ -1274,6 +1275,10 @@ bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fReject
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 150)
             return state.DoS(100, error("CheckTransaction() : coinbase script size=%d", tx.vin[0].scriptSig.size()),
                 REJECT_INVALID, "bad-cb-length");
+
+        // Coinbase tx can't have group outputs because it has no group inputs or mintable outputs
+        if (IsAnyTxOutputGrouped(tx))
+            return state.DoS(100, false, REJECT_INVALID, "coinbase-has-group-outputs");
     } else if (fZerocoinActive && tx.HasZerocoinSpendInputs()) {
         if (tx.vin.size() < 1)
             return state.DoS(10, error("CheckTransaction() : Zerocoin Spend has less than allowed txin's"), REJECT_INVALID, "bad-zerocoinspend");
@@ -2608,6 +2613,11 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 return state.DoS(100, error("CheckInputs() : %s value in (%s) < value out (%s)",
                                           tx.GetHash().ToString(), FormatMoney(nValueIn), FormatMoney(tx.GetValueOut())),
                     REJECT_INVALID, "bad-txns-in-belowout");
+
+            if (!CheckTokenGroups(tx, state, inputs))
+            {
+                return state.DoS(0, error("Token group inputs and outputs do not balance"), REJECT_MALFORMED, "token-group-imbalance");
+            }
 
             // Tally transaction fees
             CAmount nTxFee = nValueIn - tx.GetValueOut();

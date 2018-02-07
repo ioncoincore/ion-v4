@@ -65,11 +65,13 @@ isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
             return ISMINE_SPENDABLE;
         break;
     case TX_PUBKEYHASH:
+    case TX_GRP_PUBKEYHASH:
         keyID = CKeyID(uint160(vSolutions[0]));
         if(keystore.HaveKey(keyID))
             return ISMINE_SPENDABLE;
         break;
     case TX_SCRIPTHASH: {
+    case TX_GRP_SCRIPTHASH:
         CScriptID scriptID = CScriptID(uint160(vSolutions[0]));
         CScript subscript;
         if(keystore.GetCScript(scriptID, subscript)) {
