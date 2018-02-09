@@ -23,7 +23,7 @@ bool GetKeyIDFromUTXO(const CTxOut& txout, CKeyID& keyID)
         return false;
     if (whichType == TX_PUBKEY) {
         keyID = CPubKey(vSolutions[0]).GetID();
-    } else if (whichType == TX_PUBKEYHASH) {
+    } else if (whichType == TX_PUBKEYHASH || whichType == TX_GRP_PUBKEYHASH) {
         keyID = CKeyID(uint160(vSolutions[0]));
     }
 
