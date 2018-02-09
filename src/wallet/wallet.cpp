@@ -11,6 +11,7 @@
 #include "base58.h"
 #include "checkpoints.h"
 #include "coincontrol.h"
+#include "consensus/tokengroups.h"
 #include "kernel.h"
 #include "masternode-budget.h"
 #include "net.h"
@@ -995,7 +996,7 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
     CAmount nCredit = 0;
     uint256 hashTx = GetHash();
     for (unsigned int i = 0; i < vout.size(); i++) {
-        if (!pwallet->IsSpent(hashTx, i)) {
+        if (!pwallet->IsSpent(hashTx, i) && (GetTokenGroup(vout[i].scriptPubKey) == BitcoinGroup)) {
             const CTxOut& txout = vout[i];
             nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
             if (!MoneyRange(nCredit))
@@ -1097,7 +1098,7 @@ CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool& fUseCache) const
 
     CAmount nCredit = 0;
     for (unsigned int i = 0; i < vout.size(); i++) {
-        if (!pwallet->IsSpent(GetHash(), i)) {
+        if (!pwallet->IsSpent(GetHash(), i) && (GetTokenGroup(vout[i].scriptPubKey) == BitcoinGroup)) {
             const CTxOut& txout = vout[i];
             nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
             if (!MoneyRange(nCredit))
@@ -1180,24 +1181,27 @@ void CWalletTx::GetAmounts(list<COutputEntry>& listReceived,
 
         // In either case, we need to get the destination address
         CTxDestination address;
+        txnouttype whichType;
         if (txout.IsZerocoinMint()) {
             address = CNoDestination();
-        } else if (!ExtractDestination(txout.scriptPubKey, address)) {
+        } else if (!ExtractDestinationAndType(txout.scriptPubKey, address, whichType)) {
             if (!IsCoinStake() && !IsCoinBase()) {
                 LogPrintf("CWalletTx::GetAmounts: Unknown transaction type found, txid %s\n", this->GetHash().ToString());
             }
             address = CNoDestination();
         }
 
-        COutputEntry output = {address, txout.nValue, (int)i};
-
-        // If we are debited by the transaction, add the output as a "sent" entry
-        if (nDebit > 0)
-            listSent.push_back(output);
-
-        // If we are receiving the output, add it as a "received" entry
-        if (fIsMine & filter)
-            listReceived.push_back(output);
+        // Do not return group outputs from this API
+        if ((whichType != TX_GRP_PUBKEYHASH) && (whichType != TX_GRP_SCRIPTHASH))
+        {
+            COutputEntry output = {address, txout.nValue, (int)i};
+            // If we are debited by the transaction, add the output as a "sent" entry
+            if (nDebit > 0)
+                listSent.push_back(output);
+            // If we are receiving the output, add it as a "received" entry
+            if (fIsMine & filter)
+                listReceived.push_back(output);
+        }
     }
 }
 
@@ -1619,9 +1623,51 @@ CAmount CWallet::GetLockedWatchOnlyBalance() const
     return nTotal;
 }
 
-/**
- * populate vCoins with vector of available COutputs.
- */
+unsigned int CWallet::FilterCoins(vector<COutput> &vCoins,
+    std::function<bool(const CWalletTx *, const CTxOut *)> func) const
+{
+    vCoins.clear();
+    unsigned int ret = 0;
+
+    {
+        LOCK2(cs_main, cs_wallet);
+        for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
+        {
+            const uint256 &wtxid = it->first;
+            const CWalletTx *pcoin = &(*it).second;
+
+            if (!CheckFinalTx(*pcoin))
+                continue;
+
+            if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
+                continue;
+
+            int nDepth = pcoin->GetDepthInMainChain();
+            if (nDepth < 0)
+                continue;
+
+            // We should not consider coins which aren't at least in our mempool
+            // It's possible for these to be conflicted via ancestors which we may never be able to detect
+            if (nDepth == 0 && !pcoin->InMempool())
+                continue;
+
+            for (unsigned int i = 0; i < pcoin->vout.size(); i++)
+            {
+                isminetype mine = IsMine(pcoin->vout[i]);
+                if (!(IsSpent(wtxid, i)) && mine != ISMINE_NO && !IsLockedCoin((*it).first, i) &&
+                    func(pcoin, &pcoin->vout[i]))
+                {
+                    // The UTXO is available
+                    COutput outpoint(pcoin, i, nDepth, (mine & ISMINE_SPENDABLE) != ISMINE_NO);
+                    vCoins.push_back(outpoint);
+                    ret++;
+                }
+            }
+        }
+    }
+    return ret;
+}
+
 void CWallet::AvailableCoins(
         vector<COutput>& vCoins,
         bool fOnlyConfirmed,
@@ -2089,6 +2135,38 @@ bool CWallet::GetBudgetFinalizationCollateralTX(CWalletTx& tx, uint256 hash, boo
         return false;
     }
 
+    return true;
+}
+
+bool CWallet::SignTransaction(CMutableTransaction &tx)
+{
+    AssertLockHeld(cs_wallet); // mapWallet
+
+    unsigned int sighashType = SIGHASH_ALL;
+    CTransaction txNewConst(tx);
+    int nIn = 0;
+    for (const auto &input : tx.vin)
+    {
+        std::map<uint256, CWalletTx>::const_iterator mi = mapWallet.find(input.prevout.hash);
+        if (mi == mapWallet.end() || input.prevout.n >= mi->second.vout.size())
+        {
+            return false;
+        }
+        const CScript &scriptPubKey = mi->second.vout[input.prevout.n].scriptPubKey;
+        const CAmount &amount = mi->second.vout[input.prevout.n].nValue;
+        CScript &scriptSigRes = tx.vin[nIn].scriptSig;
+        if (!SignSignature(*this, scriptPubKey, tx, nIn, sighashType)) {
+            return false;
+        }
+/*
+        if (!ProduceSignature(
+                TransactionSignatureCreator(this, &txNewConst, nIn, amount, sighashType), scriptPubKey, scriptSigRes))
+        {
+            return false;
+        }
+*/
+        nIn++;
+    }
     return true;
 }
 
