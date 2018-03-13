@@ -184,6 +184,7 @@ BITCOIN_CORE_H = \
   wallet/wallet.h \
   wallet/wallet_ismine.h \
   wallet/walletdb.h \
+  wallet/tokengroupwallet.h \
   xionchain.h \
   xion/accumulators.h \
   xion/accumulatorcheckpoints.h \
@@ -287,6 +288,7 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/wallet.cpp \
   wallet/wallet_ismine.cpp \
   wallet/walletdb.cpp \
+  wallet/tokengroupwallet.cpp \
   xion/accumulators.cpp \
   xion/mintpool.cpp \
   xion/witness.cpp \
