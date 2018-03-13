@@ -22,6 +22,7 @@
 #include "stakeinput.h"
 #include "swifttx.h"
 #include "timedata.h"
+#include "wallet/tokengroupwallet.h"
 #include "txdb.h"
 #include "util.h"
 #include "utilmoneystr.h"
@@ -996,7 +997,7 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
     CAmount nCredit = 0;
     uint256 hashTx = GetHash();
     for (unsigned int i = 0; i < vout.size(); i++) {
-        if (!pwallet->IsSpent(hashTx, i) && (GetTokenGroup(vout[i].scriptPubKey) == BitcoinGroup)) {
+        if (!pwallet->IsSpent(hashTx, i) && (GetTokenGroup(vout[i].scriptPubKey) == NoGroup)) {
             const CTxOut& txout = vout[i];
             nCredit += pwallet->GetCredit(txout, ISMINE_SPENDABLE);
             if (!MoneyRange(nCredit))
@@ -1098,7 +1099,7 @@ CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool& fUseCache) const
 
     CAmount nCredit = 0;
     for (unsigned int i = 0; i < vout.size(); i++) {
-        if (!pwallet->IsSpent(GetHash(), i) && (GetTokenGroup(vout[i].scriptPubKey) == BitcoinGroup)) {
+        if (!pwallet->IsSpent(GetHash(), i) && (GetTokenGroup(vout[i].scriptPubKey) == NoGroup)) {
             const CTxOut& txout = vout[i];
             nCredit += pwallet->GetCredit(txout, ISMINE_WATCH_ONLY);
             if (!MoneyRange(nCredit))

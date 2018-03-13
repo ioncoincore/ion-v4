@@ -1385,6 +1385,14 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
         return state.DoS(100, error("AcceptToMemoryPool: coinstake as individual tx. txid=%s", tx.GetHash().GetHex()),
             REJECT_INVALID, "coinstake");
 
+    // Disallow any OP_GROUP txs from entering the mempool until OP_GROUP is enabled.
+    // This ensures that someone won't create an invalid OP_GROUP tx that sits in the mempool until after activation,
+    // potentially causing this node to create a bad block.
+    if ((int)chainActive.Tip()->nHeight < Params().OpGroup_StartHeight())
+    {
+        if (IsAnyTxOutputGrouped(tx))
+            return state.DoS(0, false, REJECT_NONSTANDARD, "premature-op_group-tx");
+    }
     // Only accept nLockTime-using transactions that can be mined in the next
     // block; we don't want our mempool filled up with transactions that can't
     // be mined yet.
@@ -2614,7 +2622,8 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                                           tx.GetHash().ToString(), FormatMoney(nValueIn), FormatMoney(tx.GetValueOut())),
                     REJECT_INVALID, "bad-txns-in-belowout");
 
-            if (!CheckTokenGroups(tx, state, inputs))
+            if (((int)chainActive.Tip()->nHeight >= Params().OpGroup_StartHeight()) &&
+                !CheckTokenGroups(tx, state, inputs))
             {
                 return state.DoS(0, error("Token group inputs and outputs do not balance"), REJECT_MALFORMED, "token-group-imbalance");
             }
