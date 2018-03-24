@@ -10,6 +10,7 @@
 #include "consensus/validation.h"
 #include "dstencode.h"
 #include "init.h"
+#include "main.h" // for BlockMap
 #include "primitives/transaction.h"
 #include "pubkey.h"
 #include "random.h"
@@ -20,6 +21,9 @@
 #include "utilmoneystr.h"
 #include "wallet.h"
 #include <algorithm>
+
+UniValue groupedlistsinceblock(const UniValue &params, bool fHelp);
+UniValue groupedlisttransactions(const UniValue &params, bool fHelp);
 
 // Number of satoshis we will put into a grouped output
 static const CAmount GROUPED_SATOSHI_AMT = 1;
@@ -505,6 +509,14 @@ extern UniValue token(const UniValue &params, bool fHelp)
     std::transform(p0.begin(), p0.end(), std::back_inserter(operation), ::tolower);
     EnsureWalletIsUnlocked();
 
+    if (operation == "listsinceblock")
+    {
+        return groupedlistsinceblock(params, fHelp);
+    }
+    if (operation == "listtransactions")
+    {
+        return groupedlisttransactions(params, fHelp);
+    }
     if (operation == "new")
     {
         std::string account = "";
@@ -761,4 +773,393 @@ extern UniValue token(const UniValue &params, bool fHelp)
         throw JSONRPCError(RPC_INVALID_REQUEST, "Unknown group operation");
     }
     return NullUniValue;
+}
+
+
+extern void WalletTxToJSON(const CWalletTx &wtx, UniValue &entry);
+using namespace std;
+
+static void MaybePushAddress(UniValue &entry, const CTxDestination &dest)
+{
+    if (IsValidDestination(dest))
+    {
+        entry.push_back(Pair("address", EncodeDestination(dest)));
+    }
+}
+
+static void AcentryToJSON(const CAccountingEntry &acentry, const string &strAccount, UniValue &ret)
+{
+    bool fAllAccounts = (strAccount == string("*"));
+
+    if (fAllAccounts || acentry.strAccount == strAccount)
+    {
+        UniValue entry(UniValue::VOBJ);
+        entry.push_back(Pair("account", acentry.strAccount));
+        entry.push_back(Pair("category", "move"));
+        entry.push_back(Pair("time", acentry.nTime));
+        entry.push_back(Pair("amount", UniValue(acentry.nCreditDebit)));
+        entry.push_back(Pair("otheraccount", acentry.strOtherAccount));
+        entry.push_back(Pair("comment", acentry.strComment));
+        ret.push_back(entry);
+    }
+}
+
+void ListGroupedTransactions(const CTokenGroupID& grp,
+    const CWalletTx &wtx,
+    const string &strAccount,
+    int nMinDepth,
+    bool fLong,
+    UniValue &ret,
+    const isminefilter &filter)
+{
+    CAmount nFee;
+    string strSentAccount;
+    list<COutputEntry> listReceived;
+    list<COutputEntry> listSent;
+
+    wtx.GetGroupAmounts(grp, listReceived, listSent, nFee, strSentAccount, filter);
+
+    bool fAllAccounts = (strAccount == string("*"));
+    bool involvesWatchonly = wtx.IsFromMe(ISMINE_WATCH_ONLY);
+
+    // Sent
+    if ((!listSent.empty() || nFee != 0) && (fAllAccounts || strAccount == strSentAccount))
+    {
+        BOOST_FOREACH (const COutputEntry &s, listSent)
+        {
+            UniValue entry(UniValue::VOBJ);
+            if (involvesWatchonly || (::IsMine(*pwalletMain, s.destination) & ISMINE_WATCH_ONLY))
+                entry.push_back(Pair("involvesWatchonly", true));
+            entry.push_back(Pair("account", strSentAccount));
+            MaybePushAddress(entry, s.destination);
+            entry.push_back(Pair("category", "send"));
+            entry.push_back(Pair("group", EncodeTokenGroup(grp)));
+            entry.push_back(Pair("amount", UniValue(-s.amount)));
+            if (pwalletMain->mapAddressBook.count(s.destination))
+                entry.push_back(Pair("label", pwalletMain->mapAddressBook[s.destination].name));
+            entry.push_back(Pair("vout", s.vout));
+            entry.push_back(Pair("fee", ValueFromAmount(-nFee)));
+            if (fLong)
+                WalletTxToJSON(wtx, entry);
+            ret.push_back(entry);
+        }
+    }
+
+    // Received
+    if (listReceived.size() > 0 && wtx.GetDepthInMainChain() >= nMinDepth)
+    {
+        BOOST_FOREACH (const COutputEntry &r, listReceived)
+        {
+            string account;
+            if (pwalletMain->mapAddressBook.count(r.destination))
+                account = pwalletMain->mapAddressBook[r.destination].name;
+            if (fAllAccounts || (account == strAccount))
+            {
+                UniValue entry(UniValue::VOBJ);
+                if (involvesWatchonly || (::IsMine(*pwalletMain, r.destination) & ISMINE_WATCH_ONLY))
+                    entry.push_back(Pair("involvesWatchonly", true));
+                entry.push_back(Pair("account", account));
+                MaybePushAddress(entry, r.destination);
+                if (wtx.IsCoinBase())
+                {
+                    if (wtx.GetDepthInMainChain() < 1)
+                        entry.push_back(Pair("category", "orphan"));
+                    else if (wtx.GetBlocksToMaturity() > 0)
+                        entry.push_back(Pair("category", "immature"));
+                    else
+                        entry.push_back(Pair("category", "generate"));
+                }
+                else
+                {
+                    entry.push_back(Pair("category", "receive"));
+                }
+                entry.push_back(Pair("amount", UniValue(r.amount)));
+                entry.push_back(Pair("group", EncodeTokenGroup(grp)));
+                if (pwalletMain->mapAddressBook.count(r.destination))
+                    entry.push_back(Pair("label", account));
+                entry.push_back(Pair("vout", r.vout));
+                if (fLong)
+                    WalletTxToJSON(wtx, entry);
+                ret.push_back(entry);
+            }
+        }
+    }
+}
+
+UniValue groupedlisttransactions(const UniValue &params, bool fHelp)
+{
+    if (!pwalletMain)
+        return NullUniValue;
+
+    if (fHelp || params.size() > 6)
+        throw runtime_error(
+            "listtransactions ( \"account\" count from includeWatchonly)\n"
+            "\nReturns up to 'count' most recent transactions skipping the first 'from' transactions for account "
+            "'account'.\n"
+            "\nArguments:\n"
+            "1. \"account\"    (string, optional) DEPRECATED. The account name. Should be \"*\".\n"
+            "2. count          (numeric, optional, default=10) The number of transactions to return\n"
+            "3. from           (numeric, optional, default=0) The number of transactions to skip\n"
+            "4. includeWatchonly (bool, optional, default=false) Include transactions to watchonly addresses (see "
+            "'importaddress')\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"account\":\"accountname\",       (string) DEPRECATED. The account name associated with the "
+            "transaction. \n"
+            "                                                It will be \"\" for the default account.\n"
+            "    \"address\":\"bitcoinaddress\",    (string) The bitcoin address of the transaction. Not present for \n"
+            "                                                move transactions (category = move).\n"
+            "    \"category\":\"send|receive|move\", (string) The transaction category. 'move' is a local (off "
+            "blockchain)\n"
+            "                                                transaction between accounts, and not associated with an "
+            "address,\n"
+            "                                                transaction id or block. 'send' and 'receive' "
+            "transactions are \n"
+            "                                                associated with an address, transaction id and block "
+            "details\n"
+            "    \"amount\": x.xxx,          (numeric) The amount in ION."
+            "This is negative for the 'send' category, and for the\n"
+                            "                                         'move' category for moves outbound. It is "
+                            "positive for the 'receive' category,\n"
+                            "                                         and for the 'move' category for inbound funds.\n"
+                            "    \"vout\": n,                (numeric) the vout value\n"
+                            "    \"fee\": x.xxx,             (numeric) The amount of the fee in "
+            "ION"
+            ". This is negative and only available for the \n"
+            "                                         'send' category of transactions.\n"
+            "    \"confirmations\": n,       (numeric) The number of confirmations for the transaction. Available for "
+            "'send' and \n"
+            "                                         'receive' category of transactions. Negative confirmations "
+            "indicate the\n"
+            "                                         transaction conflicts with the block chain\n"
+            "    \"trusted\": xxx            (bool) Whether we consider the outputs of this unconfirmed transaction "
+            "safe to spend.\n"
+            "    \"blockhash\": \"hashvalue\", (string) The block hash containing the transaction. Available for "
+            "'send' and 'receive'\n"
+            "                                          category of transactions.\n"
+            "    \"blockindex\": n,          (numeric) The index of the transaction in the block that includes it. "
+            "Available for 'send' and 'receive'\n"
+            "                                          category of transactions.\n"
+            "    \"blocktime\": xxx,         (numeric) The block time in seconds since epoch (1 Jan 1970 GMT).\n"
+            "    \"txid\": \"transactionid\", (string) The transaction id. Available for 'send' and 'receive' category "
+            "of transactions.\n"
+            "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (midnight Jan 1 "
+            "1970 GMT).\n"
+            "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (midnight Jan 1 1970 "
+            "GMT). Available \n"
+            "                                          for 'send' and 'receive' category of transactions.\n"
+            "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
+            "    \"label\": \"label\"        (string) A comment for the address/transaction, if any\n"
+            "    \"otheraccount\": \"accountname\",  (string) For the 'move' category of transactions, the account the "
+            "funds came \n"
+            "                                          from (for receiving funds, positive amounts), or went to (for "
+            "sending funds,\n"
+            "                                          negative amounts).\n"
+            "    \"abandoned\": xxx          (bool) 'true' if the transaction has been abandoned (inputs are "
+            "respendable). Only available for the \n"
+            "                                         'send' category of transactions.\n"
+            "  }\n"
+            "]\n"
+
+            "\nExamples:\n"
+            "\nList the most recent 10 transactions in the systems\n" +
+            HelpExampleCli("listtransactions", "") + "\nList transactions 100 to 120\n" +
+            HelpExampleCli("listtransactions", "\"*\" 20 100") + "\nAs a json rpc call\n" +
+            HelpExampleRpc("listtransactions", "\"*\", 20, 100"));
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    string strAccount = "*";
+
+    if (params.size() == 1)
+    {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+    }
+    CTokenGroupID grpID = GetTokenGroup(params[1].get_str());
+    if (!grpID.isUserGroup())
+    {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+    }
+
+    if (params.size() > 2)
+        strAccount = params[2].get_str();
+    int nCount = 10;
+    if (params.size() > 3)
+        nCount = params[3].get_int();
+    int nFrom = 0;
+    if (params.size() > 4)
+        nFrom = params[4].get_int();
+    isminefilter filter = ISMINE_SPENDABLE;
+    if (params.size() > 5)
+        if (params[5].get_bool())
+            filter = filter | ISMINE_WATCH_ONLY;
+
+    if (nCount < 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative count");
+    if (nFrom < 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative from");
+
+    UniValue ret(UniValue::VARR);
+
+    const CWallet::TxItems &txOrdered = pwalletMain->wtxOrdered;
+
+    // iterate backwards until we have nCount items to return:
+    for (CWallet::TxItems::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it)
+    {
+        CWalletTx *const pwtx = (*it).second.first;
+        if (pwtx != 0)
+            ListGroupedTransactions(grpID, *pwtx, strAccount, 0, true, ret, filter);
+        CAccountingEntry *const pacentry = (*it).second.second;
+        if (pacentry != 0)
+            AcentryToJSON(*pacentry, strAccount, ret);
+
+        if ((int)ret.size() >= (nCount + nFrom))
+            break;
+    }
+    // ret is newest to oldest
+
+    if (nFrom > (int)ret.size())
+        nFrom = ret.size();
+    if ((nFrom + nCount) > (int)ret.size())
+        nCount = ret.size() - nFrom;
+
+    vector<UniValue> arrTmp = ret.getValues();
+
+    vector<UniValue>::iterator first = arrTmp.begin();
+    std::advance(first, nFrom);
+    vector<UniValue>::iterator last = arrTmp.begin();
+    std::advance(last, nFrom + nCount);
+
+    if (last != arrTmp.end())
+        arrTmp.erase(last, arrTmp.end());
+    if (first != arrTmp.begin())
+        arrTmp.erase(arrTmp.begin(), first);
+
+    std::reverse(arrTmp.begin(), arrTmp.end()); // Return oldest to newest
+
+    ret.clear();
+    ret.setArray();
+    ret.push_backV(arrTmp);
+
+    return ret;
+}
+
+UniValue groupedlistsinceblock(const UniValue &params, bool fHelp)
+{
+    if (!pwalletMain)
+        return NullUniValue;
+
+    if (fHelp)
+        throw runtime_error(
+            "token listsinceblock ( groupid \"blockhash\" target-confirmations includeWatchonly)\n"
+            "\nGet all transactions in blocks since block [blockhash], or all transactions if omitted\n"
+            "\nArguments:\n"
+            "1. groupid (string, required) List transactions containing this group only\n"
+            "2. \"blockhash\"   (string, optional) The block hash to list transactions since\n"
+            "3. target-confirmations:    (numeric, optional) The confirmations required, must be 1 or more\n"
+            "4. includeWatchonly:        (bool, optional, default=false) Include transactions to watchonly addresses "
+            "(see 'importaddress')"
+            "\nResult:\n"
+            "{\n"
+            "  \"transactions\": [\n"
+            "    \"account\":\"accountname\",       (string) DEPRECATED. The account name associated with the "
+            "transaction. Will be \"\" for the default account.\n"
+            "    \"address\":\"bitcoinaddress\",    (string) The bitcoin address of the transaction. Not present for "
+            "move transactions (category = move).\n"
+            "    \"category\":\"send|receive\",     (string) The transaction category. 'send' has negative amounts, "
+            "'receive' has positive amounts.\n"
+            "    \"amount\": x.xxx,          (numeric) The amount in "
+            "ION. This is negative for the 'send' category, and for the 'move' category for moves \n"
+                            "                                          outbound. It is positive for the 'receive' "
+                            "category, and for the 'move' category for inbound funds.\n"
+                            "    \"vout\" : n,               (numeric) the vout value\n"
+                            "    \"fee\": x.xxx,             (numeric) The amount of the fee in "
+            "ION"
+            ". This is negative and only available for the 'send' category of transactions.\n"
+            "    \"confirmations\": n,       (numeric) The number of confirmations for the transaction. Available for "
+            "'send' and 'receive' category of transactions.\n"
+            "    \"blockhash\": \"hashvalue\",     (string) The block hash containing the transaction. Available for "
+            "'send' and 'receive' category of transactions.\n"
+            "    \"blockindex\": n,          (numeric) The index of the transaction in the block that includes it. "
+            "Available for 'send' and 'receive' category of transactions.\n"
+            "    \"blocktime\": xxx,         (numeric) The block time in seconds since epoch (1 Jan 1970 GMT).\n"
+            "    \"txid\": \"transactionid\",  (string) The transaction id. Available for 'send' and 'receive' "
+            "category of transactions.\n"
+            "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT).\n"
+            "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (Jan 1 1970 GMT). "
+            "Available for 'send' and 'receive' category of transactions.\n"
+            "    \"abandoned\": xxx,         (bool) 'true' if the transaction has been abandoned (inputs are "
+            "respendable). Only available for the 'send' category of transactions.\n"
+            "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
+            "    \"label\" : \"label\"       (string) A comment for the address/transaction, if any\n"
+            "    \"to\": \"...\",            (string) If a comment to is associated with the transaction.\n"
+            "  ],\n"
+            "  \"lastblock\": \"lastblockhash\"     (string) The hash of the last block\n"
+            "}\n"
+            "\nExamples:\n" +
+            HelpExampleCli("listsinceblock", "") +
+            HelpExampleCli("listsinceblock", "\"000000000000000bacf66f7497b7dc45ef753ee9a7d38571037cdb1a57f663ad\" 6") +
+            HelpExampleRpc(
+                "listsinceblock", "\"000000000000000bacf66f7497b7dc45ef753ee9a7d38571037cdb1a57f663ad\", 6"));
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    CBlockIndex *pindex = NULL;
+    int target_confirms = 1;
+    isminefilter filter = ISMINE_SPENDABLE;
+
+    if (params.size() == 1)
+    {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+    }
+    CTokenGroupID grpID = GetTokenGroup(params[1].get_str());
+    if (!grpID.isUserGroup())
+    {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+    }
+
+    if (params.size() > 2)
+    {
+        uint256 blockId;
+
+        blockId.SetHex(params[2].get_str());
+        BlockMap::iterator it = mapBlockIndex.find(blockId);
+        if (it != mapBlockIndex.end())
+            pindex = it->second;
+    }
+
+    if (params.size() > 3)
+    {
+        target_confirms = params[3].get_int();
+
+        if (target_confirms < 1)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter");
+    }
+
+    if (params.size() > 4)
+        if (params[4].get_bool())
+            filter = filter | ISMINE_WATCH_ONLY;
+
+    int depth = pindex ? (1 + chainActive.Height() - pindex->nHeight) : -1;
+
+    UniValue transactions(UniValue::VARR);
+
+    for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end();
+         it++)
+    {
+        CWalletTx tx = (*it).second;
+
+        if (depth == -1 || tx.GetDepthInMainChain() < depth)
+            ListGroupedTransactions(grpID, tx, "*", 0, true, transactions, filter);
+    }
+
+    CBlockIndex *pblockLast = chainActive[chainActive.Height() + 1 - target_confirms];
+    uint256 lastblock = pblockLast ? pblockLast->GetBlockHash() : uint256();
+
+    UniValue ret(UniValue::VOBJ);
+    ret.push_back(Pair("transactions", transactions));
+    ret.push_back(Pair("lastblock", lastblock.GetHex()));
+
+    return ret;
 }

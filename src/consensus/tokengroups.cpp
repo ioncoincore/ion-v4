@@ -145,14 +145,12 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
 
     if (!script.GetOp(pc, opcodeQty, tokenQty))
     {
-        LogPrint("tokens", "%s - empty script", __func__); // this should be impossible since that means script with 1 byte
         associatedGroup = NoGroup;
         return;
     }
 
     if (!script.GetOp(pc, opcode, data))
     {
-        LogPrint("tokens", "%s - empty script", __func__); // this should be impossible since that means script with 1 byte
         associatedGroup = NoGroup;
         return;
     }

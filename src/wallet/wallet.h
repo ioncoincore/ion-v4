@@ -11,6 +11,7 @@
 #include "amount.h"
 #include "base58.h"
 #include "crypter.h"
+#include "consensus/tokengroups.h"
 #include "kernel.h"
 #include "key.h"
 #include "keystore.h"
@@ -1031,6 +1032,13 @@ public:
         CAmount& nFee,
         std::string& strSentAccount,
         const isminefilter& filter) const;
+
+    void GetGroupAmounts(const CTokenGroupID& grp,
+        std::list<COutputEntry> &listReceived,
+        std::list<COutputEntry> &listSent,
+        CAmount &nFee,
+        std::string &strSentAccount,
+        const isminefilter &filter) const;
 
     void GetAccountAmounts(const std::string& strAccount, CAmount& nReceived, CAmount& nSent, CAmount& nFee, const isminefilter& filter) const;
 
