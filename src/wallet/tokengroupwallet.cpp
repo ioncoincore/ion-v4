@@ -22,6 +22,8 @@
 #include "wallet.h"
 #include <algorithm>
 
+#include <boost/lexical_cast.hpp>
+
 UniValue groupedlistsinceblock(const UniValue &params, bool fHelp);
 UniValue groupedlisttransactions(const UniValue &params, bool fHelp);
 
@@ -804,7 +806,7 @@ static void AcentryToJSON(const CAccountingEntry &acentry, const string &strAcco
     }
 }
 
-void ListGroupedTransactions(const CTokenGroupID& grp,
+void ListGroupedTransactions(const CTokenGroupID &grp,
     const CWalletTx &wtx,
     const string &strAccount,
     int nMinDepth,
@@ -1131,14 +1133,14 @@ UniValue groupedlistsinceblock(const UniValue &params, bool fHelp)
 
     if (params.size() > 3)
     {
-        target_confirms = params[3].get_int();
+        target_confirms = boost::lexical_cast<unsigned int>(params[3].get_str());
 
         if (target_confirms < 1)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter");
     }
 
     if (params.size() > 4)
-        if (params[4].get_bool())
+        if (InterpretBool(params[4].get_str()))
             filter = filter | ISMINE_WATCH_ONLY;
 
     int depth = pindex ? (1 + chainActive.Height() - pindex->nHeight) : -1;

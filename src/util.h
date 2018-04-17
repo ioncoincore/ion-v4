@@ -186,6 +186,14 @@ int64_t GetArg(const std::string& strArg, int64_t nDefault);
 bool GetBoolArg(const std::string& strArg, bool fDefault);
 
 /**
+ * Convert string into true/false
+ *
+ * @param strValue String to parse as a boolean
+ * @return true or false
+ */
+bool InterpretBool(const std::string &strValue);
+
+/**
  * Set an argument if it doesn't already have a value
  *
  * @param strArg Argument to set (e.g. "-foo")

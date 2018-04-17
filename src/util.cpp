@@ -282,7 +282,7 @@ int LogPrintStr(const std::string& str)
 }
 
 /** Interpret string as boolean, for argument parsing */
-static bool InterpretBool(const std::string& strValue)
+bool InterpretBool(const std::string& strValue)
 {
     if (strValue.empty())
         return true;
