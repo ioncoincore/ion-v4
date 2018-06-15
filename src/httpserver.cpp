@@ -14,6 +14,7 @@
 #include "sync.h"
 #include "guiinterface.h"
 
+#include <mutex>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
