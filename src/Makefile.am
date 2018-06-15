@@ -39,6 +39,7 @@ LIBBITCOIN_ZMQ=libbitcoin_zmq.a
 endif
 if BUILD_BITCOIN_LIBS
 LIBBITCOINCONSENSUS=libbitcoinconsensus.la
+LIBIONCORE=libioncore.la
 endif
 if ENABLE_WALLET
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
@@ -60,7 +61,7 @@ EXTRA_LIBRARIES += \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_ZMQ)
 
-lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS)
+lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS) $(LIBIONCORE)
 
 bin_PROGRAMS =
 noinst_PROGRAMS =
@@ -294,6 +295,39 @@ libbitcoin_wallet_a_SOURCES = \
   lightxionthread.cpp \
   $(BITCOIN_CORE_H)
 
+libioncore_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libioncore_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+
+# base58.cpp
+#  base58.h
+
+libioncore_a_SOURCES = \
+  ioncorelib/ioncorelib.cpp \
+  script/sigcommon.cpp \
+  hash.cpp \
+  hash.h \
+  key.cpp \
+  key.h \
+  primitives/transaction.cpp \
+  primitives/transaction.h \
+  pubkey.cpp \
+  pubkey.h \
+  random.cpp \
+  random.h \
+  script/interpreter.cpp \
+  script/interpreter.h \
+  script/script.cpp \
+  script/script.h \
+  support/cleanse.cpp \
+  support/cleanse.h \
+  uint256.cpp \
+  uint256.h \
+  utilstrencodings.cpp \
+  utilstrencodings.h \
+  utiltime.cpp \
+  utiltime.h
+
+
 # crypto primitives library
 crypto_libbitcoin_crypto_a_CPPFLAGS = $(AM_CPPFLAGS) $(PIC_FLAGS)
 crypto_libbitcoin_crypto_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIC_FLAGS)
@@ -377,6 +411,7 @@ libbitcoin_consensus_a_SOURCES = \
   crypto/ripemd160.cpp \
   hash.cpp \
   pubkey.cpp \
+  script/sigcommon.cpp \
   script/script.cpp \
   script/interpreter.cpp \
   script/bitcoinconsensus.cpp \
@@ -532,15 +567,22 @@ ion_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
 if BUILD_BITCOIN_LIBS
 include_HEADERS = script/bitcoinconsensus.h
 libbitcoinconsensus_la_SOURCES = $(libbitcoin_consensus_a_SOURCES)
+libioncore_la_SOURCES = $(libioncore_a_SOURCES) $(crypto_libbitcoin_crypto_a_SOURCES)
 
 if GLIBC_BACK_COMPAT
   libbitcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
+  libioncore_la_SOURCES += compat/glibc_compat.cpp
 endif
 
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1)
 libbitcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
 libbitcoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+
+libioncore_la_LDFLAGS = $(AM_LDFLAGS) $(SSL_LIBS) $(CRYPTO_LIBS) $(BOOST_LIBS) -no-undefined $(RELDFLAGS)
+libioncore_la_LIBADD = $(LIBSECP256K1)
+libioncore_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(BOOST_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
+libioncore_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif
 #
