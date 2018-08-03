@@ -175,7 +175,7 @@ CAmount GetGroupBalance(const CTokenGroupID &grpID, const CTxDestination &dest, 
         CTokenGroupInfo tg(out->scriptPubKey);
         if (grpID == tg.associatedGroup) // must be sitting in group address
         {
-            if ((dest == CTxDestination(CNoDestination())) || (GetTokenGroup(dest) == tg.mintMeltGroup))
+            if ((dest == CTxDestination(CNoDestination())) || (GetTokenGroup(dest) == tg.associatedGroup))
             {
                 if (tg.quantity > std::numeric_limits<CAmount>::max() - balance)
                     balance = std::numeric_limits<CAmount>::max();
@@ -424,7 +424,7 @@ void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeede
     wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupInfo tg(out->scriptPubKey);
         // must be a grouped output sitting in group address
-        return ((grpID == tg.associatedGroup) && (grpID == tg.mintMeltGroup));
+        return (grpID == tg.associatedGroup);
     });
 
     // Get a near but greater quantity
@@ -474,6 +474,21 @@ void GroupSend(CWalletTx &wtxNew,
     ConstructTx(wtxNew, chosenCoins, outputs, totalAvailable, totalNeeded, grpID, wallet);
 }
 
+CTokenGroupID findGroupId(const COutPoint& input, TokenGroupIdFlags flags, uint64_t& nonce)
+{
+
+    CTokenGroupID ret;
+    do
+    {
+        nonce += 1;
+        CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
+        // mask off any flags in the nonce
+        nonce &= ~((uint64_t) GroupControllerFlags::ALL_BITS);
+        hasher << input << nonce;
+        ret = hasher.GetHash();
+    } while (ret.bytes()[31] != (uint8_t) flags);
+    return ret;
+}
 
 extern UniValue token(const UniValue &params, bool fHelp)
 {
@@ -485,7 +500,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
         throw std::runtime_error(
             "token [new, mint, melt, send] \n"
             "\nToken functions.\n"
-            "new creates a new token type.\n"
+            "new creates a new token type. args: authorityAddress flags \n"
             "mint creates new tokens. args: groupId address quantity\n"
             "singlemint creates a new group and limited quantity of tokens. args: address quantity [address "
             "quantity...]\n"
@@ -519,7 +534,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
     {
         return groupedlisttransactions(params, fHelp);
     }
-    if (operation == "new")
+    if (operation == "unused")
     {
         std::string account = "";
         CPubKey newKey;
@@ -533,13 +548,14 @@ extern UniValue token(const UniValue &params, bool fHelp)
         ret.push_back(Pair("controllingAddress", EncodeDestination(keyID)));
         return ret;
     }
-    else if (operation == "singlemint")
+    else if (operation == "new")
     {
-        unsigned int curparam = 1;
-        CAmount totalValue = 0;
+        LOCK2(cs_main, wallet->cs_wallet);
 
-        CCoinControl coinControl;
-        coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
+        unsigned int curparam = 1;
+
+        //CCoinControl coinControl;
+        //coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
         COutput coin(nullptr, 0, 0, false);
 
         {
@@ -565,10 +581,29 @@ extern UniValue token(const UniValue &params, bool fHelp)
             coin = coins[coins.size() - 1];
         }
 
-        CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
-        hasher << coin.GetOutPoint();
-        CTokenGroupID grpID(hasher.GetHash());
-        coinControl.Select(coin.GetOutPoint());
+        uint64_t grpNonce = 0;
+        CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), TokenGroupIdFlags::NONE, grpNonce);
+
+        std::vector<COutput> chosenCoins;
+        chosenCoins.push_back(coin);
+
+        std::vector<CRecipient> outputs;
+        CTxDestination authDest = DecodeDestination(params[curparam].get_str(), Params());
+        if (authDest == CTxDestination(CNoDestination()))
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: no authority address");
+        }
+        CScript script = GetScriptForDestination(authDest, grpID, (CAmount) GroupControllerFlags::ALL);
+        CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+        outputs.push_back(recipient);
+
+        CWalletTx wtx;
+        ConstructTx(wtx, chosenCoins, outputs, 0, 0, grpID, wallet);
+        return wtx.GetHash().GetHex();
+
+
+
+#if 0
 
         std::vector<CRecipient> outputs;
         outputs.reserve(params.size() / 2);
@@ -612,6 +647,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
         ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
         ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
         return ret;
+#endif
     }
     else if (operation == "mint")
     {
@@ -654,8 +690,9 @@ extern UniValue token(const UniValue &params, bool fHelp)
             CTokenGroupInfo tg(out->scriptPubKey);
             if (tg.associatedGroup != NoGroup)
                 return false; // need bitcoin only
-            return grpID == tg.mintMeltGroup; // must be sitting in group address
+            return true;
         });
+        // TODO find mintable control utxo
         if (nOptions == 0)
         {
             strError = _("To mint coins, first send ION to the group's controlling address.");
