@@ -40,10 +40,13 @@ bool IsAnyTxOutputGrouped(const CTransaction &tx)
 
 std::vector<unsigned char> SerializeAmount(CAmount num)
 {
-    if (num < 0)
-        throw std::ios_base::failure("SerializeAmount(): negative number");
     CDataStream strm(SER_NETWORK, CLIENT_VERSION);
-    if (num < 256)
+    if (num < 0)
+    {
+        int64_t xSize = num;
+        WRITEDATA(strm, xSize);
+    }
+    else if (num < 256)
     {
         unsigned char chSize = num;
         WRITEDATA(strm, chSize);
@@ -97,16 +100,12 @@ CAmount DeserializeAmount(std::vector<unsigned char> &vec)
         uint64_t v;
         READDATA(strm, v);
 //        uint64_t v = ser_readdata64(strm);
-        // DeserializeAmount is only allowed to return a positive number
-        // If the unsigned quantity overflows the CAmount maximum, then its an error
-        if (v > std::numeric_limits<CAmount>::max())
-            throw std::ios_base::failure("DeserializeAmount(): overflow");
-        return v;
+        return (CAmount) v;
     }
     throw std::ios_base::failure("DeserializeAmount(): invalid format");
 }
 
-
+#if 0
 CTokenGroupID ExtractControllingGroup(const CScript &scriptPubKey)
 {
     txnouttype whichType;
@@ -123,9 +122,10 @@ CTokenGroupID ExtractControllingGroup(const CScript &scriptPubKey)
     }
     return CTokenGroupID();
 }
+#endif
 
 CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
-    : associatedGroup(), mintMeltGroup(), quantity(0), invalid(false)
+    : associatedGroup(), controllingGroupFlags(GroupControllerFlags::NONE), quantity(0), invalid(false)
 {
     CScript::const_iterator pc = script.begin();
     std::vector<unsigned char> groupId;
@@ -135,7 +135,7 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
     opcodetype opcodeGrp;
     opcodetype opcodeQty;
 
-    mintMeltGroup = ExtractControllingGroup(script);
+    //mintMeltGroup = ExtractControllingGroup(script);
 
     if (!script.GetOp(pc, opcodeGrp, groupId))
     {
@@ -162,8 +162,8 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
     }
     else // If OP_GROUP is used, enforce rules on the other fields
     {
-        // group must be 20 or 32 bytes
-        if ((opcodeGrp != 0x14) && (opcodeGrp != 0x20))
+        // group must be 32 bytes
+        if (opcodeGrp != 0x20)
         {
             invalid = true;
             return;
@@ -184,6 +184,10 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
     {
         invalid = true;
     }
+    if (quantity < 0)
+    {
+        controllingGroupFlags = (GroupControllerFlags) quantity;
+    }
     associatedGroup = groupId;
 }
 
@@ -192,11 +196,14 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
 class CBalance
 {
 public:
-    CBalance() : mintMelt(false), input(0), output(0) {}
+    CBalance() : ctrlPerms(GroupControllerFlags::NONE), ctrlOutputPerms(GroupControllerFlags::NONE), input(0), output(0), controllerOutputAllowed(false), numOutputs(0) {}
     CTokenGroupInfo groups; // possible groups
-    bool mintMelt;
+    GroupControllerFlags ctrlPerms;
+    GroupControllerFlags ctrlOutputPerms;
     CAmount input;
     CAmount output;
+    bool controllerOutputAllowed;
+    uint64_t numOutputs;
 };
 
 bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCoinsViewCache &view)
@@ -204,6 +211,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     std::unordered_map<CTokenGroupID, CBalance> gBalance;
     // This is an optimization allowing us to skip single-mint hashes if there are no output groups
     bool anyOutputGroups = false;
+    bool anyOutputControlGroups = false;
 
     // Iterate through all the outputs constructing the final balances of every group.
     for (const auto &outp : tx.vout)
@@ -214,15 +222,24 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");
         if (tokenGrp.associatedGroup != NoGroup)
         {
-            // Underflow below zero is redundant since negative numbers are disallowed in deserialization,
-            // but is included here for clarity.  There may be some interesting use cases for 0 so allow it.
-            if (!(tokenGrp.quantity >= 0)){
-                return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");
+            gBalance[tokenGrp.associatedGroup].numOutputs += 1;
+
+            if (tokenGrp.quantity > 0)
+            {
+                if (std::numeric_limits<CAmount>::max() - gBalance[tokenGrp.associatedGroup].output < tokenGrp.quantity)
+                    return state.Invalid(false, REJECT_INVALID, "token overflow");
+                gBalance[tokenGrp.associatedGroup].output += tokenGrp.quantity;
+                anyOutputGroups = true;
             }
-            if (std::numeric_limits<CAmount>::max() - gBalance[tokenGrp.associatedGroup].output < tokenGrp.quantity)
-                return state.Invalid(false, REJECT_INVALID, "token overflow");
-            gBalance[tokenGrp.associatedGroup].output += tokenGrp.quantity;
-            anyOutputGroups = true;
+            else if (tokenGrp.quantity == 0)
+            {
+                return state.Invalid(false, REJECT_INVALID, "OP_GROUP quantity is zero");
+            }
+            else  // this is an authority output
+            {
+                gBalance[tokenGrp.associatedGroup].ctrlOutputPerms |= (GroupControllerFlags) tokenGrp.quantity;
+                anyOutputControlGroups = true;
+            }
         }
     }
 
@@ -247,30 +264,25 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         if (tokenGrp.invalid)
             continue;
         CAmount amount = tokenGrp.quantity;
-        if (tokenGrp.mintMeltGroup != NoGroup)
+        if (tokenGrp.controllingGroupFlags != GroupControllerFlags::NONE)
         {
-            gBalance[tokenGrp.mintMeltGroup].mintMelt = true;
+            auto temp = tokenGrp.controllingGroupFlags;
+            // outputs can have all the permissions of inputs, except for 1 special case
+            // If CCHILD is not set, no outputs can be authorities (so unset the CTRL flag)
+            if (!hasCapability(temp, GroupControllerFlags::CCHILD) ) temp &= (GroupControllerFlags) ~((uint64_t)GroupControllerFlags::CTRL);
+            gBalance[tokenGrp.associatedGroup].ctrlPerms |= temp;
         }
         if (tokenGrp.associatedGroup != NoGroup)
         {
-            if (std::numeric_limits<CAmount>::max() - gBalance[tokenGrp.associatedGroup].input < amount)
-                return state.Invalid(false, REJECT_INVALID, "token overflow");
-            gBalance[tokenGrp.associatedGroup].input += amount;
-        }
-
-        if (anyOutputGroups)
-        {
-            // Implement a limited quantity token via a one-time mint operation
-            // by minting to the sha256 of a COutPoint.  A COutPoint provides entropy (is extremely likely to be unique)
-            // because it contains the sha256 of the input tx and an index.
-            CHashWriter oneTimeGrp(SER_GETHASH, PROTOCOL_VERSION);
-            oneTimeGrp << prevout;
-            CTokenGroupID otg(oneTimeGrp.GetHash());
-
-            auto item = gBalance.find(otg); // Is there an output to this group?
-            if (item != gBalance.end()) // If so, indicate that it can be minted
+            if (amount < 0)
             {
-                item->second.mintMelt = true;
+                // from the perspective of balancing, a controller utxo is empty so nothing to add here
+            }
+            else
+            {
+                if (std::numeric_limits<CAmount>::max() - gBalance[tokenGrp.associatedGroup].input < amount)
+                    return state.Invalid(false, REJECT_INVALID, "token overflow");
+                gBalance[tokenGrp.associatedGroup].input += amount;
             }
         }
     }
@@ -279,11 +291,38 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     for (auto &txo : gBalance)
     {
         CBalance &bal = txo.second;
-        if (!bal.mintMelt && (bal.input != bal.output))
+        // If it has an authority, with no input authority, check mint
+        if (hasCapability(bal.ctrlOutputPerms, GroupControllerFlags::CTRL) && (bal.ctrlPerms == GroupControllerFlags::NONE))
         {
-            return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-mint",
-                "Group output exceeds input, including all mintable");
+            CHashWriter mintGrp(SER_GETHASH, PROTOCOL_VERSION);
+            mintGrp << tx.vin[0].prevout << (((uint64_t) bal.ctrlOutputPerms) & ~((uint64_t)GroupControllerFlags::ALL_BITS));
+            CTokenGroupID newGrpId(mintGrp.GetHash());
+
+            if (newGrpId == txo.first)  // This IS new group because id matches hash, so allow all authority.
+            {
+                if (bal.numOutputs != 1)  // only allow the single authority tx during a create
+                    return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-create",
+                "Multiple grouped outputs created during group creation transaction");
+                bal.ctrlPerms = GroupControllerFlags::ALL;
+            }
         }
+
+        if ((bal.input > bal.output) && !hasCapability(bal.ctrlPerms, GroupControllerFlags::MELT))
+            {
+                return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-melt",
+                "Group input exceeds output, but no melt permission");
+            }
+        if ((bal.input < bal.output) && !hasCapability(bal.ctrlPerms, GroupControllerFlags::MINT))
+            {
+                return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-mint",
+                "Group output exceeds input, but no mint permission");
+            }
+        if ( ((uint64_t) (bal.ctrlOutputPerms&GroupControllerFlags::ALL)) & ~((uint64_t) (bal.ctrlPerms&GroupControllerFlags::ALL)))  // Some output permissions are set that are not in the inputs
+        {
+                return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-perm",
+                "Group output permissions exceeds input permissions");
+        }
+
     }
 
     return true;
