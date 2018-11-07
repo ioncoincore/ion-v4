@@ -242,6 +242,7 @@ bool CScript::IsNormalPaymentScript() const
 
 bool CScript::IsPayToScriptHash(vector<unsigned char> *hashBytes) const
 {
+    if (!(this->size() > 0 )) return false;
     unsigned int offset = 0;
     if ((*this)[0] > OP_0 && (*this)[0] < OP_PUSHDATA1)
     {
