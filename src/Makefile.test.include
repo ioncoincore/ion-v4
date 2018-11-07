@@ -27,7 +27,6 @@ BITCOIN_TEST_SUITE = \
   test/test_ion.cpp
 # test_ion binary #
 BITCOIN_TESTS =\
-  test/tokengroup_tests.cpp \
   test/zerocoin_implementation_tests.cpp\
   test/zerocoin_denomination_tests.cpp\
   test/zerocoin_transactions_tests.cpp \
@@ -52,8 +51,6 @@ BITCOIN_TESTS =\
   test/hash_tests.cpp \
   test/key_tests.cpp \
   test/main_tests.cpp \
-  #test/mempool_tests.cpp \
-  #test/mruset_tests.cpp \
   test/multisig_tests.cpp \
   test/netbase_tests.cpp \
   test/pmt_tests.cpp \
