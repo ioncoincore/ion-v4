@@ -153,6 +153,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"searchdxion", 1},
         {"searchdxion", 2},
         {"getaccumulatorvalues", 0},
+        {"getaccumulatorwitness",2},
+        {"getmintsvalues", 2},
         {"enableautomintaddress", 0},
         {"getfeeinfo", 0}
     };
