@@ -18,9 +18,13 @@
 #include "accumulatormap.h"
 #include "accumulators.h"
 #include "accumulatorcheckpoints.h"
-
+#include "wallet.h"
+#include "libzerocoin/Coin.h"
 #include <stdint.h>
+#include <fstream>
+#include <iostream>
 #include <univalue.h>
+#include "libzerocoin/bignum.h"
 
 using namespace std;
 
