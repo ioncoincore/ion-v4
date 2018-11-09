@@ -137,7 +137,6 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
 
     // Now iterate through the inputs applying them to match outputs.
     // If any input utxo address matches a non-bitcoin group address, defer since this could be a mint or burn
-/*
     for (const auto& inp: tx.vin)
     {
         const COutPoint &prevout = inp.prevout;
@@ -201,8 +200,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             LogPrint("tokens", "%s - Debug Assertion failed", __func__);
         };
     }
-*/
-/*
+
     // Now pass thru the outputs deciding what to do with the mintable and meltable coins
     for (auto& txo: gBalance)
     {
@@ -241,7 +239,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     {
         return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-tx", "Group transaction imbalance");
     }
-*/
+
     return true;
 }
 
