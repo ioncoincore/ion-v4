@@ -271,7 +271,8 @@ public:
     }
 
     CTokenGroupID operator()(const CNoDestination &) const
-    { return CTokenGroupID();
+    {
+        return CTokenGroupID();
     }
 };
 
@@ -292,16 +293,19 @@ CTokenGroupID::CTokenGroupID(const std::string &addr, const CChainParams &params
         data = cac.hash;
     // otherwise it becomes NoGroup (i.e. data is size 0)
 }
- std::string CTokenGroupID::Encode(const CChainParams &params)
+
+std::string CTokenGroupID::Encode(const CChainParams &params)
 {
     return EncodeIONAddr(data, IONAddrType::GROUP_TYPE, params);
 }
- CTxDestination CTokenGroupID::ControllingAddress() const
+
+CTxDestination CTokenGroupID::ControllingAddress() const
 {
     // TODO figure out whether this is a script or p2pkh address
     return CTxDestination(CKeyID(uint160(data)));
 }
- class CGroupScriptVisitor : public boost::static_visitor<bool>
+
+class CGroupScriptVisitor : public boost::static_visitor<bool>
 {
 private:
     CScript *script;
@@ -313,7 +317,8 @@ public:
         script->clear();
         return false;
     }
-     bool operator()(const CKeyID &keyID) const
+
+    bool operator()(const CKeyID &keyID) const
     {
         script->clear();
         if (group.isUserGroup())
@@ -326,7 +331,8 @@ public:
         }
         return true;
     }
-     bool operator()(const CScriptID &scriptID) const
+
+    bool operator()(const CScriptID &scriptID) const
     {
         script->clear();
         if (group.isUserGroup())
@@ -340,7 +346,8 @@ public:
         return true;
     }
 };
- CAmount GetGroupBalance(const CTokenGroupID &grpID, const CTxDestination &dest, const CWallet *wallet)
+
+CAmount GetGroupBalance(const CTokenGroupID &grpID, const CTxDestination &dest, const CWallet *wallet)
 {
     std::vector<COutput> coins;
     wallet->FilterCoins(coins, [grpID, dest](const CWalletTx *tx, const CTxOut *out) {
@@ -365,13 +372,15 @@ public:
     }
     return totalAvailable;
 }
- CScript GetScriptForDestination(const CTxDestination &dest, const CTokenGroupID& group)
+
+CScript GetScriptForDestination(const CTxDestination &dest, const CTokenGroupID& group)
 {
     CScript script;
      boost::apply_visitor(CGroupScriptVisitor(group, &script), dest);
     return script;
 }
- static CAmount AmountFromSatoshiValue(const UniValue &value)
+
+static CAmount AmountFromSatoshiValue(const UniValue &value)
 {
     if (!value.isNum() && !value.isStr())
         throw std::runtime_error("Amount is not a number or string");
@@ -382,7 +391,8 @@ public:
         throw std::runtime_error("Amount out of range");
     return amount;
 }
- // extracts a common RPC call parameter pattern.  Returns curparam.
+
+// extracts a common RPC call parameter pattern.  Returns curparam.
 static unsigned int ParseGroupAddrValue(const UniValue &params,
     unsigned int curparam,
     CTokenGroupID &grpID,
@@ -422,11 +432,13 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
     }
     return curparam;
 }
- bool NearestGreaterCoin(const std::vector<COutput>& coins, CAmount amt, COutput& chosenCoin)
+
+bool NearestGreaterCoin(const std::vector<COutput>& coins, CAmount amt, COutput& chosenCoin)
 {
     bool ret = false;
     CAmount curBest=std::numeric_limits<CAmount>::max();
-     for(const auto& coin: coins)
+
+    for(const auto& coin: coins)
     {
         CAmount camt = coin.GetValue();
         if ((camt > amt)&&(camt < curBest))
@@ -438,7 +450,8 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
     }
      return ret;
 }
- CAmount CoinSelection(const std::vector<COutput>& coins, CAmount amt, std::vector<COutput>& chosenCoins)
+
+CAmount CoinSelection(const std::vector<COutput>& coins, CAmount amt, std::vector<COutput>& chosenCoins)
 {
     // simple algorithm grabs until amount exceeded
     CAmount cur=0;
@@ -450,7 +463,8 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
     }
     return cur;
 }
- void ConstructTx(CWalletTx& wtxNew, const std::vector<COutput>& chosenCoins, const std::vector<CRecipient> &outputs, CAmount totalAvailable, CAmount totalNeeded, CTokenGroupID grpID, CWallet* wallet)
+
+void ConstructTx(CWalletTx& wtxNew, const std::vector<COutput>& chosenCoins, const std::vector<CRecipient> &outputs, CAmount totalAvailable, CAmount totalNeeded, CTokenGroupID grpID, CWallet* wallet)
 {
     std::string strError;
     CMutableTransaction tx;
@@ -463,12 +477,14 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
         assert(tx.nLockTime < LOCKTIME_THRESHOLD);
         unsigned int approxSize = 0;
         // Add group input and output
+
         for (const CRecipient &recipient : outputs)
         {
             CTxOut txout(recipient.nAmount, recipient.scriptPubKey);
             tx.vout.push_back(txout);
             approxSize += ::GetSerializeSize(txout, SER_DISK, CLIENT_VERSION);
         }
+
         unsigned int inpSize = 0;
         for (const auto &coin : chosenCoins)
         {
@@ -477,50 +493,61 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
             inpSize = ::GetSerializeSize(txin, SER_DISK, CLIENT_VERSION) + TX_SIG_SCRIPT_LEN;
             approxSize += inpSize;
         }
+
         if (totalAvailable > totalNeeded) // need to make a group change output
         {
             CPubKey newKey;
             if (!groupChangeKeyReservation.GetReservedKey(newKey))
                 throw JSONRPCError(
                     RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+
             CTxOut txout(totalAvailable - totalNeeded, GetScriptForDestination(newKey.GetID(), grpID));
             tx.vout.push_back(txout);
             approxSize += ::GetSerializeSize(txout, SER_DISK, CLIENT_VERSION);
         }
+
         // Add another input for the bitcoin used for the fee
         // this ignores the additional change output
         approxSize += inpSize * 4;
+
         // Now add bitcoin fee
         CAmount fee = wallet->GetRequiredFee(approxSize);
+
         // find a fee input
         std::vector<COutput> bchcoins;
         wallet->FilterCoins(bchcoins, [](const CWalletTx *tx, const CTxOut *out) {
             CTokenGroupPair tg = GetTokenGroupPair(out->scriptPubKey);
             return BitcoinGroup == tg.associatedGroup;
         });
+
         COutput feeCoin(nullptr,0,0,false);
         if (!NearestGreaterCoin(bchcoins, fee, feeCoin))
         {
             strError = strprintf("Not enough funds for fee of %d.", FormatMoney(fee));
             throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
         }
+
         CTxIn txin(feeCoin.GetOutPoint(), CScript(), std::numeric_limits<unsigned int>::max() - 1);
         tx.vin.push_back(txin);
+
         if (feeCoin.GetValue() > 2 * fee) // make change if input is too big
         {
             CPubKey newKey;
              if (!feeChangeKeyReservation.GetReservedKey(newKey))
                 throw JSONRPCError(
                     RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
-             CTxOut txout(feeCoin.GetValue() - fee, GetScriptForDestination(newKey.GetID()));
+
+            CTxOut txout(feeCoin.GetValue() - fee, GetScriptForDestination(newKey.GetID()));
             tx.vout.push_back(txout);
         }
+
         if (!wallet->SignTransaction(tx))
         {
             throw JSONRPCError(RPC_WALLET_ERROR, "Signing transaction failed");
         }
     }
-     wtxNew.BindWallet(wallet);
+
+    wtxNew.BindWallet(wallet);
     wtxNew.fFromMe = true;
     *static_cast<CTransaction *>(&wtxNew) = CTransaction(tx);
     CReserveKey dummy(wallet);  // I'll manage my own keys because I have multiple.  Passing a valid key down breaks layering.
@@ -529,16 +556,19 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
                                              "coins in your wallet were already spent, such as if you used a copy of "
                                              "wallet.dat and coins were spent in the copy but not marked as spent "
                                              "here.");
+
     feeChangeKeyReservation.KeepKey();
     groupChangeKeyReservation.KeepKey();
 }
- void GroupMelt(CWalletTx& wtxNew, const CTokenGroupID &grpID,
+
+void GroupMelt(CWalletTx& wtxNew, const CTokenGroupID &grpID,
     const std::vector<CRecipient> &outputs,
     CAmount totalNeeded,
     CWallet *wallet)
 {
     CAmount totalAvailable = 0;
     LOCK2(cs_main, wallet->cs_wallet);
+
      // Find meltable coins
     std::vector<COutput> coins;
     wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
@@ -546,9 +576,11 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
         // must be a grouped output sitting in group address
         return ((grpID == tg.associatedGroup) && (grpID == tg.mintMeltGroup));
     });
-     // Get a near but greater quantity
+
+    // Get a near but greater quantity
     std::vector<COutput> chosenCoins;
     totalAvailable = CoinSelection(coins, totalNeeded, chosenCoins);
+
     if (totalAvailable < totalNeeded)
     {
         std::string strError;
@@ -558,33 +590,40 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
 
      ConstructTx(wtxNew, chosenCoins, outputs, totalAvailable, totalNeeded, grpID, wallet);
 }
- void GroupSend(CWalletTx& wtxNew, const CTokenGroupID &grpID, const std::vector<CRecipient> &outputs, CAmount totalNeeded, CWallet* wallet)
+
+void GroupSend(CWalletTx& wtxNew, const CTokenGroupID &grpID, const std::vector<CRecipient> &outputs, CAmount totalNeeded, CWallet* wallet)
 {
     LOCK2(cs_main, wallet->cs_wallet);
     std::string strError;
     CTxDestination mintableAddress = grpID.ControllingAddress();
+
     // Find mintable coins
     std::vector<COutput> coins;
     wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupPair tg = GetTokenGroupPair(out->scriptPubKey);
         return grpID == tg.associatedGroup; // must be sitting in group address
     });
+
     CAmount totalAvailable = 0;
     for (auto coin : coins)
     {
         totalAvailable += coin.tx->vout[coin.i].nValue;
     }
+
     if (totalAvailable < totalNeeded)
     {
         strError = strprintf("Not enough tokens.  Need %d more.", totalNeeded - totalAvailable);
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
     }
-     // Get a near but greater quantity
+
+    // Get a near but greater quantity
     std::vector<COutput> chosenCoins;
     totalAvailable = CoinSelection(coins, totalNeeded, chosenCoins);
-     ConstructTx(wtxNew, chosenCoins, outputs, totalAvailable, totalNeeded, grpID, wallet);
+
+    ConstructTx(wtxNew, chosenCoins, outputs, totalAvailable, totalNeeded, grpID, wallet);
 }
- extern UniValue token(const UniValue &params, bool fHelp)
+
+extern UniValue token(const UniValue &params, bool fHelp)
 {
     CWallet* wallet = pwalletMain;
     if (!pwalletMain)
@@ -638,10 +677,12 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
         unsigned int curparam = 1;
         std::vector<CRecipient> outputs;
         curparam = ParseGroupAddrValue(params, curparam, grpID, outputs, totalNeeded, true);
+
         if (!wallet->HaveTxDestination(grpID.ControllingAddress()))
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter 1: Group is not owned by this wallet");
         }
+
         if (outputs.empty())
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "No destination address or payment amount");
@@ -650,6 +691,7 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Improper number of parameters, did you forget the payment amount?");
         }
+
         CWalletTx wtx;
         CReserveKey reservekey(wallet);
         CCoinControl coinControl;
@@ -657,7 +699,8 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
         CAmount nFeeRequired;
         int nChangePosRet = -1;
         std::string strError;
-         CTxDestination mintableAddress = grpID.ControllingAddress();
+        CTxDestination mintableAddress = grpID.ControllingAddress();
+
         // Find mintable coins
         std::vector<COutput> coins;
         int nOptions = wallet->FilterCoins(coins, [grpID] (const CWalletTx* tx, const CTxOut* out)
