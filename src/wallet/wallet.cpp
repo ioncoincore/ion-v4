@@ -2266,8 +2266,8 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
 {
     AssertLockHeld(cs_wallet); // mapWallet
 
+#if 0
     unsigned int sighashType = SIGHASH_ALL;
-    CTransaction txNewConst(tx);
     int nIn = 0;
     for (const auto &input : tx.vin)
     {
@@ -2277,19 +2277,18 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
             return false;
         }
         const CScript &scriptPubKey = mi->second.vout[input.prevout.n].scriptPubKey;
-        const CAmount &amount = mi->second.vout[input.prevout.n].nValue;
-        CScript &scriptSigRes = tx.vin[nIn].scriptSig;
         if (!SignSignature(*this, scriptPubKey, tx, nIn, sighashType)) {
             return false;
         }
-/*
-        if (!ProduceSignature(
-                TransactionSignatureCreator(this, &txNewConst, nIn, amount, sighashType), scriptPubKey, scriptSigRes))
-        {
-            return false;
-        }
-*/
         nIn++;
+    }
+#endif
+
+    int nIn = 0;
+    for (CTxIn txIn : tx.vin) {
+        const CWalletTx *wtx = GetWalletTx(txIn.prevout.hash);
+        if (!SignSignature(*this, *wtx, tx, nIn++))
+            return error("SignTransaction : failed to sign transaction");
     }
     return true;
 }
