@@ -318,10 +318,6 @@ void ConstructTx(CWalletTx &wtxNew,
     CReserveKey feeChangeKeyReservation(wallet);
 
     {
-        if (GetRandInt(10) == 0)
-            tx.nLockTime = std::max(0, (int)tx.nLockTime - GetRandInt(100));
-        assert(tx.nLockTime <= (unsigned int)chainActive.Height());
-        assert(tx.nLockTime < LOCKTIME_THRESHOLD);
         unsigned int approxSize = 0;
 
         // Add group input and output
@@ -335,7 +331,7 @@ void ConstructTx(CWalletTx &wtxNew,
         unsigned int inpSize = 0;
         for (const auto &coin : chosenCoins)
         {
-            CTxIn txin(coin.GetOutPoint(), CScript(), std::numeric_limits<unsigned int>::max() - 1);
+            CTxIn txin(coin.GetOutPoint());
             tx.vin.push_back(txin);
             inpSize = ::GetSerializeSize(txin, SER_DISK, CLIENT_VERSION) + TX_SIG_SCRIPT_LEN;
             approxSize += inpSize;
@@ -376,7 +372,7 @@ void ConstructTx(CWalletTx &wtxNew,
             throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
         }
 
-        CTxIn txin(feeCoin.GetOutPoint(), CScript(), std::numeric_limits<unsigned int>::max() - 1);
+        CTxIn txin(feeCoin.GetOutPoint());
         tx.vin.push_back(txin);
 
         if (feeCoin.GetValue() > 2 * fee) // make change if input is too big
