@@ -67,13 +67,28 @@ bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, Acc
 
 // Exceptions
 
-class NoEnoughMintsException : public std::exception {
-
+class NotEnoughMintsException : public std::exception {
 public:
     std::string message;
+    NotEnoughMintsException(const string &message) : message(message) {}
+};
 
-    NoEnoughMintsException(const string &message) : message(message) {}
+class GetPubcoinException : public std::exception {
+public:
+    std::string message;
+    GetPubcoinException(const string &message) : message(message) {}
+};
 
+class ChecksumInDbNotFoundException : public std::exception {
+public:
+    std::string message;
+    ChecksumInDbNotFoundException(const string &message) : message(message) {}
+};
+
+class searchMintHeightException : public std::exception {
+public:
+    std::string message;
+    searchMintHeightException(const string &message) : message(message) {}
 };
 
 #endif //ION_ACCUMULATORS_H
