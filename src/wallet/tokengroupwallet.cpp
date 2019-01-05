@@ -24,6 +24,9 @@
 
 #include <boost/lexical_cast.hpp>
 
+// allow this many times fee overpayment, rather than make a change output
+#define FEE_FUDGE 2
+
 UniValue groupedlistsinceblock(const UniValue &params, bool fHelp);
 UniValue groupedlisttransactions(const UniValue &params, bool fHelp);
 
@@ -173,9 +176,20 @@ CAmount GetGroupBalance(const CTokenGroupID &grpID, const CTxDestination &dest, 
     CAmount balance = 0;
     wallet->FilterCoins(coins, [grpID, dest, &balance](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupInfo tg(out->scriptPubKey);
-        if (grpID == tg.associatedGroup) // must be sitting in group address
+        if ((grpID == tg.associatedGroup) && !tg.isAuthority()) // must be sitting in group address
         {
-            if ((dest == CTxDestination(CNoDestination())) || (GetTokenGroup(dest) == tg.associatedGroup))
+            bool useit = dest == CTxDestination(CNoDestination());
+            if (!useit)
+            {
+                CTxDestination address;
+                txnouttype whichType;
+                if (ExtractDestinationAndType(out->scriptPubKey, address, whichType))
+                {
+                    if (address == dest)
+                        useit = true;
+                }
+            }
+            if (useit)
             {
                 if (tg.quantity > std::numeric_limits<CAmount>::max() - balance)
                     balance = std::numeric_limits<CAmount>::max();
@@ -303,12 +317,13 @@ CAmount GroupCoinSelection(const std::vector<COutput> &coins, CAmount amt, std::
     return cur;
 }
 
-
 void ConstructTx(CWalletTx &wtxNew,
     const std::vector<COutput> &chosenCoins,
     const std::vector<CRecipient> &outputs,
     CAmount totalAvailable,
     CAmount totalNeeded,
+    CAmount totalGroupedAvailable,
+    CAmount totalGroupedNeeded,
     CTokenGroupID grpID,
     CWallet *wallet)
 {
@@ -320,7 +335,7 @@ void ConstructTx(CWalletTx &wtxNew,
     {
         unsigned int approxSize = 0;
 
-        // Add group input and output
+        // Add group outputs based on the passed recipient data to the tx.
         for (const CRecipient &recipient : outputs)
         {
             CTxOut txout(recipient.nAmount, recipient.scriptPubKey);
@@ -328,6 +343,7 @@ void ConstructTx(CWalletTx &wtxNew,
             approxSize += ::GetSerializeSize(txout, SER_DISK, CLIENT_VERSION);
         }
 
+        // Gather data on the provided inputs, and add them to the tx.
         unsigned int inpSize = 0;
         for (const auto &coin : chosenCoins)
         {
@@ -337,7 +353,7 @@ void ConstructTx(CWalletTx &wtxNew,
             approxSize += inpSize;
         }
 
-        if (totalAvailable > totalNeeded) // need to make a group change output
+        if (totalGroupedAvailable > totalGroupedNeeded) // need to make a group change output
         {
             CPubKey newKey;
 
@@ -345,8 +361,8 @@ void ConstructTx(CWalletTx &wtxNew,
                 throw JSONRPCError(
                     RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
 
-            CTxOut txout(
-                GROUPED_SATOSHI_AMT, GetScriptForDestination(newKey.GetID(), grpID, totalAvailable - totalNeeded));
+            CTxOut txout(GROUPED_SATOSHI_AMT,
+                GetScriptForDestination(newKey.GetID(), grpID, totalGroupedAvailable - totalGroupedNeeded));
             tx.vout.push_back(txout);
             approxSize += ::GetSerializeSize(txout, SER_DISK, CLIENT_VERSION);
         }
@@ -358,24 +374,29 @@ void ConstructTx(CWalletTx &wtxNew,
         // Now add bitcoin fee
         CAmount fee = wallet->GetRequiredFee(approxSize);
 
-        // find a fee input
-        std::vector<COutput> bchcoins;
-        wallet->FilterCoins(bchcoins, [](const CWalletTx *tx, const CTxOut *out) {
-            CTokenGroupInfo tg(out->scriptPubKey);
-            return NoGroup == tg.associatedGroup;
-        });
-
-        COutput feeCoin(nullptr, 0, 0, false);
-        if (!NearestGreaterCoin(bchcoins, fee, feeCoin))
+        if (totalAvailable < totalNeeded + fee) // need to find a fee input
         {
-            strError = strprintf("Not enough funds for fee of %d.", FormatMoney(fee));
-            throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
+            // find a fee input
+            std::vector<COutput> bchcoins;
+            wallet->FilterCoins(bchcoins, [](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                return NoGroup == tg.associatedGroup;
+            });
+
+            COutput feeCoin(nullptr, 0, 0, false);
+            if (!NearestGreaterCoin(bchcoins, fee, feeCoin))
+            {
+                strError = strprintf("Not enough funds for fee of %d.", FormatMoney(fee));
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
+            }
+
+            CTxIn txin(feeCoin.GetOutPoint(), CScript(), std::numeric_limits<unsigned int>::max() - 1);
+            tx.vin.push_back(txin);
+            totalAvailable += feeCoin.GetValue();
         }
 
-        CTxIn txin(feeCoin.GetOutPoint());
-        tx.vin.push_back(txin);
-
-        if (feeCoin.GetValue() > 2 * fee) // make change if input is too big
+        // make change if input is too big -- its okay to overpay by FEE_FUDGE rather than make dust.
+        if (totalAvailable > totalNeeded + (FEE_FUDGE * fee))
         {
             CPubKey newKey;
 
@@ -383,7 +404,7 @@ void ConstructTx(CWalletTx &wtxNew,
                 throw JSONRPCError(
                     RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
 
-            CTxOut txout(feeCoin.GetValue() - fee, GetScriptForDestination(newKey.GetID()));
+            CTxOut txout(totalAvailable - totalNeeded - fee, GetScriptForDestination(newKey.GetID()));
             tx.vout.push_back(txout);
         }
 
@@ -411,16 +432,46 @@ void ConstructTx(CWalletTx &wtxNew,
 
 void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeeded, CWallet *wallet)
 {
-    const std::vector<CRecipient> outputs; // Melt has no outputs (except change)
+    std::string strError;
+    std::vector<CRecipient> outputs; // Melt has no outputs (except change)
     CAmount totalAvailable = 0;
+    CAmount totalBchAvailable = 0;
+    CAmount totalBchNeeded = 0;
     LOCK2(cs_main, wallet->cs_wallet);
 
-    // Find meltable coins
+    // Find melt authority
     std::vector<COutput> coins;
+
+    int nOptions = wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
+        CTokenGroupInfo tg(out->scriptPubKey);
+        if ((tg.associatedGroup == grpID) && tg.allowsMelt())
+        {
+            return true;
+        }
+        return false;
+    });
+
+
+    if (nOptions == 0)
+    {
+        strError = _("To melt coins, an authority output with melt capability is needed.");
+        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
+    }
+    COutput authority(nullptr, 0, 0, false);
+    // Just pick the first one for now.
+    for (auto coin : coins)
+    {
+        totalBchAvailable += coin.tx->vout[coin.i].nValue; // The melt authority may have some BCH in it
+        authority = coin;
+        break;
+    }
+
+    // Find meltable coins
+    coins.clear();
     wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupInfo tg(out->scriptPubKey);
         // must be a grouped output sitting in group address
-        return (grpID == tg.associatedGroup);
+        return ((grpID == tg.associatedGroup) && !tg.isAuthority());
     });
 
     // Get a near but greater quantity
@@ -430,14 +481,33 @@ void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeede
     if (totalAvailable < totalNeeded)
     {
         std::string strError;
-        strError =
-            strprintf("Not enough tokens in the controlling address.  Need %d more.", totalNeeded - totalAvailable);
+        strError = strprintf("Not enough tokens in the wallet.  Need %d more.", totalNeeded - totalAvailable);
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
     }
 
-    // by passing a nonzero totalNeeded, but empty outputs, there is a surplus number of tokens.
+    chosenCoins.push_back(authority);
+    // The melting authority is consumed.  A wallet can decide to create a child authority or not.
+    // In this simple wallet, we will always create a new melting authority if we spend a renewable
+    // (CCHILD is set) one.
+    CTokenGroupInfo tg(authority.GetScriptPubKey());
+    CReserveKey childAuthorityKey(wallet);
+
+    if (tg.allowsRenew())
+    {
+        // Get a new address from the wallet to put the new mint authority in.
+        CPubKey pubkey;
+        childAuthorityKey.GetReservedKey(pubkey);
+        CTxDestination authDest = pubkey.GetID();
+        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)tg.controllingGroupFlags);
+        CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+        outputs.push_back(recipient);
+        totalBchNeeded += GROUPED_SATOSHI_AMT;
+    }
+
+    // by passing a fewer tokens available than are actually in the inputs, there is a surplus.
     // This surplus will be melted.
-    ConstructTx(wtxNew, chosenCoins, outputs, totalAvailable, totalNeeded, grpID, wallet);
+    ConstructTx(wtxNew, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, totalAvailable - totalNeeded, 0, grpID,
+        wallet);
 }
 
 void GroupSend(CWalletTx &wtxNew,
@@ -452,7 +522,7 @@ void GroupSend(CWalletTx &wtxNew,
     CAmount totalAvailable = 0;
     wallet->FilterCoins(coins, [grpID, &totalAvailable](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupInfo tg(out->scriptPubKey);
-        if (grpID == tg.associatedGroup)
+        if ((grpID == tg.associatedGroup) && !tg.isAuthority())
             totalAvailable += tg.quantity;
         return grpID == tg.associatedGroup; // must be sitting in group address
     });
@@ -467,22 +537,22 @@ void GroupSend(CWalletTx &wtxNew,
     std::vector<COutput> chosenCoins;
     totalAvailable = GroupCoinSelection(coins, totalNeeded, chosenCoins);
 
-    ConstructTx(wtxNew, chosenCoins, outputs, totalAvailable, totalNeeded, grpID, wallet);
+    ConstructTx(wtxNew, chosenCoins, outputs, 0, GROUPED_SATOSHI_AMT * outputs.size(), totalAvailable, totalNeeded,
+        grpID, wallet);
 }
 
-CTokenGroupID findGroupId(const COutPoint& input, TokenGroupIdFlags flags, uint64_t& nonce)
+CTokenGroupID findGroupId(const COutPoint &input, TokenGroupIdFlags flags, uint64_t &nonce)
 {
-
     CTokenGroupID ret;
     do
     {
         nonce += 1;
         CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
         // mask off any flags in the nonce
-        nonce &= ~((uint64_t) GroupControllerFlags::ALL_BITS);
+        nonce &= ~((uint64_t)GroupControllerFlags::ALL_BITS);
         hasher << input << nonce;
         ret = hasher.GetHash();
-    } while (ret.bytes()[31] != (uint8_t) flags);
+    } while (ret.bytes()[31] != (uint8_t)flags);
     return ret;
 }
 
@@ -550,12 +620,11 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
         unsigned int curparam = 1;
 
-        //CCoinControl coinControl;
-        //coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
+        // CCoinControl coinControl;
+        // coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
         COutput coin(nullptr, 0, 0, false);
 
         {
-            // I can use any prevout for the singlemint operation, so find some dust
             std::vector<COutput> coins;
             CAmount lowest = Params().MaxMoneyOut();
             wallet->FilterCoins(coins, [&lowest](const CWalletTx *tx, const CTxOut *out) {
@@ -572,7 +641,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
             if (0 == coins.size())
             {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "No available outputs");
+                throw JSONRPCError(RPC_INVALID_PARAMS, "No coins available in the wallet");
             }
             coin = coins[coins.size() - 1];
         }
@@ -589,79 +658,31 @@ extern UniValue token(const UniValue &params, bool fHelp)
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: no authority address");
         }
-        CScript script = GetScriptForDestination(authDest, grpID, (CAmount) GroupControllerFlags::ALL);
+        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)GroupControllerFlags::ALL | grpNonce);
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
         outputs.push_back(recipient);
 
         CWalletTx wtx;
-        ConstructTx(wtx, chosenCoins, outputs, 0, 0, grpID, wallet);
-        return wtx.GetHash().GetHex();
-
-
-
-#if 0
-
-        std::vector<CRecipient> outputs;
-        outputs.reserve(params.size() / 2);
-        while (curparam + 1 < params.size())
-        {
-            CTxDestination dst = DecodeDestination(params[curparam].get_str(), Params());
-            if (dst == CTxDestination(CNoDestination()))
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: destination address");
-            }
-            CAmount amount = AmountFromIntegralValue(params[curparam + 1]);
-            if (amount <= 0)
-                throw JSONRPCError(RPC_TYPE_ERROR, "Invalid parameter: amount");
-            CScript script = GetScriptForDestination(dst, grpID, amount);
-            CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
-            totalValue += amount;
-            outputs.push_back(recipient);
-            curparam += 2;
-        }
-
-        CWalletTx wtx;
-        CReserveKey reservekey(wallet);
-        CAmount nFeeRequired = 0;
-        int nChangePosRet = -1;
-        std::string strError;
-        if (!wallet->CreateTransaction(outputs, wtx, reservekey, nFeeRequired, nChangePosRet, strError, &coinControl))
-        {
-            strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its "
-                                 "amount, complexity, or use of recently received funds!",
-                FormatMoney(nFeeRequired));
-            throw JSONRPCError(RPC_WALLET_ERROR, strError);
-        }
-        if (!wallet->CommitTransaction(wtx, reservekey))
-            throw JSONRPCError(RPC_WALLET_ERROR,
-                "Error: The transaction was rejected! This might happen if some of the "
-                "coins in your wallet were already spent, such as if you used a copy of "
-                "wallet.dat and coins were spent in the copy but not marked as spent "
-                "here.");
+        ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, grpID, wallet);
 
         UniValue ret(UniValue::VOBJ);
         ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
         ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
         return ret;
-#endif
     }
+
+
     else if (operation == "mint")
     {
+        LOCK(cs_main); // to maintain locking order
+        LOCK(wallet->cs_wallet); // because I am reserving UTXOs for use in a tx
         CTokenGroupID grpID;
-        CAmount totalNeeded = 0;
+        CAmount totalTokensNeeded = 0;
+        CAmount totalBchNeeded = GROUPED_SATOSHI_AMT; // for the mint destination output
         unsigned int curparam = 1;
         std::vector<CRecipient> outputs;
-        curparam = ParseGroupAddrValue(params, curparam, grpID, outputs, totalNeeded, true);
-
-        CTxDestination mintableAddress = ControllingAddress(grpID, TX_PUBKEYHASH);
-        if (!wallet->HaveTxDestination(mintableAddress))
-        {
-            mintableAddress = ControllingAddress(grpID, TX_SCRIPTHASH);
-            if (!wallet->HaveTxDestination(mintableAddress))
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter 1: Group is not owned by this wallet");
-            }
-        }
+        // Get data from the parameter line. this fills grpId and adds 1 output for the correct # of tokens
+        curparam = ParseGroupAddrValue(params, curparam, grpID, outputs, totalTokensNeeded, true);
 
         if (outputs.empty())
         {
@@ -672,59 +693,66 @@ extern UniValue token(const UniValue &params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMS, "Improper number of parameters, did you forget the payment amount?");
         }
 
-        CWalletTx wtx;
-        CReserveKey reservekey(wallet);
         CCoinControl coinControl;
         coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
         CAmount nFeeRequired = 0;
         int nChangePosRet = -1;
         std::string strError;
 
-        // Find mintable coins
         std::vector<COutput> coins;
         int nOptions = wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
             CTokenGroupInfo tg(out->scriptPubKey);
-            if (tg.associatedGroup != NoGroup)
-                return false; // need bitcoin only
-            return true;
+            if ((tg.associatedGroup == grpID) && tg.allowsMint())
+            {
+                return true;
+            }
+            return false;
         });
-        // TODO find mintable control utxo
+
+
         if (nOptions == 0)
         {
-            strError = _("To mint coins, first send ION to the group's controlling address.");
+            strError = _("To mint coins, an authority output with mint capability is needed.");
             throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
         }
-        CAmount totalAvailable = 0;
+        CAmount totalBchAvailable = 0;
+        COutput authority(nullptr, 0, 0, false);
+
+        // Just pick the first one for now.
         for (auto coin : coins)
         {
-            totalAvailable += coin.tx->vout[coin.i].nValue;
-        }
-        if (totalAvailable == 0)
-        {
-            strError = strprintf("Minting requires that an output in the group's controlling address be spent.",
-                totalNeeded - totalAvailable);
-            throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
-        }
-        std::vector<COutput> chosenCoins;
-        CoinSelection(coins, GROUPED_SATOSHI_AMT, chosenCoins);
-        for (const auto &c : chosenCoins)
-        {
-            coinControl.Select(COutPoint(c.tx->GetHash(), c.i));
+            totalBchAvailable += coin.tx->vout[coin.i].nValue;
+            authority = coin;
+            break;
         }
 
-        if (!wallet->CreateTransaction(outputs, wtx, reservekey, nFeeRequired, nChangePosRet, strError, &coinControl))
+        std::vector<COutput> chosenCoins;
+        chosenCoins.push_back(authority);
+
+
+        // The minting authority is consumed.  A wallet can decide to create a child authority or not.
+        // In this simple wallet, we will always create a new minting authority if we spend a renewable
+        // (CCHILD is set) one.
+        CTokenGroupInfo tg(authority.GetScriptPubKey());
+        CReserveKey childAuthorityKey(wallet);
+
+        if (tg.allowsRenew())
         {
-            strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its "
-                                 "amount, complexity, or use of recently received funds!",
-                FormatMoney(nFeeRequired));
-            throw JSONRPCError(RPC_WALLET_ERROR, strError);
+            // Get a new address from the wallet to put the new mint authority in.
+            CPubKey pubkey;
+            childAuthorityKey.GetReservedKey(pubkey);
+            CTxDestination authDest = pubkey.GetID();
+            CScript script = GetScriptForDestination(authDest, grpID, (CAmount)tg.controllingGroupFlags);
+            CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+            outputs.push_back(recipient);
+            totalBchNeeded += GROUPED_SATOSHI_AMT;
         }
-        if (!wallet->CommitTransaction(wtx, reservekey))
-            throw JSONRPCError(RPC_WALLET_ERROR,
-                "Error: The transaction was rejected! This might happen if some of the "
-                "coins in your wallet were already spent, such as if you used a copy of "
-                "wallet.dat and coins were spent in the copy but not marked as spent "
-                "here.");
+
+        CWalletTx wtx;
+        // I don't "need" tokens even though they are in the output because I'm minting, which is why
+        // the token quantities are 0
+        ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, grpID, wallet);
+        childAuthorityKey.KeepKey();
         return wtx.GetHash().GetHex();
     }
     else if (operation == "balance")
@@ -759,10 +787,10 @@ extern UniValue token(const UniValue &params, bool fHelp)
     else if (operation == "send")
     {
         CTokenGroupID grpID;
-        CAmount totalNeeded = 0;
+        CAmount totalTokensNeeded = 0;
         unsigned int curparam = 1;
         std::vector<CRecipient> outputs;
-        curparam = ParseGroupAddrValue(params, curparam, grpID, outputs, totalNeeded, true);
+        curparam = ParseGroupAddrValue(params, curparam, grpID, outputs, totalTokensNeeded, true);
 
         if (outputs.empty())
         {
@@ -773,7 +801,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMS, "Improper number of parameters, did you forget the payment amount?");
         }
         CWalletTx wtx;
-        GroupSend(wtx, grpID, outputs, totalNeeded, wallet);
+        GroupSend(wtx, grpID, outputs, totalTokensNeeded, wallet);
         return wtx.GetHash().GetHex();
     }
     else if (operation == "melt")
@@ -788,16 +816,6 @@ extern UniValue token(const UniValue &params, bool fHelp)
         }
 
         CAmount totalNeeded = AmountFromIntegralValue(params[2]);
-
-        CTxDestination addr = ControllingAddress(grpID, TX_PUBKEYHASH);
-        if (!wallet->HaveTxDestination(addr))
-        {
-            addr = ControllingAddress(grpID, TX_SCRIPTHASH);
-            if (!wallet->HaveTxDestination(addr))
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter 1: Group is not owned by this wallet");
-            }
-        }
 
         CWalletTx wtx;
         GroupMelt(wtx, grpID, totalNeeded, wallet);
