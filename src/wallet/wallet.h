@@ -1149,6 +1149,7 @@ public:
     COutPoint GetOutPoint() const { return COutPoint(tx->GetHash(), i); }
     /** returns the value of this output in satoshis */
     CAmount GetValue() const { return tx->vout[i].nValue; }
+    CScript GetScriptPubKey() const { return tx->vout[i].scriptPubKey; }
 };
 
 

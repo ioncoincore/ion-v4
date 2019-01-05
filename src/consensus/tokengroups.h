@@ -19,7 +19,7 @@ static const unsigned int REJECT_GROUP_IMBALANCE = 0x104;
 enum class TokenGroupIdFlags : uint8_t
 {
     NONE = 0,
-    SAME_SCRIPT = 1,  // covenants/ encumberances -- output script template must match input
+    SAME_SCRIPT = 1, // covenants/ encumberances -- output script template must match input
     BALANCE_BCH = 2 // group inputs and outputs must balance both tokens and BCH
 };
 
@@ -82,57 +82,55 @@ public:
 
 enum class GroupControllerFlags : uint64_t
 {
-    CTRL = 1ULL<<63,  // Is this a controller utxo (forces negative number in amount)
-    MINT = 1ULL<<62,     // Can mint tokens
-    MELT = 1ULL<<61,     // Can melt tokens,
-    CCHILD = 1ULL << 60,  // Can create controller outputs
+    CTRL = 1ULL << 63, // Is this a controller utxo (forces negative number in amount)
+    MINT = 1ULL << 62, // Can mint tokens
+    MELT = 1ULL << 61, // Can melt tokens,
+    CCHILD = 1ULL << 60, // Can create controller outputs
     RESCRIPT = 1ULL << 59, // Can change the redeem script
-        SUBGRP = 1ULL << 58,
+    SUBGRP = 1ULL << 58,
 
     NONE = 0,
-        ALL = CTRL | MINT | MELT | CCHILD | RESCRIPT | SUBGRP,
-        ALL_BITS = 0xffffULL << (64-16)
+    ALL = CTRL | MINT | MELT | CCHILD | RESCRIPT | SUBGRP,
+    ALL_BITS = 0xffffULL << (64 - 16)
 };
 
-inline GroupControllerFlags operator | (const GroupControllerFlags a, const GroupControllerFlags b)
+inline GroupControllerFlags operator|(const GroupControllerFlags a, const GroupControllerFlags b)
 {
-    GroupControllerFlags ret = (GroupControllerFlags) (((uint64_t) a) |  ( (uint64_t) b));
+    GroupControllerFlags ret = (GroupControllerFlags)(((uint64_t)a) | ((uint64_t)b));
     return ret;
 }
 
-inline GroupControllerFlags operator & (const GroupControllerFlags a, const GroupControllerFlags b)
+inline GroupControllerFlags operator&(const GroupControllerFlags a, const GroupControllerFlags b)
 {
-    GroupControllerFlags ret = (GroupControllerFlags) (((uint64_t) a) &  ( (uint64_t) b));
+    GroupControllerFlags ret = (GroupControllerFlags)(((uint64_t)a) & ((uint64_t)b));
     return ret;
 }
 
-inline GroupControllerFlags& operator |= (GroupControllerFlags& a, const GroupControllerFlags b)
+inline GroupControllerFlags &operator|=(GroupControllerFlags &a, const GroupControllerFlags b)
 {
-    a = (GroupControllerFlags) (((uint64_t) a) |  ( (uint64_t) b));
+    a = (GroupControllerFlags)(((uint64_t)a) | ((uint64_t)b));
     return a;
 }
 
-inline GroupControllerFlags& operator &= (GroupControllerFlags& a, const GroupControllerFlags b)
+inline GroupControllerFlags &operator&=(GroupControllerFlags &a, const GroupControllerFlags b)
 {
-    a = (GroupControllerFlags) (((uint64_t) a) &  ( (uint64_t) b));
+    a = (GroupControllerFlags)(((uint64_t)a) & ((uint64_t)b));
     return a;
 }
 
 inline bool hasCapability(GroupControllerFlags object, const GroupControllerFlags capability)
 {
-    return (((uint64_t) object) & ( (uint64_t) capability)) != 0;
+    return (((uint64_t)object) & ((uint64_t)capability)) != 0;
 }
 
-inline CAmount toAmount(GroupControllerFlags f)
-{
-    return (CAmount) f;
-}
-
+inline CAmount toAmount(GroupControllerFlags f) { return (CAmount)f; }
 class CTokenGroupInfo
 {
 public:
-    CTokenGroupInfo() : associatedGroup(), controllingGroupFlags(GroupControllerFlags::NONE), quantity(0), invalid(true) {}
-    CTokenGroupInfo(const CTokenGroupID &associated, const GroupControllerFlags  controllingGroupFlags, CAmount qty = 0)
+    CTokenGroupInfo() : associatedGroup(), controllingGroupFlags(GroupControllerFlags::NONE), quantity(0), invalid(true)
+    {
+    }
+    CTokenGroupInfo(const CTokenGroupID &associated, const GroupControllerFlags controllingGroupFlags, CAmount qty = 0)
         : associatedGroup(associated), controllingGroupFlags(controllingGroupFlags), quantity(qty), invalid(false)
     {
     }
@@ -144,14 +142,45 @@ public:
     CTokenGroupInfo(const CScript &script);
 
     CTokenGroupID associatedGroup; // The group announced by the script (or the bitcoin group if no OP_GROUP)
-    GroupControllerFlags  controllingGroupFlags;  // if the utxo is a controller this is not NONE
+    GroupControllerFlags controllingGroupFlags; // if the utxo is a controller this is not NONE
     CAmount quantity; // The number of tokens specified in this script
     bool invalid;
+
+    // return true if this object is a token authority.
+    bool isAuthority() const
+    {
+        return ((controllingGroupFlags & GroupControllerFlags::CTRL) == GroupControllerFlags::CTRL);
+    }
+    // return true if this object allows minting.
+    bool allowsMint() const
+    {
+        return (controllingGroupFlags & (GroupControllerFlags::CTRL | GroupControllerFlags::MINT)) ==
+               (GroupControllerFlags::CTRL | GroupControllerFlags::MINT);
+    }
+    // return true if this object allows melting.
+    bool allowsMelt() const
+    {
+        return (controllingGroupFlags & (GroupControllerFlags::CTRL | GroupControllerFlags::MELT)) ==
+               (GroupControllerFlags::CTRL | GroupControllerFlags::MELT);
+    }
+    // return true if this object allows child controllers.
+    bool allowsRenew() const
+    {
+        return (controllingGroupFlags & (GroupControllerFlags::CTRL | GroupControllerFlags::CCHILD)) ==
+               (GroupControllerFlags::CTRL | GroupControllerFlags::CCHILD);
+    }
+    // return true if this object allows rescripting.
+    bool allowsRescript() const
+    {
+        return (controllingGroupFlags & (GroupControllerFlags::CTRL | GroupControllerFlags::RESCRIPT)) ==
+               (GroupControllerFlags::CTRL | GroupControllerFlags::RESCRIPT);
+    }
 
     bool isInvalid() const { return invalid; };
     bool operator==(const CTokenGroupInfo &g)
     {
-        if (g.invalid || invalid) return false;
+        if (g.invalid || invalid)
+            return false;
         return ((associatedGroup == g.associatedGroup) && (controllingGroupFlags == g.controllingGroupFlags));
     }
 };

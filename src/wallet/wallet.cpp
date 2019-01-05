@@ -12,6 +12,7 @@
 #include "checkpoints.h"
 #include "coincontrol.h"
 #include "consensus/tokengroups.h"
+#include "core_io.h"
 #include "kernel.h"
 #include "masternode-budget.h"
 #include "net.h"
@@ -2771,6 +2772,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, std:
     {
         LOCK2(cs_main, cs_wallet);
         LogPrintf("CommitTransaction:\n%s", wtxNew.ToString());
+        LogPrintf("CommitTransaction:\n%s\n", EncodeHexTx(static_cast<CTransaction>(wtxNew)));
         {
             // This is only to keep the database open to defeat the auto-flush for the
             // duration of this scope.  This is the only place where this optimization
