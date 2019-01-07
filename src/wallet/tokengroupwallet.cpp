@@ -523,13 +523,16 @@ void GroupSend(CWalletTx &wtxNew,
     wallet->FilterCoins(coins, [grpID, &totalAvailable](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupInfo tg(out->scriptPubKey);
         if ((grpID == tg.associatedGroup) && !tg.isAuthority())
+        {
             totalAvailable += tg.quantity;
-        return grpID == tg.associatedGroup; // must be sitting in group address
+            return true;
+        }
+        return false;
     });
 
     if (totalAvailable < totalNeeded)
     {
-        strError = strprintf("Not enough tokens.  Need %d more.", totalNeeded - totalAvailable);
+        strError = strprintf("Not enough tokens in the wallet.  Need %d more.", totalNeeded - totalAvailable);
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
     }
 
@@ -653,10 +656,22 @@ extern UniValue token(const UniValue &params, bool fHelp)
         chosenCoins.push_back(coin);
 
         std::vector<CRecipient> outputs;
-        CTxDestination authDest = DecodeDestination(params[curparam].get_str(), Params());
-        if (authDest == CTxDestination(CNoDestination()))
+
+        CReserveKey authKeyReservation(wallet);
+        CTxDestination authDest;
+        if (curparam >= params.size())
         {
-            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: no authority address");
+            CPubKey authKey;
+            authKeyReservation.GetReservedKey(authKey);
+            authDest = authKey.GetID();
+        }
+        else
+        {
+            authDest = DecodeDestination(params[curparam].get_str(), Params());
+            if (authDest == CTxDestination(CNoDestination()))
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: no authority address");
+            }
         }
         CScript script = GetScriptForDestination(authDest, grpID, (CAmount)GroupControllerFlags::ALL | grpNonce);
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
@@ -664,7 +679,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
         CWalletTx wtx;
         ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, grpID, wallet);
-
+        authKeyReservation.KeepKey();
         UniValue ret(UniValue::VOBJ);
         ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
         ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
