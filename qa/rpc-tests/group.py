@@ -116,8 +116,10 @@ class MyTest (BitcoinTestFramework):
         self.nodes[0].token("mint", grpId, mint0_0, 1000)
         # mint to a local address
         self.nodes[0].token("mint", grpId, mint0_0, 1000)
+        assert(self.nodes[0].token("balance", grpId) == 2000)
         # mint to a foreign address
         self.nodes[0].token("mint", grpId, mint1_0, 1000)
+        assert(self.nodes[0].token("balance", grpId) == 2000)
 
         # mint but node does not have authority
         try:
@@ -152,7 +154,6 @@ class MyTest (BitcoinTestFramework):
             self.nodes[0].token("melt", grp2Id, 200)  # I should not be able to melt without authority
             assert(0)
         except JSONRPCException as e:
-            print(e.error["message"])
             assert("To melt coins, an authority output with melt capability is needed." in e.error["message"])
             pass
 
@@ -177,6 +178,47 @@ class MyTest (BitcoinTestFramework):
         self.sync_all()
         assert(self.nodes[0].token("balance", grp2Id, mint0_0) == 300)
         assert(self.nodes[2].token("balance", grp2Id) == 800)
+
+        self.nodes[0].generate(1)
+        self.sync_blocks()
+        # no balances should change after generating a block
+        assert(self.nodes[0].token("balance", grp2Id, mint0_0) == 300)
+        assert(self.nodes[2].token("balance", grp2Id) == 800)
+        assert(self.nodes[0].token("balance", grpId) == 3000)
+        assert(self.nodes[1].token("balance", grpId) == 1000)
+
+        try: # not going to work because this wallet has 0 native crypto
+            self.nodes[1].token("send", grpId, mint2_0, 10)
+        except JSONRPCException as e:
+            # print(e.error["message"])
+            assert("Not enough funds for fee" in e.error["message"])
+
+        # test multiple destinations
+        self.nodes[0].token("mint", grp0Id, mint0_0, 310, mint1_0, 20, mint2_0, 30)
+        self.nodes[0].token("send", grp0Id, mint1_0, 100, mint2_0, 200)
+        self.sync_all()
+        assert(self.nodes[0].token("balance", grp0Id) == 10)
+        assert(self.nodes[1].token("balance", grp0Id) == 120)
+        assert(self.nodes[2].token("balance", grp0Id) == 230)
+
+        n2addr = self.nodes[2].getnewaddress()
+        # create melt authority and pass it to node 1
+        self.nodes[0].token("authority", "create", grp0Id, n2addr, "MELT", "NOCHILD")
+        self.sync_all()
+        try:
+            # I gave melt, not mint
+            self.nodes[2].token("mint", grp0Id, n2addr, 1000)
+        except JSONRPCException as e:
+            assert("To mint coins, an authority output with mint capability is needed." in e.error["message"])
+
+        # melt some of my tokens
+        self.nodes[2].token("melt", grp0Id, 100)
+        assert(self.nodes[2].token("balance", grp0Id) == 130)
+
+        try:  # test that the NOCHILD authority worked -- I should only have the opportunity to melt once
+            self.nodes[2].token("melt", grp0Id, 10)
+        except JSONRPCException as e:
+            assert("To melt coins")
 
         # pdb.set_trace()
 

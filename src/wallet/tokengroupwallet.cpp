@@ -219,6 +219,34 @@ static CAmount AmountFromIntegralValue(const UniValue &value)
     return amount;
 }
 
+static GroupAuthorityFlags ParseAuthorityParams(const UniValue &params, unsigned int &curparam)
+{
+    GroupAuthorityFlags flags = GroupAuthorityFlags::CTRL | GroupAuthorityFlags::CCHILD;
+    while (1)
+    {
+        std::string sflag;
+        std::string p = params[curparam].get_str();
+        std::transform(p.begin(), p.end(), std::back_inserter(sflag), ::tolower);
+        if (sflag == "mint")
+            flags |= GroupAuthorityFlags::MINT;
+        else if (sflag == "melt")
+            flags |= GroupAuthorityFlags::MELT;
+        else if (sflag == "nochild")
+            flags &= ~GroupAuthorityFlags::CCHILD;
+        else if (sflag == "child")
+            flags |= GroupAuthorityFlags::CCHILD;
+        else if (sflag == "rescript")
+            flags |= GroupAuthorityFlags::RESCRIPT;
+        else if (sflag == "subgroup")
+            flags |= GroupAuthorityFlags::SUBGRP;
+        else
+            break; // If param didn't match, then return because we've left the list of flags
+        curparam++;
+        if (curparam >= params.size())
+            break;
+    }
+    return flags;
+}
 
 // extracts a common RPC call parameter pattern.  Returns curparam.
 static unsigned int ParseGroupAddrValue(const UniValue &params,
@@ -315,6 +343,32 @@ CAmount GroupCoinSelection(const std::vector<COutput> &coins, CAmount amt, std::
             break;
     }
     return cur;
+}
+
+uint64_t RenewAuthority(const CTokenGroupID &grpID,
+    const COutput &authority,
+    std::vector<CRecipient> &outputs,
+    CReserveKey &childAuthorityKey)
+{
+    // The melting authority is consumed.  A wallet can decide to create a child authority or not.
+    // In this simple wallet, we will always create a new melting authority if we spend a renewable
+    // (CCHILD is set) one.
+    uint64_t totalBchNeeded = 0;
+    CTokenGroupInfo tg(authority.GetScriptPubKey());
+
+    if (tg.allowsRenew())
+    {
+        // Get a new address from the wallet to put the new mint authority in.
+        CPubKey pubkey;
+        childAuthorityKey.GetReservedKey(pubkey);
+        CTxDestination authDest = pubkey.GetID();
+        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)tg.controllingGroupFlags);
+        CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+        outputs.push_back(recipient);
+        totalBchNeeded += GROUPED_SATOSHI_AMT;
+    }
+
+    return totalBchNeeded;
 }
 
 void ConstructTx(CWalletTx &wtxNew,
@@ -486,28 +540,14 @@ void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeede
     }
 
     chosenCoins.push_back(authority);
-    // The melting authority is consumed.  A wallet can decide to create a child authority or not.
-    // In this simple wallet, we will always create a new melting authority if we spend a renewable
-    // (CCHILD is set) one.
-    CTokenGroupInfo tg(authority.GetScriptPubKey());
+
     CReserveKey childAuthorityKey(wallet);
-
-    if (tg.allowsRenew())
-    {
-        // Get a new address from the wallet to put the new mint authority in.
-        CPubKey pubkey;
-        childAuthorityKey.GetReservedKey(pubkey);
-        CTxDestination authDest = pubkey.GetID();
-        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)tg.controllingGroupFlags);
-        CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
-        outputs.push_back(recipient);
-        totalBchNeeded += GROUPED_SATOSHI_AMT;
-    }
-
+    totalBchNeeded += RenewAuthority(grpID, authority, outputs, childAuthorityKey);
     // by passing a fewer tokens available than are actually in the inputs, there is a surplus.
     // This surplus will be melted.
     ConstructTx(wtxNew, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, totalAvailable - totalNeeded, 0, grpID,
         wallet);
+    childAuthorityKey.KeepKey();
 }
 
 void GroupSend(CWalletTx &wtxNew,
@@ -552,7 +592,7 @@ CTokenGroupID findGroupId(const COutPoint &input, TokenGroupIdFlags flags, uint6
         nonce += 1;
         CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
         // mask off any flags in the nonce
-        nonce &= ~((uint64_t)GroupControllerFlags::ALL_BITS);
+        nonce &= ~((uint64_t)GroupAuthorityFlags::ALL_BITS);
         hasher << input << nonce;
         ret = hasher.GetHash();
     } while (ret.bytes()[31] != (uint8_t)flags);
@@ -569,13 +609,12 @@ extern UniValue token(const UniValue &params, bool fHelp)
         throw std::runtime_error(
             "token [new, mint, melt, send] \n"
             "\nToken functions.\n"
-            "new creates a new token type. args: authorityAddress flags \n"
-            "mint creates new tokens. args: groupId address quantity\n"
-            "singlemint creates a new group and limited quantity of tokens. args: address quantity [address "
-            "quantity...]\n"
-            "melt removes tokens from circulation. args: groupId quantity\n"
-            "balance reports quantity of this token. args: groupId [address]\n"
-            "send sends tokens to a new address. args: groupId address quantity [address quantity...]\n"
+            "'new' creates a new token type. args: authorityAddress\n"
+            "'mint' creates new tokens. args: groupId address quantity\n"
+            "'melt' removes tokens from circulation. args: groupId quantity\n"
+            "'balance' reports quantity of this token. args: groupId [address]\n"
+            "'send' sends tokens to a new address. args: groupId address quantity [address quantity...]\n"
+            "'authority create' creates a new authority args: groupId address [mint melt nochild rescript]\n"
             "\nArguments:\n"
             "1. \"groupId\"     (string, required) the group identifier\n"
             "2. \"address\"     (string, required) the destination address\n"
@@ -616,6 +655,97 @@ extern UniValue token(const UniValue &params, bool fHelp)
         ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
         ret.push_back(Pair("controllingAddress", EncodeDestination(keyID)));
         return ret;
+    }
+    else if (operation == "authority")
+    {
+        LOCK2(cs_main, wallet->cs_wallet);
+        CAmount totalBchNeeded = 0;
+        CAmount totalBchAvailable = 0;
+        unsigned int curparam = 1;
+        std::vector<COutput> chosenCoins;
+        std::vector<CRecipient> outputs;
+        if (curparam >= params.size())
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");
+        }
+        std::string suboperation;
+        std::string p1 = params[curparam].get_str();
+        std::transform(p1.begin(), p1.end(), std::back_inserter(suboperation), ::tolower);
+        curparam++;
+        if (suboperation == "create")
+        {
+            CTokenGroupID grpID;
+            GroupAuthorityFlags auth = GroupAuthorityFlags();
+            // Get the group id from the command line
+            grpID = GetTokenGroup(params[curparam].get_str());
+            if (!grpID.isUserGroup())
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+            }
+
+            // Get the destination address from the command line
+            curparam++;
+            CTxDestination dst = DecodeDestination(params[curparam].get_str(), Params());
+            if (dst == CTxDestination(CNoDestination()))
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: destination address");
+            }
+
+            // Get what authority permissions the user wants from the command line
+            curparam++;
+            if (curparam < params.size()) // If flags are not specified, we dup existing flags.
+            {
+                auth = ParseAuthorityParams(params, curparam);
+                if (curparam < params.size())
+                {
+                    std::string strError;
+                    strError = strprintf("Invalid parameter: flag %s", params[curparam].get_str());
+                    throw JSONRPCError(RPC_INVALID_PARAMS, strError);
+                }
+            }
+
+            // Now find a compatible authority
+            std::vector<COutput> coins;
+            int nOptions = wallet->FilterCoins(coins, [auth, grpID](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                if ((tg.associatedGroup == grpID) && tg.isAuthority() && tg.allowsRenew())
+                {
+                    // does this authority have at least the needed bits set?
+                    if ((tg.controllingGroupFlags & auth) == auth)
+                        return true;
+                }
+                return false;
+            });
+            if (nOptions == 0) // TODO: look for multiple authorities that can be combined to form the required bits
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "No authority exists that can grant the requested priviledges.");
+            }
+            else
+            {
+                // Just pick the first compatible authority.
+                for (auto coin : coins)
+                {
+                    totalBchAvailable += coin.tx->vout[coin.i].nValue;
+                    chosenCoins.push_back(coin);
+                    break;
+                }
+            }
+
+            CReserveKey renewAuthorityKey(wallet);
+            totalBchNeeded += RenewAuthority(grpID, chosenCoins[0], outputs, renewAuthorityKey);
+
+            { // Construct the new authority
+                CScript script = GetScriptForDestination(dst, grpID, (CAmount)auth);
+                CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+                outputs.push_back(recipient);
+                totalBchNeeded += GROUPED_SATOSHI_AMT;
+            }
+
+            CWalletTx wtx;
+            ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, grpID, wallet);
+            renewAuthorityKey.KeepKey();
+            return wtx.GetHash().GetHex();
+        }
     }
     else if (operation == "new")
     {
@@ -673,7 +803,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
                 throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: no authority address");
             }
         }
-        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)GroupControllerFlags::ALL | grpNonce);
+        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
         outputs.push_back(recipient);
 
@@ -710,8 +840,6 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
         CCoinControl coinControl;
         coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
-        CAmount nFeeRequired = 0;
-        int nChangePosRet = -1;
         std::string strError;
 
         std::vector<COutput> coins;
@@ -744,24 +872,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
         std::vector<COutput> chosenCoins;
         chosenCoins.push_back(authority);
 
-
-        // The minting authority is consumed.  A wallet can decide to create a child authority or not.
-        // In this simple wallet, we will always create a new minting authority if we spend a renewable
-        // (CCHILD is set) one.
-        CTokenGroupInfo tg(authority.GetScriptPubKey());
         CReserveKey childAuthorityKey(wallet);
-
-        if (tg.allowsRenew())
-        {
-            // Get a new address from the wallet to put the new mint authority in.
-            CPubKey pubkey;
-            childAuthorityKey.GetReservedKey(pubkey);
-            CTxDestination authDest = pubkey.GetID();
-            CScript script = GetScriptForDestination(authDest, grpID, (CAmount)tg.controllingGroupFlags);
-            CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
-            outputs.push_back(recipient);
-            totalBchNeeded += GROUPED_SATOSHI_AMT;
-        }
+        totalBchNeeded += RenewAuthority(grpID, authority, outputs, childAuthorityKey);
 
         CWalletTx wtx;
         // I don't "need" tokens even though they are in the output because I'm minting, which is why
