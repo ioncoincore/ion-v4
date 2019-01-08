@@ -1545,6 +1545,7 @@ void ListTransactionRecords(const CWalletTx& wtx, const string& strAccount, int 
             entry.push_back(Pair("type", vRec.GetTransactionRecordType()));
             entry.push_back(Pair("transactionid", vRec.getTxID()));
             entry.push_back(Pair("outputindex", vRec.getOutputIndex()));
+            entry.push_back(Pair("address", vRec.address));
             entry.push_back(Pair("time", vRec.time));
             entry.push_back(Pair("debit", vRec.debit));
             entry.push_back(Pair("credit", vRec.credit));
