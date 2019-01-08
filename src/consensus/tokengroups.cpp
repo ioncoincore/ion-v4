@@ -125,7 +125,7 @@ CTokenGroupID ExtractControllingGroup(const CScript &scriptPubKey)
 #endif
 
 CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
-    : associatedGroup(), controllingGroupFlags(GroupControllerFlags::NONE), quantity(0), invalid(false)
+    : associatedGroup(), controllingGroupFlags(GroupAuthorityFlags::NONE), quantity(0), invalid(false)
 {
     CScript::const_iterator pc = script.begin();
     std::vector<unsigned char> groupId;
@@ -186,7 +186,7 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
     }
     if (quantity < 0)
     {
-        controllingGroupFlags = (GroupControllerFlags)quantity;
+        controllingGroupFlags = (GroupAuthorityFlags)quantity;
     }
     associatedGroup = groupId;
 }
@@ -197,13 +197,13 @@ class CBalance
 {
 public:
     CBalance()
-        : ctrlPerms(GroupControllerFlags::NONE), ctrlOutputPerms(GroupControllerFlags::NONE), input(0), output(0),
+        : ctrlPerms(GroupAuthorityFlags::NONE), ctrlOutputPerms(GroupAuthorityFlags::NONE), input(0), output(0),
           controllerOutputAllowed(false), numOutputs(0)
     {
     }
     CTokenGroupInfo groups; // possible groups
-    GroupControllerFlags ctrlPerms;
-    GroupControllerFlags ctrlOutputPerms;
+    GroupAuthorityFlags ctrlPerms;
+    GroupAuthorityFlags ctrlOutputPerms;
     CAmount input;
     CAmount output;
     bool controllerOutputAllowed;
@@ -241,7 +241,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             }
             else // this is an authority output
             {
-                gBalance[tokenGrp.associatedGroup].ctrlOutputPerms |= (GroupControllerFlags)tokenGrp.quantity;
+                gBalance[tokenGrp.associatedGroup].ctrlOutputPerms |= (GroupAuthorityFlags)tokenGrp.quantity;
                 anyOutputControlGroups = true;
             }
         }
@@ -268,13 +268,13 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         if (tokenGrp.invalid)
             continue;
         CAmount amount = tokenGrp.quantity;
-        if (tokenGrp.controllingGroupFlags != GroupControllerFlags::NONE)
+        if (tokenGrp.controllingGroupFlags != GroupAuthorityFlags::NONE)
         {
             auto temp = tokenGrp.controllingGroupFlags;
             // outputs can have all the permissions of inputs, except for 1 special case
             // If CCHILD is not set, no outputs can be authorities (so unset the CTRL flag)
-            if (!hasCapability(temp, GroupControllerFlags::CCHILD))
-                temp &= (GroupControllerFlags) ~((uint64_t)GroupControllerFlags::CTRL);
+            if (!hasCapability(temp, GroupAuthorityFlags::CCHILD))
+                temp &= (GroupAuthorityFlags) ~((uint64_t)GroupAuthorityFlags::CTRL);
             gBalance[tokenGrp.associatedGroup].ctrlPerms |= temp;
         }
         if (tokenGrp.associatedGroup != NoGroup)
@@ -297,12 +297,12 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     {
         CBalance &bal = txo.second;
         // If it has an authority, with no input authority, check mint
-        if (hasCapability(bal.ctrlOutputPerms, GroupControllerFlags::CTRL) &&
-            (bal.ctrlPerms == GroupControllerFlags::NONE))
+        if (hasCapability(bal.ctrlOutputPerms, GroupAuthorityFlags::CTRL) &&
+            (bal.ctrlPerms == GroupAuthorityFlags::NONE))
         {
             CHashWriter mintGrp(SER_GETHASH, PROTOCOL_VERSION);
             mintGrp << tx.vin[0].prevout
-                    << (((uint64_t)bal.ctrlOutputPerms) & ~((uint64_t)GroupControllerFlags::ALL_BITS));
+                    << (((uint64_t)bal.ctrlOutputPerms) & ~((uint64_t)GroupAuthorityFlags::ALL_BITS));
             CTokenGroupID newGrpId(mintGrp.GetHash());
 
             if (newGrpId == txo.first) // This IS new group because id matches hash, so allow all authority.
@@ -310,23 +310,23 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
                 if (bal.numOutputs != 1) // only allow the single authority tx during a create
                     return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-create",
                          "Multiple grouped outputs created during group creation transaction");
-                bal.ctrlPerms = GroupControllerFlags::ALL;
+                bal.ctrlPerms = GroupAuthorityFlags::ALL;
             }
         }
 
-        if ((bal.input > bal.output) && !hasCapability(bal.ctrlPerms, GroupControllerFlags::MELT))
+        if ((bal.input > bal.output) && !hasCapability(bal.ctrlPerms, GroupAuthorityFlags::MELT))
         {
             return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-melt",
                 "Group input exceeds output, but no melt permission");
         }
-        if ((bal.input < bal.output) && !hasCapability(bal.ctrlPerms, GroupControllerFlags::MINT))
+        if ((bal.input < bal.output) && !hasCapability(bal.ctrlPerms, GroupAuthorityFlags::MINT))
         {
             return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-mint",
                 "Group output exceeds input, but no mint permission");
         }
         // Some output permissions are set that are not in the inputs
-        if (((uint64_t)(bal.ctrlOutputPerms & GroupControllerFlags::ALL)) &
-            ~((uint64_t)(bal.ctrlPerms & GroupControllerFlags::ALL)))
+        if (((uint64_t)(bal.ctrlOutputPerms & GroupAuthorityFlags::ALL)) &
+            ~((uint64_t)(bal.ctrlPerms & GroupAuthorityFlags::ALL)))
         {
                 return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-perm",
                 "Group output permissions exceeds input permissions");
