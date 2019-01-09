@@ -20,6 +20,13 @@ To fetch keys of Gitian builders and active developers, feed the list of
 fingerprints of the primary keys into gpg:
 
 ```sh
+# Ubuntu keyserver
+while read fingerprint keyholder_name; do gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys ${fingerprint}; done < ./keys.txt
+# Debian keyring
+while read fingerprint keyholder_name; do gpg --keyserver hkp://keyring.debian.org --recv-keys ${fingerprint}; done < ./keys.txt
+# MIT keyserver
+while read fingerprint keyholder_name; do gpg --keyserver hkp://pgp.mit.edu--recv-keys ${fingerprint}; done < ./keys.txt
+# SKS keyservers used by OpenPGP
 while read fingerprint keyholder_name; do gpg --keyserver hkp://subset.pool.sks-keyservers.net --recv-keys ${fingerprint}; done < ./keys.txt
 ```
 
