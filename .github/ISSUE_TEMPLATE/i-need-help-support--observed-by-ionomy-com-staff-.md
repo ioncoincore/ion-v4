@@ -1,8 +1,8 @@
 ---
 name: I need help/support (observed by ionomy.com staff)
 about: Ask for help/support
-title: "[ticket][ionomy]"
-labels: help wanted, question, ticket
+title: "[ticket][ionomy.com][help wanted][question]"
+labels: help wanted, ionomy.com, question, ticket
 assignees: MitchellCash
 
 ---
