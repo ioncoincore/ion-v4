@@ -176,11 +176,6 @@ void PrivacyDialog::on_pushButtonMintxION_clicked()
         return;
     }
 
-    QMessageBox::information(this, tr("Mint Zerocoin"),
-                                tr("Minting xION is currently disabled."), QMessageBox::Ok,
-                                QMessageBox::Ok);
-    return;
-
     // Reset message text
     ui->TEMintStatus->setPlainText(tr("Mint Status: Okay"));
 
@@ -839,15 +834,15 @@ void PrivacyDialog::updateSPORK16Status()
     if (fMaintenanceMode && fButtonsEnabled) {
         // Mint xION
         ui->pushButtonMintxION->setEnabled(false);
-        ui->pushButtonMintxION->setToolTip(tr("Minting xION is currently disabled."));
+        ui->pushButtonMintxION->setToolTip(tr("xION is currently disabled due to maintenance."));
 
         // Spend xION
         ui->pushButtonSpendxION->setEnabled(false);
         ui->pushButtonSpendxION->setToolTip(tr("xION is currently disabled due to maintenance."));
     } else if (!fMaintenanceMode && !fButtonsEnabled) {
         // Mint xION
-        ui->pushButtonMintxION->setEnabled(false);
-        ui->pushButtonMintxION->setToolTip(tr("Minting xION is currently disabled."));
+        ui->pushButtonMintxION->setEnabled(true);
+        ui->pushButtonMintxION->setToolTip(tr("PrivacyDialog", "Enter an amount of ION to convert to xION", 0));
 
         // Spend xION
         ui->pushButtonSpendxION->setEnabled(true);
