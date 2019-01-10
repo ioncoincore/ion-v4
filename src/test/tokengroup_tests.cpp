@@ -673,6 +673,10 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
             AddUtxo(gp2pkh(grp1, u1.addr,
                         toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT | GroupAuthorityFlags::CCHILD)),
                 1, coins);
+        COutPoint rescriptChildAuth1 = AddUtxo(
+            gp2pkh(grp1, u1.addr,
+                toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::RESCRIPT | GroupAuthorityFlags::CCHILD)),
+            1, coins);
         COutPoint mintctrl2 =
             AddUtxo(gp2pkh(grp2, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT)), 1, coins);
         COutPoint meltctrl1 =
@@ -706,11 +710,10 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
             ok = CheckTokenGroups(t, state, coins);
             BOOST_CHECK(ok);
 
-            // with minting authority, wrong group
-            t = tx2x1(mintctrl1, putxo, gp2pkh(grp2, u1.addr, 100000), 1);
+            // with minting authority
+            t = tx2x1(mintctrl1, putxo, gp2pkh(grp1, u1.addr, 100000), 1);
             ok = CheckTokenGroups(t, state, coins);
-            BOOST_CHECK(!ok);
-
+            BOOST_CHECK(ok);
 
             // mint to 2 utxos, 1 is p2sh
             t = tx1x2(mintctrl1, gp2pkh(grp1, u1.addr, 100000), 1, gp2sh(grp1, u1.addr, 100000), 1);
@@ -734,6 +737,36 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
             // mint and create child, without auth
             t = tx1x2(mintctrl1, gp2pkh(grp1, u1.addr, 100000), 1,
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT)), 1);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(!ok);
+
+            // 2 input auths combine into 1 output utxo with both auths
+            t = tx2x1(rescriptChildAuth1, mintChildAuth1,
+                gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
+                                               GroupAuthorityFlags::RESCRIPT | GroupAuthorityFlags::CCHILD)),
+                1);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(ok);
+
+            // 1 input has child auth, one does not, but output tries to claim both functions
+            t = tx2x1(meltctrl1, mintChildAuth1,
+                gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
+                                               GroupAuthorityFlags::MELT | GroupAuthorityFlags::CCHILD)),
+                1);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(!ok);
+            t = tx2x1(meltctrl1, mintChildAuth1,
+                gp2pkh(grp1, u1.addr,
+                          toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT | GroupAuthorityFlags::MELT)),
+                1);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(!ok);
+
+            // 2 input auths combine, but wrong output auth bits
+            t = tx2x1(rescriptChildAuth1, mintChildAuth1,
+                gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
+                                               GroupAuthorityFlags::MELT | GroupAuthorityFlags::CCHILD)),
+                1);
             ok = CheckTokenGroups(t, state, coins);
             BOOST_CHECK(!ok);
 

@@ -197,16 +197,16 @@ class CBalance
 {
 public:
     CBalance()
-        : ctrlPerms(GroupAuthorityFlags::NONE), ctrlOutputPerms(GroupAuthorityFlags::NONE), input(0), output(0),
-          controllerOutputAllowed(false), numOutputs(0)
+        : ctrlPerms(GroupAuthorityFlags::NONE), allowedCtrlOutputPerms(GroupAuthorityFlags::NONE),
+          ctrlOutputPerms(GroupAuthorityFlags::NONE), input(0), output(0), numOutputs(0)
     {
     }
     CTokenGroupInfo groups; // possible groups
-    GroupAuthorityFlags ctrlPerms;
-    GroupAuthorityFlags ctrlOutputPerms;
+    GroupAuthorityFlags ctrlPerms; // what permissions are provided in inputs
+    GroupAuthorityFlags allowedCtrlOutputPerms; // What permissions are provided in inputs with CHILD set
+    GroupAuthorityFlags ctrlOutputPerms; // What permissions are enabled in outputs
     CAmount input;
     CAmount output;
-    bool controllerOutputAllowed;
     uint64_t numOutputs;
 };
 
@@ -273,8 +273,11 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             auto temp = tokenGrp.controllingGroupFlags;
             // outputs can have all the permissions of inputs, except for 1 special case
             // If CCHILD is not set, no outputs can be authorities (so unset the CTRL flag)
-            if (!hasCapability(temp, GroupAuthorityFlags::CCHILD))
-                temp &= (GroupAuthorityFlags) ~((uint64_t)GroupAuthorityFlags::CTRL);
+            if (hasCapability(temp, GroupAuthorityFlags::CCHILD))
+            {
+                gBalance[tokenGrp.associatedGroup].allowedCtrlOutputPerms |= temp;
+            }
+            // Track what permissions this transaction has
             gBalance[tokenGrp.associatedGroup].ctrlPerms |= temp;
         }
         if (tokenGrp.associatedGroup != NoGroup)
@@ -310,7 +313,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
                 if (bal.numOutputs != 1) // only allow the single authority tx during a create
                     return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-create",
                          "Multiple grouped outputs created during group creation transaction");
-                bal.ctrlPerms = GroupAuthorityFlags::ALL;
+                bal.allowedCtrlOutputPerms = bal.ctrlPerms = GroupAuthorityFlags::ALL;
             }
         }
 
@@ -326,7 +329,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         }
         // Some output permissions are set that are not in the inputs
         if (((uint64_t)(bal.ctrlOutputPerms & GroupAuthorityFlags::ALL)) &
-            ~((uint64_t)(bal.ctrlPerms & GroupAuthorityFlags::ALL)))
+            ~((uint64_t)(bal.allowedCtrlOutputPerms & GroupAuthorityFlags::ALL)))
         {
                 return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-perm",
                 "Group output permissions exceeds input permissions");
