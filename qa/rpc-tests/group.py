@@ -61,6 +61,46 @@ class MyTest (BitcoinTestFramework):
         pprint.pprint(txjson, indent=2, width=200)
         print("\n")
 
+
+    def subgroupTest(self):
+
+        self.nodes[0].generate(1)
+        grp1 = self.nodes[0].token("new")["groupIdentifier"]
+
+        sg1a = self.nodes[0].token("subgroup", grp1, 1)
+        tmp  = self.nodes[0].token("subgroup", grp1, "1")
+        assert_equal(sg1a, tmp)  # This equality is a feature of this wallet, not subgroups in general
+        sg1b = self.nodes[0].token("subgroup", grp1, 2)
+        assert(sg1a != sg1b)
+
+        addr2 = self.nodes[2].getnewaddress()
+
+        # mint 100 tokens for node 2
+        tx = self.nodes[0].token("mint",sg1a, addr2, 100)
+
+        self.sync_all()
+        assert_equal(self.nodes[2].token("balance", sg1a), 100)
+        assert_equal(self.nodes[2].token("balance", grp1), 0)
+
+        try: # node 2 doesn't have melt auth on the group or subgroup
+            tx = self.nodes[2].token("melt",sg1a, 50)
+            assert(0)
+        except JSONRPCException as e:
+            pass
+
+        tx = self.nodes[0].token("authority","create", sg1a, addr2, "MELT", "NOCHILD")
+        self.sync_all()
+        tx = self.nodes[2].token("melt",sg1a, 50)
+
+        try: # gave a nonrenewable authority
+            tx = self.nodes[2].token("melt",sg1a, 50)
+            assert(0)
+        except JSONRPCException as e:
+            pass
+
+        return True
+
+
     def run_test(self):
 
         logging.info("This is a template for you to use when making new tests")
@@ -220,6 +260,7 @@ class MyTest (BitcoinTestFramework):
         except JSONRPCException as e:
             assert("To melt coins")
 
+        self.subgroupTest()
         # pdb.set_trace()
 
 

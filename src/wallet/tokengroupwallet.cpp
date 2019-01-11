@@ -238,7 +238,7 @@ static GroupAuthorityFlags ParseAuthorityParams(const UniValue &params, unsigned
         else if (sflag == "rescript")
             flags |= GroupAuthorityFlags::RESCRIPT;
         else if (sflag == "subgroup")
-            flags |= GroupAuthorityFlags::SUBGRP;
+            flags |= GroupAuthorityFlags::SUBGROUP;
         else
             break; // If param didn't match, then return because we've left the list of flags
         curparam++;
@@ -345,10 +345,7 @@ CAmount GroupCoinSelection(const std::vector<COutput> &coins, CAmount amt, std::
     return cur;
 }
 
-uint64_t RenewAuthority(const CTokenGroupID &grpID,
-    const COutput &authority,
-    std::vector<CRecipient> &outputs,
-    CReserveKey &childAuthorityKey)
+uint64_t RenewAuthority(const COutput &authority, std::vector<CRecipient> &outputs, CReserveKey &childAuthorityKey)
 {
     // The melting authority is consumed.  A wallet can decide to create a child authority or not.
     // In this simple wallet, we will always create a new melting authority if we spend a renewable
@@ -362,7 +359,7 @@ uint64_t RenewAuthority(const CTokenGroupID &grpID,
         CPubKey pubkey;
         childAuthorityKey.GetReservedKey(pubkey);
         CTxDestination authDest = pubkey.GetID();
-        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)tg.controllingGroupFlags);
+        CScript script = GetScriptForDestination(authDest, tg.associatedGroup, (CAmount)tg.controllingGroupFlags);
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
         outputs.push_back(recipient);
         totalBchNeeded += GROUPED_SATOSHI_AMT;
@@ -505,6 +502,22 @@ void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeede
         return false;
     });
 
+    // if its a subgroup look for a parent authority that will work
+    // As an idiot-proofing step, we only allow parent authorities that can be renewed, but that is a
+    // preference coded in this wallet, not a group token requirement.
+    if ((nOptions == 0) && (grpID.isSubgroup()))
+    {
+        // if its a subgroup look for a parent authority that will work
+        nOptions = wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
+            CTokenGroupInfo tg(out->scriptPubKey);
+            if (tg.isAuthority() && tg.allowsRenew() && tg.allowsSubgroup() && tg.allowsMelt() &&
+                (tg.associatedGroup == grpID.parentGroup()))
+            {
+                return true;
+            }
+            return false;
+        });
+    }
 
     if (nOptions == 0)
     {
@@ -542,7 +555,7 @@ void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeede
     chosenCoins.push_back(authority);
 
     CReserveKey childAuthorityKey(wallet);
-    totalBchNeeded += RenewAuthority(grpID, authority, outputs, childAuthorityKey);
+    totalBchNeeded += RenewAuthority(authority, outputs, childAuthorityKey);
     // by passing a fewer tokens available than are actually in the inputs, there is a surplus.
     // This surplus will be melted.
     ConstructTx(wtxNew, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, totalAvailable - totalNeeded, 0, grpID,
@@ -615,10 +628,12 @@ extern UniValue token(const UniValue &params, bool fHelp)
             "'balance' reports quantity of this token. args: groupId [address]\n"
             "'send' sends tokens to a new address. args: groupId address quantity [address quantity...]\n"
             "'authority create' creates a new authority args: groupId address [mint melt nochild rescript]\n"
+            "'subgroup' translates a group and additional data into a subgroup identifier. args: groupId data\n"
             "\nArguments:\n"
             "1. \"groupId\"     (string, required) the group identifier\n"
             "2. \"address\"     (string, required) the destination address\n"
             "3. \"quantity\"    (numeric, required) the quantity desired\n"
+            "4. \"data\"        (number, 0xhex, or string) binary data\n"
             "\nResult:\n"
             "\n"
             "\nExamples:\n"
@@ -642,19 +657,75 @@ extern UniValue token(const UniValue &params, bool fHelp)
     {
         return groupedlisttransactions(params, fHelp);
     }
-    if (operation == "unused")
+    if (operation == "subgroup")
     {
-        std::string account = "";
-        CPubKey newKey;
-        if (!wallet->GetKeyFromPool(newKey))
-            throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
-        CKeyID keyID = newKey.GetID();
-        wallet->SetAddressBook(keyID, account, "receive");
-        CTokenGroupID grpID(keyID);
-        UniValue ret(UniValue::VOBJ);
-        ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
-        ret.push_back(Pair("controllingAddress", EncodeDestination(keyID)));
-        return ret;
+        unsigned int curparam = 1;
+        if (curparam >= params.size())
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");
+        }
+        CTokenGroupID grpID;
+        std::vector<unsigned char> postfix;
+        // Get the group id from the command line
+        grpID = GetTokenGroup(params[curparam].get_str());
+        if (!grpID.isUserGroup())
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+        }
+        curparam++;
+
+        int64_t postfixNum = 0;
+        bool isNum = false;
+        if (params[curparam].isNum())
+        {
+            postfixNum = params[curparam].get_int64();
+            isNum = true;
+        }
+        else // assume string
+        {
+            std::string postfixStr = params[curparam].get_str();
+            if ((postfixStr[0] == '0') && (postfixStr[0] == 'x'))
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: Hex not implemented yet");
+            }
+            try
+            {
+                postfixNum = boost::lexical_cast<int64_t>(postfixStr);
+                isNum = true;
+            }
+            catch (const boost::bad_lexical_cast &)
+            {
+                for (unsigned int i = 0; i < postfixStr.size(); i++)
+                    postfix.push_back(postfixStr[i]);
+            }
+        }
+
+        if (isNum)
+        {
+            CDataStream ss(0, 0);
+            uint64_t xSize = postfixNum;
+            WRITEDATA(ss, xSize);
+//            ser_writedata64(ss, postfixNum);
+            for (auto c : ss)
+                postfix.push_back(c);
+        }
+
+        if (postfix.size() == 0)
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: no subgroup postfix provided");
+        }
+        std::vector<unsigned char> subgroupbytes(grpID.bytes().size() + postfix.size());
+        unsigned int i;
+        for (i = 0; i < grpID.bytes().size(); i++)
+        {
+            subgroupbytes[i] = grpID.bytes()[i];
+        }
+        for (unsigned int j = 0; j < postfix.size(); j++, i++)
+        {
+            subgroupbytes[i] = postfix[j];
+        }
+        CTokenGroupID subgrpID(subgroupbytes);
+        return EncodeTokenGroup(subgrpID);
     }
     else if (operation == "authority")
     {
@@ -716,6 +787,23 @@ extern UniValue token(const UniValue &params, bool fHelp)
                 }
                 return false;
             });
+
+            // if its a subgroup look for a parent authority that will work
+            if ((nOptions == 0) && (grpID.isSubgroup()))
+            {
+                // if its a subgroup look for a parent authority that will work
+                nOptions = wallet->FilterCoins(coins, [auth, grpID](const CWalletTx *tx, const CTxOut *out) {
+                    CTokenGroupInfo tg(out->scriptPubKey);
+                    if (tg.isAuthority() && tg.allowsRenew() && tg.allowsSubgroup() &&
+                        (tg.associatedGroup == grpID.parentGroup()))
+                    {
+                        if ((tg.controllingGroupFlags & auth) == auth)
+                            return true;
+                    }
+                    return false;
+                });
+            }
+
             if (nOptions == 0) // TODO: look for multiple authorities that can be combined to form the required bits
             {
                 throw JSONRPCError(RPC_INVALID_PARAMS, "No authority exists that can grant the requested priviledges.");
@@ -732,7 +820,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
             }
 
             CReserveKey renewAuthorityKey(wallet);
-            totalBchNeeded += RenewAuthority(grpID, chosenCoins[0], outputs, renewAuthorityKey);
+            totalBchNeeded += RenewAuthority(chosenCoins[0], outputs, renewAuthorityKey);
 
             { // Construct the new authority
                 CScript script = GetScriptForDestination(dst, grpID, (CAmount)auth);
@@ -842,6 +930,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
         coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
         std::string strError;
 
+        // Now find a mint authority
         std::vector<COutput> coins;
         int nOptions = wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
             CTokenGroupInfo tg(out->scriptPubKey);
@@ -852,6 +941,22 @@ extern UniValue token(const UniValue &params, bool fHelp)
             return false;
         });
 
+        // if its a subgroup look for a parent authority that will work
+        // As an idiot-proofing step, we only allow parent authorities that can be renewed, but that is a
+        // preference coded in this wallet, not a group token requirement.
+        if ((nOptions == 0) && (grpID.isSubgroup()))
+        {
+            // if its a subgroup look for a parent authority that will work
+            nOptions = wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                if (tg.isAuthority() && tg.allowsRenew() && tg.allowsSubgroup() && tg.allowsMint() &&
+                    (tg.associatedGroup == grpID.parentGroup()))
+                {
+                    return true;
+                }
+                return false;
+            });
+        }
 
         if (nOptions == 0)
         {
@@ -873,7 +978,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
         chosenCoins.push_back(authority);
 
         CReserveKey childAuthorityKey(wallet);
-        totalBchNeeded += RenewAuthority(grpID, authority, outputs, childAuthorityKey);
+        totalBchNeeded += RenewAuthority(authority, outputs, childAuthorityKey);
 
         CWalletTx wtx;
         // I don't "need" tokens even though they are in the output because I'm minting, which is why

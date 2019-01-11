@@ -28,12 +28,16 @@ class CTokenGroupID
 {
 protected:
     std::vector<unsigned char> data;
+    enum
+    {
+        PARENT_GROUP_ID_SIZE = 32
+    };
 
 public:
     //* no token group, which is distinct from the bitcoin token group
     CTokenGroupID() {}
     //* for special token groups, of which there is currently only the bitcoin token group (0)
-    CTokenGroupID(unsigned char c) : data(32) { data[0] = c; }
+    CTokenGroupID(unsigned char c) : data(PARENT_GROUP_ID_SIZE) { data[0] = c; }
     //* handles CKeyID and CScriptID
     CTokenGroupID(const uint160 &id) : data(ToByteVector(id)) {}
     //* handles single mint group id, and possibly future larger size CScriptID
@@ -52,6 +56,10 @@ public:
     bool operator!=(const CTokenGroupID &id) const { return data != id.data; }
     //* returns true if this is a user-defined group -- ie NOT bitcoin cash or no group
     bool isUserGroup(void) const;
+    //* returns true if this is a subgroup
+    bool isSubgroup(void) const;
+    //* returns the parent group if this is a subgroup or itself.
+    CTokenGroupID parentGroup(void) const;
 
     const std::vector<unsigned char> &bytes(void) const { return data; }
     //* Convert this token group ID into a mint/melt address
@@ -87,10 +95,10 @@ enum class GroupAuthorityFlags : uint64_t
     MELT = 1ULL << 61, // Can melt tokens,
     CCHILD = 1ULL << 60, // Can create controller outputs
     RESCRIPT = 1ULL << 59, // Can change the redeem script
-    SUBGRP = 1ULL << 58,
+    SUBGROUP = 1ULL << 58,
 
     NONE = 0,
-    ALL = CTRL | MINT | MELT | CCHILD | RESCRIPT | SUBGRP,
+    ALL = CTRL | MINT | MELT | CCHILD | RESCRIPT | SUBGROUP,
     ALL_BITS = 0xffffULL << (64 - 16)
 };
 
@@ -180,6 +188,12 @@ public:
     {
         return (controllingGroupFlags & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::RESCRIPT)) ==
                (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::RESCRIPT);
+    }
+    // return true if this object allows subgroups.
+    bool allowsSubgroup() const
+    {
+        return (controllingGroupFlags & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::SUBGROUP)) ==
+               (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::SUBGROUP);
     }
 
     bool isInvalid() const { return invalid; };
