@@ -535,15 +535,20 @@ CTransaction tx2x2(const COutPoint &utxo1,
 }
 
 
-CTokenGroupID MakeSubgroup(CTokenGroupID g, int xtra)
+CTokenGroupID MakeSubgroup(CTokenGroupID g, int xtra, int size = 0)
 {
     int gsize = g.bytes().size();
-    std::vector<unsigned char> sgbytes(gsize + 1);
+    if (size == 0)
+        size = gsize + 1; // 0 means default which is 1 byte bigger
+    std::vector<unsigned char> sgbytes(gsize + size);
     for (int i = 0; i < gsize; i++)
         sgbytes[i] = g.bytes()[i];
     sgbytes[gsize] = xtra;
+    for (int i = gsize + 1; i < size; i++)
+        sgbytes[i] = 0; // just fill it out
     return CTokenGroupID(sgbytes);
 }
+
 
 BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
 {
@@ -686,6 +691,8 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
 
         CTokenGroupID subgrp1a = MakeSubgroup(grp1, 1);
         CTokenGroupID subgrp1b = MakeSubgroup(grp1, 2);
+        CTokenGroupID subgrp1c = MakeSubgroup(grp1, 2, MAX_SCRIPT_ELEMENT_SIZE);
+        CTokenGroupID subgrp1cTooBig = MakeSubgroup(grp1, 2, MAX_SCRIPT_ELEMENT_SIZE + 1);
 
         // Create a utxo set that I can run tests against
         CCoinsView coinsDummy;
@@ -757,6 +764,15 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
             ok = CheckTokenGroups(t, state, coins);
             BOOST_CHECK(!ok);
             t = tx2x1(mintctrl1sg, putxo, gp2pkh(subgrp1a, u1.addr, 100000), 1);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(ok);
+            t = tx2x1(mintctrl1sg, putxo, gp2pkh(subgrp1c, u1.addr, 100000), 1);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(ok);
+
+            // this works because the size limitation enforced during script execution only.
+            // token subgroups have no max size...
+            t = tx2x1(mintctrl1sg, putxo, gp2pkh(subgrp1cTooBig, u1.addr, 100000), 1);
             ok = CheckTokenGroups(t, state, coins);
             BOOST_CHECK(ok);
 
