@@ -56,7 +56,7 @@ Uploading -- note: transmission bittorrent client is used in examples below
 - udp://tracker.vanitycore.co:6969/announce
 - http://retracker.telecom.by:80/announce 
 ### create a magnet link for your torrent
-- at the cli type transmission-show -m <filename\>.torrent
+- at the cli type transmission-show -m <filename>.torrent
 - save this output to a text file to enable copy and paste into a bit torrent client
 ### Upload your torrent(s)
 - open a browser and log into the transmission server on port 9091
@@ -64,3 +64,6 @@ Uploading -- note: transmission bittorrent client is used in examples below
 ![torrent page](https://i.imgur.com/Ryz0wSd.png)<br>
 - upload your torrent file(s) to the transmission server<br><br>
 ![torrent upload](https://i.imgur.com/bPLTIMj.png) 
+
+Downloading -- note: transmission bittorrent client is used in examples below
+---------
