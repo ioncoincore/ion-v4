@@ -61,7 +61,7 @@ Uploading -- note: transmission bittorrent client is used in examples below
 ### Upload your torrent(s)
 - open a browser and log into the transmission server on port 9091
 - click on the open file icon on the left hand side<br><br>
-![torrent page](https://i.imgur.com/Ryz0wSd.png)<br>
+![torrent page](https://i.imgur.com/Yb2Vijt.png)<br>
 - upload your torrent file(s) to the transmission server<br><br>
 ![torrent upload](https://i.imgur.com/bPLTIMj.png) 
 
