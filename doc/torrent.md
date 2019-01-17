@@ -68,9 +68,7 @@ Uploading -- note: transmission bittorrent client is used in examples below
 Downloading -- note: transmission bittorrent client is used in examples below
 ---------
 - donwload the list of magnet links from https://github.com/ioncoincore/doc/magnet.txt
-- paste the magnet link for the VM you wish to download into file -> open url  
-
-![open magnet](https://i.imgur.com/C8BgscW.png)  
-  
+- paste the magnet link for the VM you wish to download into file -> open url<br><br>
+![open magnet](https://i.imgur.com/C8BgscW.png)<br>
 - select open 
 - torrent will start downloading
