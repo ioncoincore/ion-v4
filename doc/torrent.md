@@ -67,3 +67,9 @@ Uploading -- note: transmission bittorrent client is used in examples below
 
 Downloading -- note: transmission bittorrent client is used in examples below
 ---------
+- paste the magnet link into file -> open url  
+
+![open magnet](https://i.imgur.com/C8BgscW.png)  
+  
+- select open 
+- torrent will start downloading
