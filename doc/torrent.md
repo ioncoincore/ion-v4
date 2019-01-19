@@ -25,7 +25,7 @@ Uploading -- note: transmission bittorrent client is used in examples below
 - https://opentracker.xyz:443/announce
 - http://t.acg.rip:6699/announce
 - udp://bittracker.ru:6969/announce
-- http://open.trackerlist.xyz:80/announce 
+- http://open.trackerlist.xyz:80/announce
 - udp://tracker.birkenwald.de:6969/announce
 - udp://tracker.filemail.com:6969/announce
 - udp://bt.xxx-tracker.com:2710/announce
@@ -54,19 +54,19 @@ Uploading -- note: transmission bittorrent client is used in examples below
 - udp://open.stealth.si:80/announce
 - http://open.acgnxtracker.com:80/announce
 - udp://tracker.vanitycore.co:6969/announce
-- http://retracker.telecom.by:80/announce 
+- http://retracker.telecom.by:80/announce
 
 ### Upload your torrent(s)
 - open a browser and log into the transmission server on port 9091
 - click on the open file icon on the left hand side<br><br>
 ![torrent page](https://i.imgur.com/Yb2Vijt.png)<br>
 - upload your torrent file(s) to the transmission server<br><br>
-![torrent upload](https://i.imgur.com/bPLTIMj.png) 
+[torrent upload](https://i.imgur.com/bPLTIMj.png)
 
 Downloading -- note: transmission bittorrent client is used in examples below
 ---------
 - donwload the list of torrents from https://github.com/ioncoincore/doc/torrents.zip
 - select the torrent for the VM you wish to download into file -> open<br><br>
 ![dowload torrent](https://i.imgur.com/jjFBaGT.png)<br>
-- select open 
+- select open
 - VM will start downloading
