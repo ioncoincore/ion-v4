@@ -55,9 +55,7 @@ Uploading -- note: transmission bittorrent client is used in examples below
 - http://open.acgnxtracker.com:80/announce
 - udp://tracker.vanitycore.co:6969/announce
 - http://retracker.telecom.by:80/announce 
-### create a magnet link for your torrent
-- at the cli type transmission-show -m <filename\>.torrent
-- save this output to a text file to enable copy and paste into a bit torrent client
+
 ### Upload your torrent(s)
 - open a browser and log into the transmission server on port 9091
 - click on the open file icon on the left hand side<br><br>
@@ -67,8 +65,8 @@ Uploading -- note: transmission bittorrent client is used in examples below
 
 Downloading -- note: transmission bittorrent client is used in examples below
 ---------
-- donwload the list of magnet links from https://github.com/ioncoincore/doc/magnet.txt
-- paste the magnet link for the VM you wish to download into file -> open url<br><br>
-![open magnet](https://i.imgur.com/TetvZ9r.png)<br>
+- donwload the list of torrents from https://github.com/ioncoincore/doc/torrents.zip
+- select the torrent for the VM you wish to download into file -> open<br><br>
+![dowload torrent](https://i.imgur.com/jjFBaGT.png)<br>
 - select open 
 - torrent will start downloading
