@@ -65,7 +65,7 @@ Uploading -- note: transmission bittorrent client is used in examples below
 
 Downloading -- note: transmission bittorrent client is used in examples below
 ---------
-- donwload the list of torrents from https://github.com/ioncoincore/doc/torrents.zip
+- donwload the list of torrents from https://raw.githubusercontent.com/wiki/ioncoincore/ion/VM_Torrents/torrents.zip
 - select the torrent for the VM you wish to download into file -> open<br><br>
 ![dowload torrent](https://i.imgur.com/jjFBaGT.png)<br>
 - select open 
