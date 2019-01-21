@@ -63,7 +63,7 @@ def build():
         print('\nCompiling ' + args.version + ' Linux')
         subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'ion='+args.commit, '--url', 'ion='+args.url, '../ion/contrib/gitian-descriptors/gitian-linux.yml'])
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-linux', '--destination', '../gitian.sigs/', '../ion/contrib/gitian-descriptors/gitian-linux.yml'])
-        subprocess.check_call('mv build/out/ion-*.tar.xz build/out/src/ion-*.tar.xz ../ion-binaries/'+args.version, shell=True)
+        subprocess.check_call('mv build/out/ion-*.tar.xz build/out/src/ion-*.tar.gz ../ion-binaries/'+args.version, shell=True)
 
     if args.windows:
         print('\nCompiling ' + args.version + ' Windows')
@@ -202,6 +202,9 @@ def main():
             os.environ['GITIAN_HOST_IP'] = '10.0.3.1'
         if not 'LXC_GUEST_IP' in os.environ.keys():
             os.environ['LXC_GUEST_IP'] = '10.0.3.5'
+
+    # Script will fail to automaticly download all resources if inputs folder does not exist
+    subprocess.check_call(['mkdir', '-p', 'gitian-builder/inputs'])
 
     # Disable for MacOS if no SDK found
     if args.macos and not os.path.isfile('gitian-builder/inputs/MacOSX10.11.sdk.tar.xz'):
