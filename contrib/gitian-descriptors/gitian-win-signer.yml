@@ -12,21 +12,21 @@ remotes:
 - "url": "https://github.com/ioncoincore/ion-detached-sigs.git"
   "dir": "signature"
 files:
-- "v1.7.1.tar.gz"
+- "osslsigncode-1.7.1.tar.xz"
 - "osslsigncode-Backports-to-1.7.1.patch"
-- "ion-win-unsigned.tar.gz"
+- "ion-win-unsigned.tar.xz"
 script: |
   BUILD_DIR=`pwd`
   SIGDIR=${BUILD_DIR}/signature/win
   UNSIGNED_DIR=${BUILD_DIR}/unsigned
 
-  echo "f6ba53b8780a2362e91e450776eef1c16fe9a0f86abcdfdc90cf7f76e7fa4f63  v1.7.1.tar.gz" | sha256sum -c
+  echo "75cb7377106c423dd63843798b43fd4a7d697b3fb51a0202b1a808018283e5f3  osslsigncode-1.7.1.tar.xz" | sha256sum -c
   echo "a8c4e9cafba922f89de0df1f2152e7be286aba73f78505169bc351a7938dd911  osslsigncode-Backports-to-1.7.1.patch" | sha256sum -c
 
   mkdir -p ${UNSIGNED_DIR}
-  tar -C ${UNSIGNED_DIR} -xf ion-win-unsigned.tar.gz
+  tar -C ${UNSIGNED_DIR} -xJf ion-win-unsigned.tar.xz
 
-  tar xf tar xf v1.7.1.tar.gz
+  tar xJf osslsigncode-1.7.1.tar.xz
   cd osslsigncode-1.7.1
   patch -p1 < ${BUILD_DIR}/osslsigncode-Backports-to-1.7.1.patch
 

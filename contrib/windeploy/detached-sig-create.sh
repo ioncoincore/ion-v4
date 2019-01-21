@@ -14,7 +14,7 @@ if [ ! -n "$1" ]; then
   exit 1
 fi
 
-OUT=signature-win.tar.gz
+OUT=signature-win.tar.xz
 SRCDIR=unsigned
 WORKDIR=./.tmp
 OUTDIR="${WORKDIR}/out"
@@ -30,6 +30,6 @@ basename -a `ls -1 "${SRCDIR}"/*-unsigned.exe` | while read UNSIGNED; do
 done
 
 rm -f "${OUT}"
-tar -C "${OUTDIR}" -czf "${OUT}" .
+tar -C "${OUTDIR}" -cJf "${OUT}" .
 rm -rf "${WORKDIR}"
 echo "Created ${OUT}"

@@ -11,7 +11,7 @@ BUNDLE=${ROOTDIR}/Ion-Qt.app
 CODESIGN=codesign
 TEMPDIR=sign.temp
 TEMPLIST=${TEMPDIR}/signatures.txt
-OUT=signature-osx.tar.gz
+OUT=signature-osx.tar.xz
 OUTROOT=osx
 
 if [ ! -n "$1" ]; then
@@ -47,6 +47,6 @@ done
 
 rm ${TEMPLIST}
 
-tar -C "${TEMPDIR}" -czf "${OUT}" .
+tar -C "${TEMPDIR}" -cJf "${OUT}" .
 rm -rf "${TEMPDIR}"
 echo "Created ${OUT}"
