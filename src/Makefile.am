@@ -286,6 +286,7 @@ libbitcoin_wallet_a_SOURCES = \
   xiontracker.cpp \
   stakeinput.cpp \
   genwit.cpp \
+  lightxionthread.cpp \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
