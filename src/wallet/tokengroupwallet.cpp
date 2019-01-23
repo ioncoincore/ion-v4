@@ -597,7 +597,73 @@ void GroupSend(CWalletTx &wtxNew,
         grpID, wallet);
 }
 
-CTokenGroupID findGroupId(const COutPoint &input, TokenGroupIdFlags flags, uint64_t &nonce)
+std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &params, unsigned int curparam)
+{
+    std::vector<std::vector<unsigned char> > ret;
+    std::string tickerStr = params[curparam].get_str();
+    if (tickerStr.size() > 8)
+    {
+        std::string strError = strprintf("Ticker %s has too many characters (8 max)", tickerStr);
+        throw JSONRPCError(RPC_INVALID_PARAMS, strError);
+    }
+    ret.push_back(std::vector<unsigned char>(tickerStr.begin(), tickerStr.end()));
+
+    curparam++;
+    if (curparam >= params.size())
+    {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameter: token name");
+    }
+
+    std::string name = params[curparam].get_str();
+    ret.push_back(std::vector<unsigned char>(name.begin(), name.end()));
+    curparam++;
+    // we will accept just ticker and name
+    if (curparam >= params.size())
+    {
+        ret.push_back(std::vector<unsigned char>());
+        ret.push_back(std::vector<unsigned char>());
+        return ret;
+    }
+
+    std::string url = params[curparam].get_str();
+    // we could do a complete URL validity check here but for now just check for :
+    if (url.find(":") == std::string::npos)
+    {
+        std::string strError = strprintf("Parameter %s is not a URL, missing colon", url);
+        throw JSONRPCError(RPC_INVALID_PARAMS, strError);
+    }
+    ret.push_back(std::vector<unsigned char>(url.begin(), url.end()));
+
+    curparam++;
+    if (curparam >= params.size())
+    {
+        // If you have a URL to the TDD, you need to have a hash or the token creator
+        // could change the document without holders knowing about it.
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameter: token description document hash");
+    }
+
+    std::string hexDocHash = params[curparam].get_str();
+    uint256 docHash;
+    docHash.SetHex(hexDocHash);
+    ret.push_back(std::vector<unsigned char>(docHash.begin(), docHash.end()));
+    return ret;
+}
+
+CScript BuildTokenDescScript(const std::vector<std::vector<unsigned char> > &desc)
+{
+    CScript ret;
+    std::vector<unsigned char> data;
+    // github.com/bitcoincashorg/bitcoincash.org/blob/master/etc/protocols.csv
+    uint32_t OpRetGroupId = 88888888; // see https:
+    ret << OP_RETURN << OpRetGroupId;
+    for (auto &d : desc)
+    {
+        ret << d;
+    }
+    return ret;
+}
+
+CTokenGroupID findGroupId(const COutPoint &input, CScript opRetTokDesc, TokenGroupIdFlags flags, uint64_t &nonce)
 {
     CTokenGroupID ret;
     do
@@ -606,7 +672,14 @@ CTokenGroupID findGroupId(const COutPoint &input, TokenGroupIdFlags flags, uint6
         CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
         // mask off any flags in the nonce
         nonce &= ~((uint64_t)GroupAuthorityFlags::ALL_BITS);
-        hasher << input << nonce;
+        hasher << input;
+
+        if (opRetTokDesc.size())
+        {
+            std::vector<unsigned char> data(opRetTokDesc.begin(), opRetTokDesc.end());
+            hasher << data;
+        }
+        hasher << nonce;
         ret = hasher.GetHash();
     } while (ret.bytes()[31] != (uint8_t)flags);
     return ret;
@@ -868,7 +941,6 @@ extern UniValue token(const UniValue &params, bool fHelp)
         }
 
         uint64_t grpNonce = 0;
-        CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), TokenGroupIdFlags::NONE, grpNonce);
 
         std::vector<COutput> chosenCoins;
         chosenCoins.push_back(coin);
@@ -877,6 +949,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
         CReserveKey authKeyReservation(wallet);
         CTxDestination authDest;
+        CScript opretScript;
         if (curparam >= params.size())
         {
             CPubKey authKey;
@@ -888,9 +961,18 @@ extern UniValue token(const UniValue &params, bool fHelp)
             authDest = DecodeDestination(params[curparam].get_str(), Params());
             if (authDest == CTxDestination(CNoDestination()))
             {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: no authority address");
+                auto desc = ParseGroupDescParams(params, curparam);
+                if (desc.size()) // Add an op_return if there's a token desc doc
+                {
+                    opretScript = BuildTokenDescScript(desc);
+                    outputs.push_back(CRecipient{opretScript, 0, false});
+                }
             }
+            curparam++;
         }
+
+        CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), opretScript, TokenGroupIdFlags::NONE, grpNonce);
+
         CScript script = GetScriptForDestination(authDest, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
         outputs.push_back(recipient);

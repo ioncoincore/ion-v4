@@ -219,11 +219,17 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     bool anyOutputGroups = false;
     bool anyOutputControlGroups = false;
 
+    CScript firstOpReturn;
+
     // Iterate through all the outputs constructing the final balances of every group.
     for (const auto &outp : tx.vout)
     {
         const CScript &scriptPubKey = outp.scriptPubKey;
         CTokenGroupInfo tokenGrp(scriptPubKey);
+        if ((outp.nValue == 0) && (firstOpReturn.size() == 0) && (outp.scriptPubKey[0] == OP_RETURN))
+        {
+            firstOpReturn = outp.scriptPubKey; // Used later if this is a group creation transaction
+        }
         if (tokenGrp.invalid)
             return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");
         if (tokenGrp.associatedGroup != NoGroup)
@@ -334,8 +340,13 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             (bal.ctrlPerms == GroupAuthorityFlags::NONE))
         {
             CHashWriter mintGrp(SER_GETHASH, PROTOCOL_VERSION);
-            mintGrp << tx.vin[0].prevout
-                    << (((uint64_t)bal.ctrlOutputPerms) & ~((uint64_t)GroupAuthorityFlags::ALL_BITS));
+            mintGrp << tx.vin[0].prevout;
+            if (firstOpReturn.size())
+            {
+                std::vector<unsigned char> data(firstOpReturn.begin(), firstOpReturn.end());
+                mintGrp << data;
+            }
+            mintGrp << (((uint64_t)bal.ctrlOutputPerms) & ~((uint64_t)GroupAuthorityFlags::ALL_BITS));
             CTokenGroupID newGrpId(mintGrp.GetHash());
 
             if (newGrpId == txo.first) // This IS new group because id matches hash, so allow all authority.

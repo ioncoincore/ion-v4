@@ -8,6 +8,7 @@
 #include "miner.h"
 //#include "parallel.h"
 #include "utilstrencodings.h"
+#include "wallet/tokengroupwallet.h"
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(tokengroup_tests, BasicTestingSetup)
@@ -738,11 +739,43 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
         COutPoint gp2sh1 = AddUtxo(gp2sh(grp1, sid, 100), 5, coins);
         COutPoint p2sh1 = AddUtxo(p2sh(sid), 1, coins);
         {
+            // check token creation tx
+            CScript opretScript;
+            uint64_t grpNonce = 0;
+            CTokenGroupID grpID = findGroupId(putxo, opretScript, TokenGroupIdFlags::NONE, grpNonce);
+            CScript script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
+            CTransaction t = tx1x1(putxo, script, 1);
+            bool ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(ok);
+
+            // script has bad nonce
+            grpID = findGroupId(putxo, opretScript, TokenGroupIdFlags::NONE, grpNonce);
+            script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | (grpNonce + 1));
+            t = tx1x1(putxo, script, 1);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(!ok);
+
+            // Check that OP_RETURN is included in group calc
+            std::vector<unsigned char> data{'a', 'b', 'c'};
+            opretScript = CScript() << OP_RETURN << data;
+            grpID = findGroupId(putxo, CScript(), TokenGroupIdFlags::NONE, grpNonce);
+            script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
+            t = tx2x2(putxo, putxo2, script, 1, opretScript, 0);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(!ok);
+
+            // Check that OP_RETURN is included in group calc
+            grpID = findGroupId(putxo, opretScript, TokenGroupIdFlags::NONE, grpNonce);
+            script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
+            t = tx2x2(putxo, putxo2, script, 1, opretScript, 0);
+            ok = CheckTokenGroups(t, state, coins);
+            BOOST_CHECK(ok);
+
             // check mint tx
 
             // without mint authority
-            CTransaction t = tx2x1(putxo2, putxo, gp2pkh(grp1, u1.addr, 100000), 1);
-            bool ok = CheckTokenGroups(t, state, coins);
+            t = tx2x1(putxo2, putxo, gp2pkh(grp1, u1.addr, 100000), 1);
+            ok = CheckTokenGroups(t, state, coins);
             BOOST_CHECK(!ok);
 
             // same, grouped

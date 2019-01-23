@@ -8,6 +8,7 @@
 
 from test_framework.util import *
 from test_framework.test_framework import BitcoinTestFramework
+import hashlib
 import logging
 import pprint
 import time
@@ -101,9 +102,37 @@ class MyTest (BitcoinTestFramework):
         return True
 
 
-    def run_test(self):
+    def descDocTest(self):
+        self.nodes[2].generate(10)
 
-        logging.info("This is a template for you to use when making new tests")
+        # These restrictions are implemented in this wallet and follow the spec, but are NOT consensus.
+        try:
+            ret = self.nodes[2].token("new", "tkr")
+            assert(0) # need token name
+        except JSONRPCException as e:
+            assert("token name" in e.error["message"])
+        try:
+            ret = self.nodes[2].token("new", "012345678", "name")
+            assert(0) # need token name
+        except JSONRPCException as e:
+            assert("too many characters" in e.error["message"])
+
+        ret = self.nodes[2].token("new", "tkr", "name")
+        ret = self.nodes[2].token("new", "", "")  # provide empty ticker and name
+
+        try:
+            ret = self.nodes[2].token("new", "tkr", "name", "foo")
+        except JSONRPCException as e:
+            assert("missing colon" in e.error["message"])
+        try:
+            ret = self.nodes[2].token("new", "tkr", "name", "foo:bar")
+        except JSONRPCException as e:
+            assert("token description document hash" in e.error["message"])
+
+        tddId = hashlib.sha256(b"tdd here").hexdigest()
+        ret = self.nodes[2].token("new", "tkr", "name", "foo:bar", tddId )
+
+    def run_test(self):
 
         # generate enough blocks so that nodes[0] has a balance
         self.nodes[2].generate(2)
@@ -262,6 +291,7 @@ class MyTest (BitcoinTestFramework):
 
         self.subgroupTest()
         # pdb.set_trace()
+        self.descDocTest()
 
 
 if __name__ == '__main__':

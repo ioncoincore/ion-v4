@@ -32,3 +32,10 @@ CTokenGroupID GetTokenGroup(const std::string &ionAddrGrpId, const CChainParams 
 CTokenGroupID GetTokenGroup(const CScript &script);
 CTxDestination ControllingAddress(const CTokenGroupID &grp, txnouttype addrType);
 std::string EncodeTokenGroup(const CTokenGroupID &grp, const CChainParams &params = Params());
+
+//* Calculate a group ID based on the provided inputs.  Pass and empty script to opRetTokDesc if there is not
+// going to be an OP_RETURN output in the transaction.
+CTokenGroupID findGroupId(const COutPoint &input, CScript opRetTokDesc, TokenGroupIdFlags flags, uint64_t &nonce);
+
+//* Group script helper function
+CScript GetScriptForDestination(const CTxDestination &dest, const CTokenGroupID &group, const CAmount &amount);
