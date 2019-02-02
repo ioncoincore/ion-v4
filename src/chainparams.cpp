@@ -367,21 +367,55 @@ public:
         pchMessageStart[3] = 0x9e;
         nDefaultPort = 34567;
         nSubsidyHalvingInterval = 150;
-        nEnforceBlockUpgradeMajority = 750;
-        nRejectBlockOutdatedMajority = 950;
-        nToCheckBlockUpgradeMajority = 1000;
+        nEnforceBlockUpgradeMajority = 4320; // 75%
+        nRejectBlockOutdatedMajority = 5472; // 95%
+        nToCheckBlockUpgradeMajority = 5760; // 4 days
         nMinerThreads = 1;
-        nTargetTimespanMidas = 7 * 24 * 60 * 60;// 1 week
-        nTargetTimespanDGW = 24 * 60 * 60;      // 1 day
-        nTargetSpacing = 1 * 60;                // 1 minute
+        nTargetTimespanMidas = 7 * 24 * 60 * 60;    // 1 week
+        nTargetTimespanDGW = 24 * 60 * 60;          // ION: 1 day
+        nTargetSpacing = 1 * 60;                    // ION: 1 minutes
         bnProofOfWorkLimit = ~uint256(0) >> 1;
-        genesis.nTime = 1519927200;             // GMT: Thursday, March 1, 2018 6:00:00 PM
-        genesis.nBits = 0x207fffff;
-        genesis.nNonce = 0x496f6e;                // hex 57 47 52 in text = ION
+        nLastPOWBlock = 850;
+        nMasternodeCountDrift = 4;
+        nModifierUpdateBlock = 51197; //approx Mon, 17 Apr 2017 04:00:00 GMT
+        nMaxMoneyOut = 38600000 * COIN;
+        nZerocoinStartHeight = 1;
+        nZerocoinStartTime = 1521414629;
+        nBlockEnforceSerialRange = 10000000; //Enforce serial range starting this block
+        nBlockRecalculateAccumulators = 10000000; //Trigger a recalculation of accumulators
+        nBlockFirstFraudulent = 99999999; //First block that bad serials emerged
+        nBlockLastGoodCheckpoint = 10000000; //Last valid accumulator checkpoint
+        nBlockEnforceInvalidUTXO = 10000000; //Start enforcing the invalid UTXO's
+        nInvalidAmountFiltered = 0; //Amount of invalid coins filtered through exchanges, that should be considered valid
+        nBlockZerocoinV2 = 1000; //!> The block that zerocoin v2 becomes active
+        nEnforceNewSporkKey = 1545361200; //!> Sporks signed after 12/21/2018 @ 3:00am (UTC) must use the new spork key
+        nRejectOldSporkKey = 1545620400; //!> Reject old spork key after 12/24/2018 @ 3:00am (UTC)
+
+        nMidasStartHeight = 99999999;
+        nMidasStartTime = 9997209344;
+        nDGWStartHeight = nZerocoinStartHeight;
+        nDGWStartTime = nZerocoinStartTime;
+
+        //! Modify the testnet genesis block so the timestamp is valid for a later start.
+        const char* pszTimestamp = "The Guardian: [2nd Feb 2017] Finsbury Park mosque wins apology and damages from Thomson Reuters";
+        genesis.nTime = 1491737471;                 // GMT: Thursday, February 2, 2017 14:30:00
+        genesis.vtx.clear();
+        CMutableTransaction txNew;
+        txNew.nTime = genesis.nTime;
+        txNew.vin.resize(1);
+        txNew.vout.resize(1);
+        txNew.vin[0].scriptSig = CScript() << 1491737471 << CScriptNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vout[0].nValue = 1 * COIN;
+        txNew.vout[0].scriptPubKey = CScript() << ParseHex("045622582bdfad9366cdff9652d35a562af17ea4e3462d32cd988b32919ba2ff4bc806485be5228185ad3f75445039b6e744819c4a63304277ca8d20c99a6acec8") << OP_CHECKSIG;
+        genesis.vtx.push_back(txNew);
+
+        genesis.hashMerkleRoot = genesis.BuildMerkleTree();
+        genesis.nNonce = 574752;                  // hex 57 47 52 in text = ION
+        genesis.nBits = 0x207ffff;
 
         hashGenesisBlock = genesis.GetHash();
-        nDefaultPort = 17270;
-        assert(hashGenesisBlock == uint256("0xe6f63a91cd05b42f94ba60e359d5c9d62faf9c9733d9b523a343281e1c267d46"));
+        nDefaultPort = 34567;
+        assert(hashGenesisBlock == uint256("0x47c7c6267ccd4a73c21c696d4bc004f74edc172a470c9c5a4201aa8d3196f99e"));
 
         vFixedSeeds.clear();                    //! Testnet mode doesn't have any fixed seeds.
         vSeeds.clear();                         //! Testnet mode doesn't have any DNS seeds.
@@ -392,6 +426,16 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = true;
         fTestnetToBeDeprecatedFieldRPC = false;
+
+        nPoolMaxTransactions = 2;
+        strSporkKey = "0430b1f83d3acb90cde0b7e0e1d9365c00bfaf04ab8614457cfa0766a787239dd47ad6ca478659dd5e401fccb7fea6fa83acad23a2c7b451aafe6fa2ae4cfd4a58";
+        strSporkKeyOld = "0470e14fc60a25e0eb4f6b1fe280e4c3f9427f7bb8b38f14a0c310c2e56402bdce0f25049bf22351dc3d07f389d4d433b339d8e1b991784f11df68f50340185c1d";
+        strObfuscationPoolDummyAddress = "g9gvvemz52aDkRn4iiGrzTbBRS1HiqcY9r";
+        nStartMasternodePayments = 1558696183; // GMT: Thursday, 15. February 2018 12:03:03
+        nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
+                                       // here because we only have a 8 block finalization window on testnet
+        bech32_hrp = "ionrt";
+
     }
     const Checkpoints::CCheckpointData& Checkpoints() const
     {
