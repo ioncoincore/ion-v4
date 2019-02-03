@@ -33,9 +33,6 @@ description: |
 
 grade: stable
 confinement: strict
-system-files:
-  read: [/var, /var/tmp, /tmp, $HOME]
-  write: [/var, /var/tmp, /tmp, $HOME]
 
 apps:
   daemon:
@@ -65,15 +62,15 @@ apps:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt:
     command: desktop-launch ion-qt
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home, write, system-files]
     desktop: qt.desktop
   qt-testnet:
     command: desktop-launch ion-qt --testnet
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home, write, system-files]
     desktop: qt-testnet.desktop
   qt-regtest:
     command: desktop-launch ion-qt --regtest
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home, write, system-files]
     desktop: qt-regtest.desktop
   cli:
     command: ion-cli
