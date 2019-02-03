@@ -62,15 +62,15 @@ apps:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt:
     command: desktop-launch ion-qt
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home, write, system-files]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, mir, home, removable-media]
     desktop: qt.desktop
   qt-testnet:
     command: desktop-launch ion-qt --testnet
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home, write, system-files]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, mir, home, removable-media]
     desktop: qt-testnet.desktop
   qt-regtest:
     command: desktop-launch ion-qt --regtest
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, home, write, system-files]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, mir, home, removable-media]
     desktop: qt-regtest.desktop
   cli:
     command: ion-cli
@@ -96,6 +96,7 @@ parts:
       # Additionaly we fix funcs.mk
       ## Patch - Default home folder
       git apply $SNAPCRAFT_STAGE/default_data_dir.patch
+      git apply $SNAPCRAFT_STAGE/snap-patch-bdb-tmp-folder.patch
       mkdir -p $SNAP_USER_COMMON/var/tmp
       ## Patch - Fix Bug extracting sources without ownership
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' $SNAPCRAFT_PART_BUILD/depends/funcs.mk
