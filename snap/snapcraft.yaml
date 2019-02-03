@@ -97,7 +97,7 @@ parts:
       ## Patch - Default home folder
       git apply $SNAPCRAFT_STAGE/default_data_dir.patch
       mkdir -p $SNAPCRAFT_PART_BUILD/depends/bdb
-      cp $SNAPCRAFT_PART_BUILD/../../../depends/bdb/Change-tmp-folders-to-be-in-HOME-folder.patch $SNAPCRAFT_PART_BUILD/depends/bdb/Change-tmp-folders-to-be-in-HOME-folder.patch
+      cp $SNAPCRAFT_STAGE/Change-tmp-folders-to-be-in-HOME-folder.patch $SNAPCRAFT_PART_BUILD/depends/bdb/Change-tmp-folders-to-be-in-HOME-folder.patch
       git apply $SNAPCRAFT_STAGE/snap-patch-bdb-tmp-folder.patch
       ## Patch - Fix Bug extracting sources without ownership
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' $SNAPCRAFT_PART_BUILD/depends/funcs.mk
