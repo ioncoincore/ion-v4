@@ -1,0 +1,32 @@
+From a698ebc2b0cad14176f3c3212f8133f89857cb64 Mon Sep 17 00:00:00 2001
+From: cevap <dev@i2pmail.org>
+Date: Sun, 3 Feb 2019 18:08:54 +0100
+Subject: [PATCH] snap: patch bdb tmp folder
+
+---
+ depends/packages/bdb.mk | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/depends/packages/bdb.mk b/depends/packages/bdb.mk
+index 6c9876c..a4d2dcd 100644
+--- a/depends/packages/bdb.mk
++++ b/depends/packages/bdb.mk
+@@ -4,6 +4,7 @@ $(package)_download_path=http://download.oracle.com/berkeley-db
+ $(package)_file_name=db-$($(package)_version).NC.tar.gz
+ $(package)_sha256_hash=12edc0df75bf9abd7f82f821795bcee50f42cb2e5f76a6a281b85732798364ef
+ $(package)_build_subdir=build_unix
++$(package)_patches=Change-tmp-folders-to-be-in-HOME-folder.patch
+ 
+ define $(package)_set_vars
+ $(package)_config_opts=--disable-shared --enable-cxx --disable-replication
+@@ -13,6 +14,7 @@ $(package)_cxxflags=-std=c++11
+ endef
+ 
+ define $(package)_preprocess_cmds
++  patch -p1 < $($(package)_patch_dir)/Change-tmp-folders-to-be-in-HOME-folder.patch && \
+   sed -i.old 's/__atomic_compare_exchange/__atomic_compare_exchange_db/' dbinc/atomic.h && \
+   sed -i.old 's/atomic_init/atomic_init_db/' dbinc/atomic.h mp/mp_region.c mp/mp_mvcc.c mp/mp_fget.c mutex/mut_method.c mutex/mut_tas.c && \
+   cp -f $(BASEDIR)/config.guess $(BASEDIR)/config.sub dist
+-- 
+2.17.1
+

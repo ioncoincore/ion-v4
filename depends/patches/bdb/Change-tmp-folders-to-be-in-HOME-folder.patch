@@ -1,0 +1,447 @@
+From 0801b0b141184a8ce2d4879e19c635ce9c392680 Mon Sep 17 00:00:00 2001
+From: cevap <dev@i2pmail.org>
+Date: Sun, 3 Feb 2019 18:03:11 +0100
+Subject: [PATCH] Change tmp folders to be in HOME folder
+
+---
+ csharp/DatabaseEnvironment.cs                    |  8 ++++----
+ csharp/DatabaseEnvironmentConfig.cs              |  8 ++++----
+ csharp/doc/libdb_dotnet48.XML                    | 16 ++++++++--------
+ dist/configure                                   |  2 +-
+ dist/s_message                                   |  4 ++--
+ dist/s_recover                                   |  4 ++--
+ docs/api_reference/C/envset_tmp_dir.html         |  4 ++--
+ docs/api_reference/CXX/envset_tmp_dir.html       |  4 ++--
+ ...keleyDB_DatabaseEnvironmentConfig_TempDir.htm |  2 +-
+ .../P_BerkeleyDB_DatabaseEnvironment_TempDir.htm |  2 +-
+ .../java/com/sleepycat/db/EnvironmentConfig.html |  8 ++++----
+ docs/programmer_reference/build_vxworks_faq.html |  4 ++--
+ .../build_vxworks_notes.html                     |  2 +-
+ docs/programmer_reference/env_error.html         |  2 +-
+ docs/programmer_reference/test.html              |  2 +-
+ java/src/com/sleepycat/db/EnvironmentConfig.java |  8 ++++----
+ mod_db4/configure                                |  2 +-
+ os/os_tmpdir.c                                   |  4 ++--
+ perl/BerkeleyDB/Changes                          |  2 +-
+ php_db4/samples/simple_counter.php               |  2 +-
+ php_db4/samples/transactional_counter.php        |  4 ++--
+ test/recd012.tcl                                 |  4 ++--
+ test/scr010/chk.str                              |  2 +-
+ test/scr020/chk.inc                              |  2 +-
+ test/scr021/chk.flags                            |  2 +-
+ test/scr031/chk.copy                             |  2 +-
+ 26 files changed, 53 insertions(+), 53 deletions(-)
+
+diff --git a/csharp/DatabaseEnvironment.cs b/csharp/DatabaseEnvironment.cs
+index d986339..b560df8 100644
+--- a/csharp/DatabaseEnvironment.cs
++++ b/csharp/DatabaseEnvironment.cs
+@@ -1715,10 +1715,10 @@ namespace BerkeleyDB {
+         /// <item>The value of the environment variable TMP.</item>
+         /// <item>The value of the environment variable TempFolder.</item>
+         /// <item>The value returned by the GetTempPath interface.</item>
+-        /// <item>The directory /var/tmp.</item>
+-        /// <item>The directory /usr/tmp.</item>
+-        /// <item>The directory /temp.</item>
+-        /// <item>The directory /tmp.</item>
++        /// <item>The directory $HOME/var/tmp.</item>
++        /// <item>The directory $HOME/usr/tmp.</item>
++        /// <item>The directory $HOME/temp.</item>
++        /// <item>The directory $HOME/tmp.</item>
+         /// <item>The directory C:/temp.</item>
+         /// <item>The directory C:/tmp.</item>
+         /// </list>
+diff --git a/csharp/DatabaseEnvironmentConfig.cs b/csharp/DatabaseEnvironmentConfig.cs
+index aa4e6f8..95b02e3 100644
+--- a/csharp/DatabaseEnvironmentConfig.cs
++++ b/csharp/DatabaseEnvironmentConfig.cs
+@@ -312,10 +312,10 @@ namespace BerkeleyDB {
+         /// <item>The value of the environment variable TMP.</item>
+         /// <item>The value of the environment variable TempFolder.</item>
+         /// <item>The value returned by the GetTempPath interface.</item>
+-        /// <item>The directory /var/tmp.</item>
+-        /// <item>The directory /usr/tmp.</item>
+-        /// <item>The directory /temp.</item>
+-        /// <item>The directory /tmp.</item>
++        /// <item>The directory $HOME/var/tmp.</item>
++        /// <item>The directory $HOME/usr/tmp.</item>
++        /// <item>The directory $HOME/temp.</item>
++        /// <item>The directory $HOME/tmp.</item>
+         /// <item>The directory C:/temp.</item>
+         /// <item>The directory C:/tmp.</item>
+         /// </list>
+diff --git a/csharp/doc/libdb_dotnet48.XML b/csharp/doc/libdb_dotnet48.XML
+index 8e461d9..3216494 100644
+--- a/csharp/doc/libdb_dotnet48.XML
++++ b/csharp/doc/libdb_dotnet48.XML
+@@ -4524,10 +4524,10 @@
+             <item>The value of the environment variable TMP.</item>
+             <item>The value of the environment variable TempFolder.</item>
+             <item>The value returned by the GetTempPath interface.</item>
+-            <item>The directory /var/tmp.</item>
+-            <item>The directory /usr/tmp.</item>
+-            <item>The directory /temp.</item>
+-            <item>The directory /tmp.</item>
++            <item>The directory $HOME/var/tmp.</item>
++            <item>The directory $HOME/usr/tmp.</item>
++            <item>The directory $HOME/temp.</item>
++            <item>The directory $HOME/tmp.</item>
+             <item>The directory C:/temp.</item>
+             <item>The directory C:/tmp.</item>
+             </list>
+@@ -12695,10 +12695,10 @@
+             <item>The value of the environment variable TMP.</item>
+             <item>The value of the environment variable TempFolder.</item>
+             <item>The value returned by the GetTempPath interface.</item>
+-            <item>The directory /var/tmp.</item>
+-            <item>The directory /usr/tmp.</item>
+-            <item>The directory /temp.</item>
+-            <item>The directory /tmp.</item>
++            <item>The directory $HOME/var/tmp.</item>
++            <item>The directory $HOME/usr/tmp.</item>
++            <item>The directory $HOME/temp.</item>
++            <item>The directory $HOME/tmp.</item>
+             <item>The directory C:/temp.</item>
+             <item>The directory C:/tmp.</item>
+             </list>
+diff --git a/dist/configure b/dist/configure
+index 295fec1..4c24ad7 100755
+--- a/dist/configure
++++ b/dist/configure
+@@ -23009,7 +23009,7 @@ fi
+ 
+ # Have a temporary directory for convenience.  Make it in the build tree
+ # simply because there is no reason against having it here, and in addition,
+-# creating and moving files from /tmp can sometimes cause problems.
++# creating and moving files from $HOME/tmp can sometimes cause problems.
+ # Hook for its removal unless debugging.
+ # Note that there is a small window in which the directory will not be cleaned:
+ # after its creation but before its name has been assigned to `$tmp'.
+diff --git a/dist/s_message b/dist/s_message
+index 19e621a..45c5136 100755
+--- a/dist/s_message
++++ b/dist/s_message
+@@ -6,8 +6,8 @@
+ header=/tmp/__db_a
+ source=/tmp/__db_b
+ 
+-trap 'rm -f /tmp/__db_[ab]; exit 1' 1 2 3 13 15
+-trap 'rm -f /tmp/__db_[ab]; exit 0' 0
++trap 'rm -f $HOME/tmp/__db_[ab]; exit 1' 1 2 3 13 15
++trap 'rm -f $HOME/tmp/__db_[ab]; exit 0' 0
+ 
+ DIR="rep repmgr"
+ 
+diff --git a/dist/s_recover b/dist/s_recover
+index 593be29..7a26a6c 100755
+--- a/dist/s_recover
++++ b/dist/s_recover
+@@ -10,8 +10,8 @@ source=/tmp/__db_d
+ template=/tmp/__db_e
+ tmp=/tmp/__db_f
+ 
+-trap 'rm -f /tmp/__db_[abcdef]; exit 1' 1 2 3 13 15
+-trap 'rm -f /tmp/__db_[abcdef]; exit 0' 0
++trap 'rm -f $HOME/tmp/__db_[abcdef]; exit 1' 1 2 3 13 15
++trap 'rm -f $HOME/tmp/__db_[abcdef]; exit 0' 0
+ 
+ DIR="db dbreg btree fileops hash qam txn"
+ 
+diff --git a/docs/api_reference/C/envset_tmp_dir.html b/docs/api_reference/C/envset_tmp_dir.html
+index 61217ee..cf88ff5 100644
+--- a/docs/api_reference/C/envset_tmp_dir.html
++++ b/docs/api_reference/C/envset_tmp_dir.html
+@@ -79,12 +79,12 @@ DB_ENV-&gt;set_tmp_dir(DB_ENV *dbenv, const char *dir);  </pre>
+           </li>
+           <li>
+             <p>
+-                        The directory <span class="bold"><strong>/var/tmp</strong></span>. 
++                        The directory <span class="bold"><strong>$HOME/var/tmp</strong></span>. 
+                 </p>
+           </li>
+           <li>
+             <p>
+-                        The directory <span class="bold"><strong>/usr/tmp</strong></span>. 
++                        The directory <span class="bold"><strong>$HOME/usr/tmp</strong></span>. 
+                 </p>
+           </li>
+           <li>
+diff --git a/docs/api_reference/CXX/envset_tmp_dir.html b/docs/api_reference/CXX/envset_tmp_dir.html
+index e23a1fe..7dab650 100644
+--- a/docs/api_reference/CXX/envset_tmp_dir.html
++++ b/docs/api_reference/CXX/envset_tmp_dir.html
+@@ -79,12 +79,12 @@ DbEnv::set_tmp_dir(const char *dir); </pre>
+           </li>
+           <li>
+             <p>
+-                        The directory <span class="bold"><strong>/var/tmp</strong></span>. 
++                        The directory <span class="bold"><strong>$HOME/var/tmp</strong></span>. 
+                 </p>
+           </li>
+           <li>
+             <p>
+-                        The directory <span class="bold"><strong>/usr/tmp</strong></span>. 
++                        The directory <span class="bold"><strong>$HOME/usr/tmp</strong></span>. 
+                 </p>
+           </li>
+           <li>
+diff --git a/docs/csharp/html/F_BerkeleyDB_DatabaseEnvironmentConfig_TempDir.htm b/docs/csharp/html/F_BerkeleyDB_DatabaseEnvironmentConfig_TempDir.htm
+index 2e1e321..48efd39 100644
+--- a/docs/csharp/html/F_BerkeleyDB_DatabaseEnvironmentConfig_TempDir.htm
++++ b/docs/csharp/html/F_BerkeleyDB_DatabaseEnvironmentConfig_TempDir.htm
+@@ -24,7 +24,7 @@
+             checked in the specified order. The first existing directory path is
+             used for all temporary files.
+             </p>
+-        <ol><li>The value of the environment variable TMPDIR.</li><li>The value of the environment variable TEMP.</li><li>The value of the environment variable TMP.</li><li>The value of the environment variable TempFolder.</li><li>The value returned by the GetTempPath interface.</li><li>The directory /var/tmp.</li><li>The directory /usr/tmp.</li><li>The directory /temp.</li><li>The directory /tmp.</li><li>The directory C:/temp.</li><li>The directory C:/tmp.</li></ol>
++        <ol><li>The value of the environment variable TMPDIR.</li><li>The value of the environment variable TEMP.</li><li>The value of the environment variable TMP.</li><li>The value of the environment variable TempFolder.</li><li>The value returned by the GetTempPath interface.</li><li>The directory $HOME/var/tmp.</li><li>The directory $HOME/usr/tmp.</li><li>The directory $HOME/temp.</li><li>The directory $HOME/tmp.</li><li>The directory C:/temp.</li><li>The directory C:/tmp.</li></ol>
+         <p>
+             Environment variables are only checked if
+             <a href="F_BerkeleyDB_DatabaseEnvironmentConfig_UseEnvironmentVars.htm">UseEnvironmentVars</a> is true.
+diff --git a/docs/csharp/html/P_BerkeleyDB_DatabaseEnvironment_TempDir.htm b/docs/csharp/html/P_BerkeleyDB_DatabaseEnvironment_TempDir.htm
+index 841e66e..d5346f3 100644
+--- a/docs/csharp/html/P_BerkeleyDB_DatabaseEnvironment_TempDir.htm
++++ b/docs/csharp/html/P_BerkeleyDB_DatabaseEnvironment_TempDir.htm
+@@ -27,7 +27,7 @@
+             checked in the specified order. The first existing directory path is
+             used for all temporary files.
+             </p>
+-        <ol><li>The value of the environment variable TMPDIR.</li><li>The value of the environment variable TEMP.</li><li>The value of the environment variable TMP.</li><li>The value of the environment variable TempFolder.</li><li>The value returned by the GetTempPath interface.</li><li>The directory /var/tmp.</li><li>The directory /usr/tmp.</li><li>The directory /temp.</li><li>The directory /tmp.</li><li>The directory C:/temp.</li><li>The directory C:/tmp.</li></ol>
++        <ol><li>The value of the environment variable TMPDIR.</li><li>The value of the environment variable TEMP.</li><li>The value of the environment variable TMP.</li><li>The value of the environment variable TempFolder.</li><li>The value returned by the GetTempPath interface.</li><li>The directory $HOME/var/tmp.</li><li>The directory $HOME/usr/tmp.</li><li>The directory $HOME/temp.</li><li>The directory $HOME/tmp.</li><li>The directory C:/temp.</li><li>The directory C:/tmp.</li></ol>
+         <p>
+             Environment variables are only checked if
+             <a href="P_BerkeleyDB_DatabaseEnvironment_UseEnvironmentVars.htm">UseEnvironmentVars</a> is true.
+diff --git a/docs/java/com/sleepycat/db/EnvironmentConfig.html b/docs/java/com/sleepycat/db/EnvironmentConfig.html
+index d44d143..5f868dd 100644
+--- a/docs/java/com/sleepycat/db/EnvironmentConfig.html
++++ b/docs/java/com/sleepycat/db/EnvironmentConfig.html
+@@ -5586,10 +5586,10 @@ public void <B>setTemporaryDirectory</B>(<A HREF="http://java.sun.com/j2se/1.5.0
+     <li>The value of the environment variable TMP.
+     <li>The value of the environment variable TempFolder.
+     <li>The value returned by the GetTempPath interface.
+-    <li>The directory /var/tmp.
+-    <li>The directory /usr/tmp.
+-    <li>The directory /temp.
+-    <li>The directory /tmp.
++    <li>The directory $HOME/var/tmp.
++    <li>The directory $HOME/usr/tmp.
++    <li>The directory $HOME/temp.
++    <li>The directory $HOME/tmp.
+     <li>The directory C:/temp.
+     <li>The directory C:/tmp.
+     </ol</blockquote>
+diff --git a/docs/programmer_reference/build_vxworks_faq.html b/docs/programmer_reference/build_vxworks_faq.html
+index 3347ed6..5625b53 100644
+--- a/docs/programmer_reference/build_vxworks_faq.html
++++ b/docs/programmer_reference/build_vxworks_faq.html
+@@ -78,11 +78,11 @@ the set of source files used in a UNIX build and the set used in a
+ VxWorks build.  You can use the following command to create a list of
+ the Berkeley DB VxWorks files.  The commands assume you are in the build_vxworks
+ directory of the Berkeley DB distribution:</p>
+-            <pre class="programlisting">% cat &gt; /tmp/files.sed
++            <pre class="programlisting">% cat &gt; $HOME/tmp/files.sed
+ s/&lt;BEGIN&gt; FILE_//
+ s/_objects//
+ ^D
+-% grep FILE_ BerkeleyDB.wpj | grep _objects | sed -f /tmp/files.sed &gt; /tmp/db.files</pre>
++% grep FILE_ BerkeleyDB.wpj | grep _objects | sed -f $HOME/tmp/files.sed &gt; $HOME/tmp/db.files</pre>
+             <p>You will then have a template Makefile and include files, and a list of
+ VxWorks-specific source files.  You will need to convert this Makefile
+ and list of files into a form that is acceptable to your specific build
+diff --git a/docs/programmer_reference/build_vxworks_notes.html b/docs/programmer_reference/build_vxworks_notes.html
+index 9e68a85..f1980ae 100644
+--- a/docs/programmer_reference/build_vxworks_notes.html
++++ b/docs/programmer_reference/build_vxworks_notes.html
+@@ -96,7 +96,7 @@ items in the database.</p>
+         </div>
+         <p>The Berkeley DB utilities can be downloaded and run by calling the function equivalent to the utility's name.  The utility functions take a string containing all the supported arguments.  The program will then decompose that string into a traditional argc/argv used internally.  For example, to execute <a href="../api_reference/C/db_stat.html" class="olink">db_stat utility</a> on a database within an environment you would execute the following from the windsh prompt.  Obviously you would change the pathname and database name to reflect
+ your system.</p>
+-        <pre class="programlisting">&gt; db_stat "-h /tmp/myenvhome -d mydatabase.db"</pre>
++        <pre class="programlisting">&gt; db_stat "-h $HOME/tmp/myenvhome -d mydatabase.db"</pre>
+       </div>
+       <div class="sect2" lang="en" xml:lang="en">
+         <div class="titlepage">
+diff --git a/docs/programmer_reference/env_error.html b/docs/programmer_reference/env_error.html
+index 42cc3a6..af8ff48 100644
+--- a/docs/programmer_reference/env_error.html
++++ b/docs/programmer_reference/env_error.html
+@@ -69,7 +69,7 @@ if ((ret = dbenv-&gt;open(dbenv, home,
+       <p>For example, if the program was called "my_app", and it tried to open
+ an environment home directory in "/tmp/home" and the open call returned
+ a permission error, the error messages shown would look like this:</p>
+-      <pre class="programlisting">my_app: open: /tmp/home: Permission denied.
++      <pre class="programlisting">my_app: open: $HOME/tmp/home: Permission denied.
+ my_app: contact your system administrator: session ID was 2</pre>
+     </div>
+     <div class="navfooter">
+diff --git a/docs/programmer_reference/test.html b/docs/programmer_reference/test.html
+index 54924ad..a7918bb 100644
+--- a/docs/programmer_reference/test.html
++++ b/docs/programmer_reference/test.html
+@@ -93,7 +93,7 @@ build directory, and change the following line to a more appropriate
+ value for your system:</p>
+         <pre class="programlisting">set testdir ./TESTDIR</pre>
+         <p>For example, you might change it to the following:</p>
+-        <pre class="programlisting">set testdir /var/tmp/db.test</pre>
++        <pre class="programlisting">set testdir $HOME/var/tmp/db.test</pre>
+         <p>Alternatively, you can create a symbolic link named TESTDIR in your
+ build directory to an appropriate location for running the tests.
+ Regardless of where you run the tests, the TESTDIR directory should be
+diff --git a/java/src/com/sleepycat/db/EnvironmentConfig.java b/java/src/com/sleepycat/db/EnvironmentConfig.java
+index 1fec6a1..53d9caa 100644
+--- a/java/src/com/sleepycat/db/EnvironmentConfig.java
++++ b/java/src/com/sleepycat/db/EnvironmentConfig.java
+@@ -2782,10 +2782,10 @@ The base segment ID.
+     <li>The value of the environment variable TMP.
+     <li>The value of the environment variable TempFolder.
+     <li>The value returned by the GetTempPath interface.
+-    <li>The directory /var/tmp.
+-    <li>The directory /usr/tmp.
+-    <li>The directory /temp.
+-    <li>The directory /tmp.
++    <li>The directory $HOME/var/tmp.
++    <li>The directory $HOME/usr/tmp.
++    <li>The directory $HOME/temp.
++    <li>The directory $HOME/tmp.
+     <li>The directory C:/temp.
+     <li>The directory C:/tmp.
+     </ol</blockquote>
+diff --git a/mod_db4/configure b/mod_db4/configure
+index 7bf7585..493fb76 100755
+--- a/mod_db4/configure
++++ b/mod_db4/configure
+@@ -2651,7 +2651,7 @@ fi
+ 
+ # Have a temporary directory for convenience.  Make it in the build tree
+ # simply because there is no reason to put it here, and in addition,
+-# creating and moving files from /tmp can sometimes cause problems.
++# creating and moving files from $HOME/tmp can sometimes cause problems.
+ # Create a temporary directory, and hook for its removal unless debugging.
+ $debug ||
+ {
+diff --git a/os/os_tmpdir.c b/os/os_tmpdir.c
+index c5369eb..125f486 100644
+--- a/os/os_tmpdir.c
++++ b/os/os_tmpdir.c
+@@ -125,8 +125,8 @@ found:			return (__os_strdup(env, tdir, &dbenv->db_tmp_dir));
+ 	DB_TEMP_DIRECTORY("C:/temp");
+ 	DB_TEMP_DIRECTORY("C:/tmp");
+ #else
+-	DB_TEMP_DIRECTORY("/var/tmp");
+-	DB_TEMP_DIRECTORY("/usr/tmp");
++	DB_TEMP_DIRECTORY("$HOME/var/tmp");
++	DB_TEMP_DIRECTORY("$HOME/usr/tmp");
+ 	DB_TEMP_DIRECTORY("/tmp");
+ #endif
+ 
+diff --git a/perl/BerkeleyDB/Changes b/perl/BerkeleyDB/Changes
+index 0db848a..6c502b5 100644
+--- a/perl/BerkeleyDB/Changes
++++ b/perl/BerkeleyDB/Changes
+@@ -292,7 +292,7 @@ Revision history for Perl extension BerkeleyDB.
+ 
+ 0.08  28nd November 1999
+ 	* More documentation updates
+-	* Changed reference to files in /tmp in examples.t
++	* Changed reference to files in $HOME/tmp in examples.t
+ 	* Fixed a typo in softCrash that caused problems when building
+ 	  with a thread-enabled Perl.
+ 	* BerkeleyDB::Error wasn't initialised properly.
+diff --git a/php_db4/samples/simple_counter.php b/php_db4/samples/simple_counter.php
+index 8d6de2d..cbdad8f 100644
+--- a/php_db4/samples/simple_counter.php
++++ b/php_db4/samples/simple_counter.php
+@@ -4,7 +4,7 @@ $db = new Db4();
+ 
+ // Open it outside a Db4Env environment with datafile/var/lib/db4 
+ // and database name "test"
+-$db->open(null, "/var/tmp/db4", "test");
++$db->open(null, "$HOME/var/tmp/db4", "test");
+ 
+ // Get the current value of "counter"
+ $counter = $db->get("counter");
+diff --git a/php_db4/samples/transactional_counter.php b/php_db4/samples/transactional_counter.php
+index 2a03e98..2021feb 100644
+--- a/php_db4/samples/transactional_counter.php
++++ b/php_db4/samples/transactional_counter.php
+@@ -2,8 +2,8 @@
+ 
+ // Open a new Db4Env
+ $dbenv = new Db4Env();
+-$dbenv->set_data_dir("/var/tmp/dbhome");
+-$dbenv->open("/var/tmp/dbhome");
++$dbenv->set_data_dir("$HOME/var/tmp/dbhome");
++$dbenv->open("$HOME/var/tmp/dbhome");
+ 
+ // Open a database in $dbenv.  Note that even though
+ // we pass null in as the transaction, db4 forces this
+diff --git a/test/recd012.tcl b/test/recd012.tcl
+index b9ce791..3c146b8 100644
+--- a/test/recd012.tcl
++++ b/test/recd012.tcl
+@@ -155,8 +155,8 @@ proc recd012_body { method {ndbs 5} iter noutiter niniter psz tnum {largs ""} }
+ 			if { $ret != 0 } {
+ 				puts "FAIL: db_recover returned with nonzero\
+ 				    exit status, output as follows:"
+-				file mkdir /tmp/12out
+-				set fd [open /tmp/12out/[pid] w]
++				file mkdir $HOME/tmp/12out
++				set fd [open $HOME/tmp/12out/[pid] w]
+ 				puts $fd $res
+ 				close $fd
+ 			}
+diff --git a/test/scr010/chk.str b/test/scr010/chk.str
+index 18e757b..a33f43e 100644
+--- a/test/scr010/chk.str
++++ b/test/scr010/chk.str
+@@ -31,7 +31,7 @@ test -s $t1 && {
+ 
+ egrep -h '/\* | \* ' \
+     `find $d -name '*.[ch]' -o -name '*.cpp' | sed -e '/\/perl\//d' -e '/\/test_erlang\//d'` |
+-spell | sort -u | comm -23 /dev/stdin spell.ok | tee /tmp/f/1 > $t1
++spell | sort -u | comm -23 /dev/stdin spell.ok | tee $HOME/tmp/f/1 > $t1
+ 
+ test -s $t1 && {
+ 	cat $t1
+diff --git a/test/scr020/chk.inc b/test/scr020/chk.inc
+index d73e898..b997457 100644
+--- a/test/scr020/chk.inc
++++ b/test/scr020/chk.inc
+@@ -16,7 +16,7 @@ t1=__1
+ t2=__2
+ 
+ (cd $d && find . -name '*.[chys]' -o -name '*.cpp' |
+-    xargs egrep -l '#include.*db_config.h') | tee /tmp/o |
++    xargs egrep -l '#include.*db_config.h') | tee $HOME/tmp/o |
+     sed -e '/dbdemo.c$/d' \
+         -e '/db_java_wrap.c$/d' \
+ 	-e '/ex_apprec.c$/d' > $t1
+diff --git a/test/scr021/chk.flags b/test/scr021/chk.flags
+index 89f669f..2a4baaf 100644
+--- a/test/scr021/chk.flags
++++ b/test/scr021/chk.flags
+@@ -83,7 +83,7 @@ sed -e '/dbenv->verbose,/d' \
+ }
+ 
+ echo 'Checking "db" variables with flags other than DB_AM_XXX'
+-cp $t1 /tmp/_f
++cp $t1 $HOME/tmp/_f
+ grep 'dbp,' $t1 |
+ sed -e '/DB_AM_/d' \
+     -e '/dbp, mapped_flag)/d' \
+diff --git a/test/scr031/chk.copy b/test/scr031/chk.copy
+index a752c7a..fae7565 100644
+--- a/test/scr031/chk.copy
++++ b/test/scr031/chk.copy
+@@ -26,7 +26,7 @@ COPYEXP='Copyright.*'`date +%C%y`
+ # from 3rd parties that are included in our distribution
+ 
+ (cd $d && find . -name '*.[chys]' -o -name '*.cpp' -o -name '*.tcl'  \
+-             -o -name '*.java' -o -name '*.cs' -o -name '*.hpp') | tee /tmp/o |
++             -o -name '*.java' -o -name '*.cs' -o -name '*.hpp') | tee $HOME/tmp/o |
+    sed -e '/crypto\//d' \
+        -e '/sha1.c$/d' \
+        -e '/sleepycat\/asm\//d' \
+-- 
+2.17.1
+
