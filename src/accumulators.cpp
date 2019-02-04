@@ -484,7 +484,6 @@ std::list<CBlockIndex*> calculateAccumulatedBlocksFor(
 
     std::list<CBlockIndex*> blocksToInclude;
     int amountOfScannedBlocks = 0;
-    bool fDoubleCounted = false;
     while (pindex) {
         if (pindex->nHeight != startHeight && pindex->pprev->nAccumulatorCheckpoint != pindex->nAccumulatorCheckpoint)
             ++nCheckpointsAdded;
@@ -498,9 +497,10 @@ std::list<CBlockIndex*> calculateAccumulatedBlocksFor(
 
             bnAccValue = 0;
             uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->nAccumulatorCheckpoint;
-            if (!GetAccumulatorValueFromDB(nCheckpointSpend, coin.getDenomination(), bnAccValue) || bnAccValue == 0)
-                return error("%s : failed to find checksum in database for accumulator", __func__);
-
+            if (!GetAccumulatorValueFromDB(nCheckpointSpend, den, bnAccValue) || bnAccValue == 0) {
+                throw new ChecksumInDbNotFoundException(
+                        "calculateAccumulatedBlocksFor : failed to find checksum in database for accumulator");
+            }
             accumulator.setValue(bnAccValue);
             break;
         }
