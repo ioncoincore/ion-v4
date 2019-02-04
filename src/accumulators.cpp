@@ -623,40 +623,30 @@ bool CalculateAccumulatorWitnessFor(
 
         // Now accumulate the coins
         for (const CBlockIndex *blockIndex : blocksToInclude) {
-            nMintsAdded += AddBlockMintsToAccumulator(den, startingHeight, filter, blockIndex, &witnessAccumulator, true, ret);
+            nMintsAdded += AddBlockMintsToAccumulator(den, filter, blockIndex, &witnessAccumulator, true, ret);;
         }
 
         // A certain amount of accumulated coins are required
         if (nMintsAdded < Params().Zerocoin_RequiredAccumulation()) {
             strError = _(strprintf("Less than %d mints added, unable to create spend",
                                    Params().Zerocoin_RequiredAccumulation()).c_str());
-            throw NoEnoughMintsException(strError);
+            throw NotEnoughMintsException(strError);
         }
 
         witness.resetValue(witnessAccumulator, temp);
 
         // calculate how many mints of this denomination existed in the accumulator we initialized
-        nMintsAdded += ComputeAccumulatedCoins(startingHeight, den);
+        nMintsAdded += ComputeAccumulatedCoins(startHeight, den);
         LogPrint("zero", "%s : %d mints added to witness\n", __func__, nMintsAdded);
 
         return true;
-    }catch (ChecksumInDbNotFoundException e){
-        LogPrintStr(std::string("ERROR: ") + e.message + "\n");
-        return false;
-    }catch (AddMintsToAccException e){
-        LogPrintStr(std::string("ERROR: ") + e.message + "\n");
-        return false;
+    } catch (ChecksumInDbNotFoundException e) {
+        return error("%s: ChecksumInDbNotFoundException: %s", __func__, e.message);
+    } catch (GetPubcoinException e) {
+        return error("%s: GetPubcoinException: %s", __func__, e.message);
     }
 }
 
-class searchMintHeightException : public std::exception {
-
-public:
-    std::string message;
-
-    searchMintHeightException(const string &message) : message(message) {}
-
-};
 
 int SearchMintHeightOf(CBigNum value){
     uint256 txid;
