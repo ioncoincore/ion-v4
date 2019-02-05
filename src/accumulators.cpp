@@ -499,7 +499,7 @@ std::list<CBlockIndex*> calculateAccumulatedBlocksFor(
             uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->nAccumulatorCheckpoint;
 
             // check if isV1Coin
-            if (pindex->nHeight >= 1012710) {
+            if (pindex->nHeight >= Params().Zerocoin_Block_V2_Start()) {
                 if (!GetAccumulatorValueFromDB(nCheckpointSpend, den, bnAccValue) || bnAccValue == 0) {
                     throw new ChecksumInDbNotFoundException(
                             "calculateAccumulatedBlocksFor : failed to find checksum in database for accumulator");
@@ -589,7 +589,7 @@ bool CalculateAccumulatorWitnessFor(
         // Now accumulate the coins
         for (const CBlockIndex *blockIndex : blocksToInclude) {
             // check if isV1Coin
-            if (pindex->nHeight >= 550001 && pindex->nHeight < 1012710) {
+            if (pindex->nHeight >= Params().Zerocoin_StartHeight() && pindex->nHeight < Params().Zerocoin_Block_V2_Start()) {
                 AddBlockMintsToAccumulator(den, filter, blockIndex, &witnessAccumulator, false, ret);;
             }
             nMintsAdded += AddBlockMintsToAccumulator(den, filter, blockIndex, &witnessAccumulator, true, ret);;
