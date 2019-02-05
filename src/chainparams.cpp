@@ -340,7 +340,7 @@ public:
         vSeeds.push_back(CDNSSeedData("2", "testnet.seeder.uksafedns.net")); // Ionomy official testseed 2"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 97); // Testnet ion addresses start with 'g'
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 196);  // Testnet ion script addresses start with '8' or '9'
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 196);  // Testnet ion script addresses start with '2'
         base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 239); 
         // Testnet ion BIP32 pubkeys start with 'DRKV'
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x35)(0x87)(0xcf).convert_to_container<std::vector<unsigned char> >();
@@ -363,7 +363,7 @@ public:
         nPoolMaxTransactions = 2;
         strSporkKey = "0430b1f83d3acb90cde0b7e0e1d9365c00bfaf04ab8614457cfa0766a787239dd47ad6ca478659dd5e401fccb7fea6fa83acad23a2c7b451aafe6fa2ae4cfd4a58";
         strSporkKeyOld = "0470e14fc60a25e0eb4f6b1fe280e4c3f9427f7bb8b38f14a0c310c2e56402bdce0f25049bf22351dc3d07f389d4d433b339d8e1b991784f11df68f50340185c1d";
-        strObfuscationPoolDummyAddress = "TMPUBzcsHZawA32XYYDF9FHQp6icv492CV";
+        strObfuscationPoolDummyAddress = "gED9bYvicBsQ5Gu2zeaK8iZgrPqkLXYhgc";
         nStartMasternodePayments = 1558696183; // GMT: Thursday, 15. February 2018 12:03:03
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
                                        // here because we only have a 8 block finalization window on testnet
