@@ -29,6 +29,7 @@ bool GenerateAccumulatorWitness(const libzerocoin::PublicCoin &coin,
                                 int nSecurityLevel,
                                 int& nMintsAdded,
                                 std::string& strError,
+                                bool isV1Coin,
                                 CBlockIndex* pindexCheckpoint = nullptr
                                         );
 

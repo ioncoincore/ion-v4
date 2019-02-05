@@ -1023,14 +1023,15 @@ UniValue getaccumulatorvalues(const UniValue& params, bool fHelp)
 
 UniValue getaccumulatorwitness(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 2)
+    if (fHelp || params.size() != 3)
         throw runtime_error(
-                "getaccumulatorwitness \"commitmentCoinValue, coinDenomination\"\n"
+                "getaccumulatorwitness \"commitmentCoinValue, coinDenomination, isV1Coin\"\n"
                 "\nReturns the accumulator witness value associated with the coin\n"
 
                 "\nArguments:\n"
                 "1. coinValue             (string, required) the commitment value of the coin in HEX.\n"
                 "2. coinDenomination      (numeric, required) the coin denomination.\n"
+                "3. Zerocoin V1 or V2     (bool, not required) the coin denomination.\n"
 
                 "\nResult:\n"
                 "{\n"
@@ -1048,6 +1049,8 @@ UniValue getaccumulatorwitness(const UniValue& params, bool fHelp)
     coinValue.SetHex(params[0].get_str());
 
     int d = params[1].get_int();
+    bool isV1Coin = params[2].get_bool();
+
     libzerocoin::CoinDenomination denomination = libzerocoin::IntToZerocoinDenomination(d);
     libzerocoin::ZerocoinParams* zcparams = Params().Zerocoin_Params(false);
 
@@ -1060,7 +1063,7 @@ UniValue getaccumulatorwitness(const UniValue& params, bool fHelp)
     string strFailReason = "";
     int nMintsAdded = 0;
     CZerocoinSpendReceipt receipt;
-    if (!GenerateAccumulatorWitness(pubCoin, accumulator, witness, 100, nMintsAdded, strFailReason)) {
+    if (!GenerateAccumulatorWitness(pubCoin, accumulator, witness, 100, nMintsAdded, strFailReason, isV1Coin)) {
         receipt.SetStatus(_(strFailReason.c_str()), XION_FAILED_ACCUMULATOR_INITIALIZATION);
         throw JSONRPCError(RPC_DATABASE_ERROR, receipt.GetStatusMessage());
     }

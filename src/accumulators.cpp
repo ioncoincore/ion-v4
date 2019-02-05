@@ -497,11 +497,16 @@ std::list<CBlockIndex*> calculateAccumulatedBlocksFor(
 
             bnAccValue = 0;
             uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->nAccumulatorCheckpoint;
-            if (!GetAccumulatorValueFromDB(nCheckpointSpend, den, bnAccValue) || bnAccValue == 0) {
-                throw new ChecksumInDbNotFoundException(
-                        "calculateAccumulatedBlocksFor : failed to find checksum in database for accumulator");
+
+            // check if isV1Coin
+            if (pindex->nHeight >= 1012710) {
+                if (!GetAccumulatorValueFromDB(nCheckpointSpend, den, bnAccValue) || bnAccValue == 0) {
+                    throw new ChecksumInDbNotFoundException(
+                            "calculateAccumulatedBlocksFor : failed to find checksum in database for accumulator");
+
+                accumulator.setValue(bnAccValue);
+                }
             }
-            accumulator.setValue(bnAccValue);
             break;
         }
 
@@ -583,6 +588,10 @@ bool CalculateAccumulatorWitnessFor(
 
         // Now accumulate the coins
         for (const CBlockIndex *blockIndex : blocksToInclude) {
+            // check if isV1Coin
+            if (pindex->nHeight >= 550001 && pindex->nHeight < 1012710) {
+                AddBlockMintsToAccumulator(den, filter, blockIndex, &witnessAccumulator, false, ret);;
+            }
             nMintsAdded += AddBlockMintsToAccumulator(den, filter, blockIndex, &witnessAccumulator, true, ret);;
         }
 
@@ -632,6 +641,7 @@ bool GenerateAccumulatorWitness(
         int nSecurityLevel,
         int& nMintsAdded,
         string& strError,
+        bool isV1Coin,
         CBlockIndex* pindexCheckpoint)
 {
     try {
