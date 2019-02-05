@@ -247,7 +247,8 @@ bool GetKernelStakeModifier(uint256 hashBlockFrom, uint64_t& nStakeModifier, int
     while (nStakeModifierTime < pindexFrom->GetBlockTime() + nStakeModifierSelectionInterval) {
         if (!pindexNext) {
             // Should never happen - FornaxA: **TODO** add Ion's old stake modifier code
-            if (chainActive.Height() >= 1126 && chainActive.Height() <= Params().DGWStartHeight()) {
+            if ((chainActive.Height() >= 1126 && chainActive.Height() <= Params().DGWStartHeight()) || Params().NetworkID() == CBaseChainParams::REGTEST) {
+                nStakeModifier = pindex->nStakeModifier;
                 return true;
             } else {
                 return error("Null pindexNext\n");
