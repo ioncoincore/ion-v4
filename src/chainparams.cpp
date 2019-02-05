@@ -389,6 +389,7 @@ public:
         pchMessageStart[1] = 0x9a;
         pchMessageStart[2] = 0x39;
         pchMessageStart[3] = 0x9e;
+        nDefaultPort = 34567;
         nSubsidyHalvingInterval = 150;
         nEnforceBlockUpgradeMajority = 4320; // 75%
         nRejectBlockOutdatedMajority = 5472; // 95%

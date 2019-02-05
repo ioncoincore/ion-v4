@@ -37,76 +37,29 @@ icon: src/qt/res/src/ion.svg
 apps:
   daemon:
     command: iond
-    plugs: [network, network-bind, home]
+    plugs: [network, network-bind, home, removable-media]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
   daemon-testnet:
     command: iond --testnet
-    plugs: [network, network-bind, home]
+    plugs: [network, network-bind, home, removable-media]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
   daemon-regtest:
     command: iond --regtest
-    plugs: [network, network-bind, home]
-    environment:
-      XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
-  test-daemon:
-    command: test_ion
-    plugs: [network, network-bind, home]
-    environment:
-      XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
-  test-qt:
-    command: test_ion-qt
-    plugs: [network, network-bind, home]
-    environment:
-      XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
+    plugs: [network, network-bind, home, removable-media]
   qt:
     command: desktop-launch ion-qt
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, mir, home, removable-media]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, mir, opengl, home, removable-media]
     desktop: qt.desktop
-    environment:
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
   qt-testnet:
     command: desktop-launch ion-qt --testnet
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, mir, home, removable-media]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, mir, opengl, home, removable-media]
     desktop: qt-testnet.desktop
-    environment:
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
   qt-regtest:
     command: desktop-launch ion-qt --regtest
-    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, opengl, mir, home, removable-media]
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, mir, opengl, home, removable-media]
     desktop: qt-regtest.desktop
-    environment:
-      TMPDIR: $SNAP_USER_COMMON/var/tmp
-      TEMPDIR: $SNAP_USER_COMMON/usr/tmp
-      TMP: $SNAP_USER_COMMON/tmp
-      TEMP: $SNAP_USER_COMMON/temp
   cli:
     command: ion-cli
     plugs: [network, network-bind, home]
