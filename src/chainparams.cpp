@@ -180,7 +180,7 @@ public:
         nRejectOldSporkKey = 1549497601;            //!> Reject old spork key afters, GMT: Thursday, February 7, 2019 12:00:01 AM
 
         nMidasStartHeight = 176500;                 // MIDAS startheight, first big attack
-        nMidasStartTime = 1497541280;               // Time when MIDAS started and old algorithm stopped
+        //nMidasStartTime = 1497541280;             // Time when MIDAS started and old algorithm stopped
         nDGWStartHeight = 550000;                   // Startheight of DGW
         nDGWStartTime = 1521851265;                 // GMT: Saturday, March 24, 2018 12:27:45 AM - Exact time when DGW algorithm starts and old MIDAS stops
 
@@ -310,7 +310,7 @@ public:
         nRejectOldSporkKey = 1545620400; //!> Reject old spork key after 12/24/2018 @ 3:00am (UTC)
 
         nMidasStartHeight = 75000;
-        nMidasStartTime = 1497209344;
+        //nMidasStartTime = 1497209344;
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
 
@@ -417,7 +417,7 @@ public:
         nRejectOldSporkKey = 1545620400; //!> Reject old spork key after 12/24/2018 @ 3:00am (UTC)
 
         nMidasStartHeight = 99999999;
-        nMidasStartTime = 9997209344;
+        //nMidasStartTime = 9997209344;
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
 

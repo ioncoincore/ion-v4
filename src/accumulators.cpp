@@ -695,17 +695,18 @@ bool GenerateAccumulatorWitness(
             nMintsAdded += AddBlockMintsToAccumulator(coin, nHeightMintAdded, blockIndex, &witnessAccumulator, true);
         }
 
-        witness.resetValue(witnessAccumulator, coin);
-        if (!witness.VerifyWitness(accumulator, coin))
-            return error("%s: failed to verify witness", __func__);
+        if (!isV1Coin){
+            witness.resetValue(witnessAccumulator, coin);
+            if (!witness.VerifyWitness(accumulator, coin))
+                return error("%s: failed to verify witness", __func__);
 
-        // A certain amount of accumulated coins are required
-        if (nMintsAdded < Params().Zerocoin_RequiredAccumulation()) {
-            strError = _(strprintf("Less than %d mints added, unable to create spend",
-                                   Params().Zerocoin_RequiredAccumulation()).c_str());
-            return error("%s : %s", __func__, strError);
+            // A certain amount of accumulated coins are required
+            if (nMintsAdded < Params().Zerocoin_RequiredAccumulation()) {
+                strError = _(strprintf("Less than %d mints added, unable to create spend",
+                                    Params().Zerocoin_RequiredAccumulation()).c_str());
+                return error("%s : %s", __func__, strError);
+            }
         }
-
         // calculate how many mints of this denomination existed in the accumulator we initialized
         nMintsAdded += ComputeAccumulatedCoins(nAccStartHeight, coin.getDenomination());
         LogPrint("zero", "%s : %d mints added to witness\n", __func__, nMintsAdded);
