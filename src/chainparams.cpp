@@ -399,11 +399,11 @@ public:
         nTargetTimespanDGW = 24 * 60 * 60;          // ION: 1 day
         nTargetSpacing = 1 * 60;                    // ION: 1 minutes
         bnProofOfWorkLimit = ~uint256(0) >> 1;
-        nLastPOWBlock = 850;
+        nLastPOWBlock = 100;
         nMasternodeCountDrift = 4;
-        nModifierUpdateBlock = 51197; //approx Mon, 17 Apr 2017 04:00:00 GMT
+        nModifierUpdateBlock = 1; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = 38600000 * COIN;
-        nZerocoinStartHeight = 1;
+        nZerocoinStartHeight = 20;
         nZerocoinStartTime = 1521414629;
         nBlockEnforceSerialRange = 10000000; //Enforce serial range starting this block
         nBlockRecalculateAccumulators = 10000000; //Trigger a recalculation of accumulators
@@ -411,7 +411,7 @@ public:
         nBlockLastGoodCheckpoint = 10000000; //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = 10000000; //Start enforcing the invalid UTXO's
         nInvalidAmountFiltered = 0; //Amount of invalid coins filtered through exchanges, that should be considered valid
-        nBlockZerocoinV2 = 1000; //!> The block that zerocoin v2 becomes active
+        nBlockZerocoinV2 = 120; //!> The block that zerocoin v2 becomes active
         nEnforceNewSporkKey = 1545361200; //!> Sporks signed after 12/21/2018 @ 3:00am (UTC) must use the new spork key
         nRejectOldSporkKey = 1545620400; //!> Reject old spork key after 12/24/2018 @ 3:00am (UTC)
 
