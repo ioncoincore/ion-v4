@@ -386,10 +386,6 @@ public:
         nBlockFirstFraudulent = 99999999; //First block that bad serials emerged
         nBlockLastGoodCheckpoint = 10000000; //Last valid accumulator checkpoint
         nBlockEnforceInvalidUTXO = 10000000; //Start enforcing the invalid UTXO's
-        nInvalidAmountFiltered = 0; //Amount of invalid coins filtered through exchanges, that should be considered valid
-        nBlockZerocoinV2 = 1000; //!> The block that zerocoin v2 becomes active
-        nEnforceNewSporkKey = 1545361200; //!> Sporks signed after 12/21/2018 @ 3:00am (UTC) must use the new spork key
-        nRejectOldSporkKey = 1545620400; //!> Reject old spork key after 12/24/2018 @ 3:00am (UTC)
 
         nMidasStartHeight = 99999999;
         nMidasStartTime = 9997209344;
@@ -429,12 +425,10 @@ public:
 
         nPoolMaxTransactions = 2;
         strSporkKey = "0430b1f83d3acb90cde0b7e0e1d9365c00bfaf04ab8614457cfa0766a787239dd47ad6ca478659dd5e401fccb7fea6fa83acad23a2c7b451aafe6fa2ae4cfd4a58";
-        strSporkKeyOld = "0470e14fc60a25e0eb4f6b1fe280e4c3f9427f7bb8b38f14a0c310c2e56402bdce0f25049bf22351dc3d07f389d4d433b339d8e1b991784f11df68f50340185c1d";
         strObfuscationPoolDummyAddress = "g9gvvemz52aDkRn4iiGrzTbBRS1HiqcY9r";
         nStartMasternodePayments = 1558696183; // GMT: Thursday, 15. February 2018 12:03:03
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
                                        // here because we only have a 8 block finalization window on testnet
-        bech32_hrp = "ionrt";
 
     }
     const Checkpoints::CCheckpointData& Checkpoints() const
