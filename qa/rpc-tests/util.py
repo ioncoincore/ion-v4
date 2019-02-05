@@ -1,7 +1,6 @@
-# Copyright (c) 2014-2018 The Bitcoin Core developers
+# Copyright (c) 2014-2019 The Bitcoin Core developers
 # Copyright (c) 2014-2015 The Dash developers
-# Copyright (c) 2015-2018 The PIVX developers
-# Copyright (c) 2018 The Ion developers
+# Copyright (c) 2015-2017 The PIVX developers
 # Distributed under the MIT/X11 software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
@@ -344,3 +343,4 @@ def assert_raises(exc, fun, *args, **kwds):
         raise AssertionError("Unexpected exception raised: "+type(e).__name__)
     else:
         raise AssertionError("No exception raised")
+
