@@ -1,13 +1,13 @@
 🗺️Ion Core 👛 3.0.2 CE ©️ - 👒 RELEASE 👒  is now available from:
 
-  <https://github.com/cevap/ion/releases>
+  <https://github.com/ioncoincore/ion/releases>
 
 This is a new minor-revision version release, including various bug fixes and
 performance improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at github:
 
-  <https://github.com/cevap/ion/issues>
+  <https://github.com/ioncoincore/ion/issues>
 
 Recommended Update
 ==============
@@ -243,9 +243,9 @@ There will be a lot of warnings printed during the build of the image. These can
 
 Getting and building the inputs
 --------------------------------------
-At this point you have two options, you can either use the automated script (found in https://github.com/cevap/ion/blob/master/contrib/gitian-build.sh, only works in Debian/Ubuntu) or you could manually do everything by following this guide. If you are using the automated script, then run it with the --setup command. Afterwards, run it with the --build command (example: contrib/gitian-build.sh -b signer 3.0.2). Otherwise ignore this.
+At this point you have two options, you can either use the automated script (found in https://github.com/ioncoincore/ion/blob/master/contrib/gitian-build.sh, only works in Debian/Ubuntu) or you could manually do everything by following this guide. If you are using the automated script, then run it with the --setup command. Afterwards, run it with the --build command (example: contrib/gitian-build.sh -b signer 3.0.2). Otherwise ignore this.
 
-Follow the instructions in https://github.com/cevap/ion/blob/master/doc/release-process.md in the bitcoin repository under 'Fetch and create inputs' to install sources which require manual intervention. Also optionally follow the next step: 'Seed the Gitian sources cache and offline git repositories' which will fetch the remaining files required for building offline.
+Follow the instructions in https://github.com/ioncoincore/ion/blob/master/doc/release-process.md in the bitcoin repository under 'Fetch and create inputs' to install sources which require manual intervention. Also optionally follow the next step: 'Seed the Gitian sources cache and offline git repositories' which will fetch the remaining files required for building offline.
 
 _**Note**: please use our links here, I left cevap as I do not want to remove it later_
 

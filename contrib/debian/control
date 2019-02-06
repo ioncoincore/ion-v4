@@ -23,8 +23,8 @@ Build-Depends: debhelper,
  libprotobuf-dev, protobuf-compiler
 Standards-Version: 3.9.2
 Homepage: https://www.ionomy.com
-Vcs-Git: git://github.com/cevap/ion.git
-Vcs-Browser: http://github.com/cevap/ion
+Vcs-Git: git://github.com/ioncoincore/ion.git
+Vcs-Browser: http://github.com/ioncoincore/ion
 
 Package: iond
 Architecture: any

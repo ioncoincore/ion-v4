@@ -3,7 +3,7 @@ Release Process
 
 Before every release candidate:
 
-* Update translations (ping Fuzzbawls on Slack) see [translation_process.md](https://github.com/cevap/ion/blob/master/doc/translation_process.md#synchronising-translations).
+* Update translations (ping Fuzzbawls on Slack) see [translation_process.md](https://github.com/ioncoincore/ion/blob/master/doc/translation_process.md#synchronising-translations).
 
 Before every minor and major release:
 
@@ -24,10 +24,10 @@ If you're using the automated script (found in [contrib/gitian-build.sh](/contri
 Check out the source code in the following directory hierarchy.
 
     cd /path/to/your/toplevel/build
-    git clone https://github.com/cevap/gitian.sigs.git
-    git clone https://github.com/cevap/ion-detached-sigs.git
+    git clone https://github.com/gitianuser/gitian.sigs.git
+    git clone https://github.com/gitianuser/ion-detached-sigs.git
     git clone https://github.com/devrandom/gitian-builder.git
-    git clone https://github.com/cevap/ion.git
+    git clone https://github.com/ioncoincore/ion.git
 
 ### Ion maintainers/release engineers, suggestion for writing release notes
 
@@ -73,8 +73,8 @@ Ensure gitian-builder is up-to-date:
 
     pushd ./gitian-builder
     mkdir -p inputs
-    wget -P inputs https://github.com/cevap/osslsigncode/releases/download/v1.7.1/osslsigncode-Backports-to-1.7.1.patch
-    wget -P inputs https://github.com/cevap/osslsigncode/archive/v1.7.1.tar.gz
+    wget -P inputs https://github.com/ioncoincore/osslsigncode/releases/download/v1.7.1/osslsigncode-Backports-to-1.7.1.patch
+    wget -P inputs https://github.com/ioncoincore/osslsigncode/archive/v1.7.1.tar.gz
     popd
 
 Create the OS X SDK tarball, see the [OS X readme](README_osx.md) for details, and copy it into the inputs directory.
@@ -190,7 +190,7 @@ Codesigner only: Commit the detached codesign payloads:
 Non-codesigners: wait for Windows/OS X detached signatures:
 
 - Once the Windows/OS X builds each have 3 matching signatures, they will be signed with their respective release keys.
-- Detached signatures will then be committed to the [ion-detached-sigs](https://github.com/cevap/ion-detached-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
+- Detached signatures will then be committed to the [ion-detached-sigs](https://github.com/ioncoincore/ion-detached-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
 
 Create (and optionally verify) the signed OS X binary:
 
@@ -266,6 +266,6 @@ Note: check that SHA256SUMS itself doesn't end up in SHA256SUMS, which is a spur
 
   - Archive release notes for the new version to `doc/release-notes/` (branch `master` and branch of the release)
 
-  - Create a [new GitHub release](https://github.com/cevap/ion/releases/new) with a link to the archived release notes.
+  - Create a [new GitHub release](https://github.com/ioncoincore/ion/releases/new) with a link to the archived release notes.
 
   - Celebrate

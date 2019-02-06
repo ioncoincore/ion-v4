@@ -1,12 +1,12 @@
 Ion Core version 3.0.5 is now available from:
 
-  <https://github.com/cevap/ion/releases>
+  <https://github.com/ioncoincore/ion/releases>
 
 This is a new minor version release, with various bugfixes.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/cevap/ion/releases>
+  <https://github.com/ioncoincore/ion/releases>
 
 Recommended Update
 ==================

@@ -104,7 +104,7 @@ This means you cannot use a directory that located directly on the host Windows 
 
 Acquire the source in the usual way:
 
-    git clone https://github.com/cevap/ion.git
+    git clone https://github.com/ioncoincore/ion.git
 
 Once the source code is ready the build steps are below.
 
@@ -132,7 +132,7 @@ This means you cannot use a directory that located directly on the host Windows 
 
 Acquire the source in the usual way:
 
-    git clone https://github.com/cevap/ion.git
+    git clone https://github.com/ioncoincore/ion.git
 
 Then build using:
 

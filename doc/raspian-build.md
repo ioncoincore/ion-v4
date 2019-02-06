@@ -81,7 +81,7 @@ sudo apt-get install ./libdb4.8_4.8.30-stretch1_armhf.deb ./libdb4.8++_4.8.30-st
 Download the ioncoin sourcecode from github
 -------------------------------------------
 
-git clone https://github.com/cevap/ion.git -b master --depth=1
+git clone https://github.com/ioncoincore/ion.git -b master --depth=1
 
 Build the ioncoin package
 -------------------------
