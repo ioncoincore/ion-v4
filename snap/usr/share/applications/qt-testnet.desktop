@@ -1,0 +1,14 @@
+# http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-1.0.html
+
+[Desktop Entry]
+Type=Application
+Version=3.0.5
+Encoding=UTF-8
+Name=Ion Qt Testnet
+Icon=${SNAP}/qt-testnet.ico
+MimeType=x-scheme-handler/ioncore;
+Exec=ioncore.qt-testnet --testnet %u
+Terminal=false
+Categories=Office;Finance;Games;
+Comment=Ion Digital Currency QT Official release
+Keywords=internet;ion;testnet;qt;crypto;currency;snap;snapcraft;ioncore;ioncoin;daemon;cli;qt;ioncoincore

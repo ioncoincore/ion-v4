@@ -1,89 +1,153 @@
-name: ioncoin
-version: master
-summary:   peer-to-peer network based digital currency
+name: ioncore
+version: 3.0.5
+summary:   gaming related peer-to-peer network based digital currency
 description: |
-  Ion is a free open source peer-to-peer electronic cash system that
-  is completely decentralized, without the need for a central server or
-  trusted parties.  Users hold the crypto keys to their own money and
-  transact directly with each other, with the help of a P2P network to
-  check for double-spending.
+  Ion Core is an MIT licensed,
+  open source, gaming oriented, blockchain-based cryptocurrency with
+  ultra fast transactions, low fees, high network decentralization, and
+  Zero Knowledge cryptography proofs for industry-leading
+  transaction anonymity. This package include QT, daemon, cli and tx
+  binaries.
+  
+  Wiki (Ion Core):    https://github.com/ioncoincore/ion/wiki
+  Wiki (Ionomy):      https://github.com/ionomy/ion/wiki
+  Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
+  
+  Technical documentation: https://techdoc.ioncoin.org
+  
+  Whitepaper: https://ionomy.com/en/whitepaper
+  
+  Technical whitepaper: 
+    https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+  
+  Get source code from Github: https://github.com/ioncoincore/ion.git
+  Get CE source code from Github: https://github.com/cevap/ion.git
+  
+  Chat with Support on Discord: https://discord.gg/vuZn7gC
+  
+  Contact us on social networks and forums
+    Instagram: https://t.me/ionomy
+    Twitter:   https://twitter.com/ionomics
+    Reddit:    https://www.reddit.com/r/ionomy/
+    Facebook:  https://facebook.com/ionomy
 
-grade: devel
+grade: stable
 confinement: strict
-
+icon: src/qt/res/src/ion.svg
 apps:
   daemon:
     command: iond
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, home, removable-media]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
-    aliases: [iond]
+  daemon-testnet:
+    command: iond --testnet
+    plugs: [network, network-bind, home, removable-media]
+    environment:
+      XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
+  daemon-regtest:
+    command: iond --regtest
+    plugs: [network, network-bind, home, removable-media]
   qt:
     command: desktop-launch ion-qt
-    plugs: [network, network-bind, unity7]
-    aliases: [ion-qt]
-    desktop: ion.desktop.desktop
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, mir, opengl, home, removable-media]
+    desktop: qt.desktop
+  qt-testnet:
+    command: desktop-launch ion-qt --testnet
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, mir, opengl, home, removable-media]
+    desktop: qt-testnet.desktop
+  qt-regtest:
+    command: desktop-launch ion-qt --regtest
+    plugs: [network, network-bind, unity7, unity8-calendar, unity8-contacts, desktop, desktop-legacy, wayland, x11, mir, opengl, home, removable-media]
+    desktop: qt-regtest.desktop
   cli:
     command: ion-cli
-    aliases: [ion-cli]
-
+    plugs: [network, network-bind, home]
+  cli-testnet:
+    command: ion-cli --testnet
+    plugs: [network, network-bind, home]
+  cli-regtest:
+    command: ion-cli --regtest
+    plugs: [network, network-bind, home]
+  tx:
+    command: ion-tx
+    plugs: [home]
 parts:
   ion:
-    source: https://github.com/cevap/ion
+    source: https://github.com/ioncoincore/ion
     source-type: git
-    source-tag: master
-    plugin: autotools
-    # XXX We don't want to copy the full blockchain every time that the snap is
-    # updated, but there's no way to define a default data dir in bitcoin-qt.
-    # Also, it would be better if we could split the wallet from the blockchain
-    prepare: git apply $SNAPCRAFT_STAGE/default_data_dir.patch
+    source-tag: v3.0.5
+    plugin: nil
+    override-build: |
+      # Patch - Default home folder
+      ## We don't want to copy the full blockchain every time that the snap is   
+      ## updated, but there's no way to define a default data dir in ion-qt.
+      ## Additionaly we fix funcs.mk
+      git apply $SNAPCRAFT_STAGE/default_data_dir.patch
+      git apply $SNAPCRAFT_STAGE/fix-bdb-tmp-folder.patch
+      ## Patch - Fix Bug extracting sources without ownership
+      sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' $SNAPCRAFT_PART_BUILD/depends/funcs.mk
+      # Build Dependencies
+      echo "START BUILDING FOR $SNAPCRAFT_ARCH_TRIPLET architecture"
+      cd $SNAPCRAFT_PART_BUILD/depends
+      if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
+      then
+        make HOST=i686-linux-gnu
+      else
+        make HOST=$SNAPCRAFT_ARCH_TRIPLET
+      fi
+      # Configure Ion Core
+      cd $SNAPCRAFT_PART_BUILD
+      ./autogen.sh
+      if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
+      then
+        ./configure --prefix=`pwd`/depends/i686-linux-gnu
+      else
+        ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
+      fi
+      # Compile Ion Core
+      make
+      # Install Ion Core
+      make install prefix=$SNAPCRAFT_PART_INSTALL
+      # print in log which files are installed
+      echo "Installed files:"
+      ls $SNAPCRAFT_PART_INSTALL
+    # Fix: You need multipass installed to build snaps which use the base keyword.
     build-packages:
+      - curl
+      - wget
       - g++
+      - gcc
+      - make
+      - autoconf
+      - automake
+      - cmake
       - pkg-config
-      - libssl-dev
-      - libevent-dev
+      - libtool
       - bsdmainutils
-      # Boost.
-      - libboost-system-dev
-      - libboost-filesystem-dev
-      - libboost-chrono-dev
-      - libboost-program-options-dev
-      - libboost-test-dev
-      - libboost-thread-dev
-      # Optional.
-      - libminiupnpc-dev
-      - libzmq3-dev
-      # GUI.
-      - libqt5gui5
-      - libqt5core5a
-      - libqt5dbus5
-      - qttools5-dev
-      - qttools5-dev-tools
-      - libprotobuf-dev
-      - protobuf-compiler
-      # Optional.
-      - libqrencode-dev
+      - binutils
+      - python3
     stage-packages: [ca-certificates]
     after:
-      - berkeleydb
       - desktop-qt5
       - patches
-  berkeleydb:
-    source: http://download.oracle.com/berkeley-db/db-4.8.30.tar.gz
-    plugin: nil
-    build: |
-      cd build_unix
-      ../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$SNAPCRAFT_PART_INSTALL
-    install: |
-      cd build_unix
-      make install
-    prime:
-      - -*
+  desktop-qt5:
+    stage-packages:
+      - libxkbcommon0
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - shared-mime-info
+      - libqt5gui5
+      - libgdk-pixbuf2.0-0
+      - libqt5svg5 # for loading icon themes which are svg
+      - locales-all
+      - qtwayland5
   patches:
     source: snap/patches
     plugin: dump
     prime:
       - -*
   desktop:
-    source: snap/gui
+    source: snap/usr/share/applications
     plugin: dump
