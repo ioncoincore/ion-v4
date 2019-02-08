@@ -44,7 +44,7 @@ Verify(const CScript& scriptSig, const CScript& scriptPubKey, bool fStrict, Scri
     txTo.vin[0].scriptSig = scriptSig;
     txTo.vout[0].nValue = 1;
 
-    return VerifyScript(scriptSig, scriptPubKey, fStrict ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE, MutableTransactionSignatureChecker(&txTo, 0), &err);
+    return VerifyScript(scriptSig, scriptPubKey, fStrict ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE, MAX_OPS_PER_SCRIPT, MutableTransactionSignatureChecker(&txTo, 0), &err);
 }
 
 BOOST_FIXTURE_TEST_SUITE(script_P2SH_tests, TestingSetup)
