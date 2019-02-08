@@ -243,7 +243,7 @@ public:
     unsigned int getOpCount() { return nOpCount; }
 };
 
-bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* error = NULL);
-bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, unsigned int flags, const BaseSignatureChecker& checker, ScriptError* error = NULL);
+bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, unsigned int flags, unsigned int maxOps, const BaseSignatureChecker& checker, ScriptError* error = NULL);
+bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, unsigned int flags, unsigned int maxOps, const BaseSignatureChecker& checker, ScriptError* error = NULL);
 
 #endif // BITCOIN_SCRIPT_INTERPRETER_H

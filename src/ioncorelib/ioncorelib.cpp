@@ -192,7 +192,7 @@ extern "C" void *CreateScriptMachine(unsigned int flags,
     }
 
     // Its ok to get the bare tx pointer: the life of the CTransaction is the same as TransactionSignatureChecker
-    smd->checker = std::make_shared<TransactionSignatureChecker>(smd->tx.get(), inputIdx, inputAmount, flags);
+    smd->checker = std::make_shared<TransactionSignatureChecker>(smd->tx.get(), inputIdx);
     smd->sm = new ScriptMachine(flags, *smd->checker, 0xffffffff);
     return (void *)smd;
 }
