@@ -1,6 +1,6 @@
 # Copyright (c) 2018-2019 The Ion developers
 
-name: ioncore
+name: ckti-ion
 version: 3.1.99
 summary:   gaming related peer-to-peer network based digital currency
 description: |
@@ -89,6 +89,15 @@ parts:
       git apply $SNAPCRAFT_STAGE/fix-bdb-tmp-folder.patch
       ## Patch - Fix Bug extracting sources without ownership
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' $SNAPCRAFT_PART_BUILD/depends/funcs.mk
+      ## make gcc-4.8  the default compiler
+      #/usr/sbin/update-alternatives --install /usr/bin/gcc gcc \
+      #/usr/bin/gcc-4.8 100
+      #/usr/sbin/update-alternatives --install /usr/bin/g++ g++ \
+      #/usr/bin/g++-4.8 100
+      /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc \
+      arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.8 100
+      /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ \
+      arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-4.8 100
       # Build Dependencies
       echo "START BUILDING FOR $SNAPCRAFT_ARCH_TRIPLET architecture"
       cd $SNAPCRAFT_PART_BUILD/depends
@@ -122,6 +131,8 @@ parts:
       - wget
       - g++
       - gcc
+      - gcc-4.8-arm-linux-gnueabihf
+      - g++-4.8-arm-linux-gnueabihf
       - make
       - autoconf
       - automake
