@@ -107,9 +107,9 @@ parts:
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
         ./configure --prefix=`pwd`/depends/i686-linux-gnu
-      elsif [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
+      elif [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
       then
-        apt install arm-linux-gnueabihf-gcc-4.8 arm-linux-gnueabihf-g++-4.8
+        /usr/bin/apt install arm-linux-gnueabihf-gcc-4.8 arm-linux-gnueabihf-g++-4.8
         /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc \
         arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.8 100\
         /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ \
