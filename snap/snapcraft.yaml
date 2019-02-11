@@ -89,11 +89,6 @@ parts:
       git apply $SNAPCRAFT_STAGE/fix-bdb-tmp-folder.patch
       ## Patch - Fix Bug extracting sources without ownership
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' $SNAPCRAFT_PART_BUILD/depends/funcs.mk
-      ## make gcc-4.8  the default compiler
-      /usr/sbin/update-alternatives --install /usr/bin/gcc gcc \
-      /usr/bin/gcc-4.8 100
-      /usr/sbin/update-alternatives --install /usr/bin/g++ g++ \
-      /usr/bin/g++-4.8 100
       # Build Dependencies
       echo "START BUILDING FOR $SNAPCRAFT_ARCH_TRIPLET architecture"
       cd $SNAPCRAFT_PART_BUILD/depends
@@ -102,9 +97,9 @@ parts:
       make download-linux
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
-        make HOST=i686-linux-gnu
+        make -j10 HOST=i686-linux-gnu
       else
-        make HOST=$SNAPCRAFT_ARCH_TRIPLET
+        make -j10 HOST=$SNAPCRAFT_ARCH_TRIPLET
       fi
       # Configure Ion Core
       cd $SNAPCRAFT_PART_BUILD
@@ -112,11 +107,19 @@ parts:
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
         ./configure --prefix=`pwd`/depends/i686-linux-gnu
+      elsif [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
+      then
+        apt install arm-linux-gnueabihf-gcc-4.8 arm-linux-gnueabihf-g++-4.8
+        /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc \
+        arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.8 100\
+        /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ \
+        arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-4.8 100
+        ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
       else
         ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
       fi
       # Compile Ion Core
-      make
+      make -j10
       # Install Ion Core
       make install prefix=$SNAPCRAFT_PART_INSTALL
       # print in log which files are installed
@@ -125,8 +128,8 @@ parts:
     build-packages:
       - curl
       - wget
-      - gcc-4.8
-      - g++-4.8
+      - gcc
+      - g++
       - make
       - autoconf
       - automake
