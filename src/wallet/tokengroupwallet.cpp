@@ -159,7 +159,7 @@ void GetAllGroupBalances(const CWallet *wallet, std::unordered_map<CTokenGroupID
     std::vector<COutput> coins;
     wallet->FilterCoins(coins, [&balances](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupInfo tg(out->scriptPubKey);
-        if (tg.associatedGroup != NoGroup) // must be sitting in any group address
+        if ((tg.associatedGroup != NoGroup) && !tg.isAuthority()) // must be sitting in any group address
         {
             if (tg.quantity > std::numeric_limits<CAmount>::max() - balances[tg.associatedGroup])
                 balances[tg.associatedGroup] = std::numeric_limits<CAmount>::max();

@@ -290,18 +290,11 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             // Track what permissions this transaction has
             gBalance[tokenGrp.associatedGroup].ctrlPerms |= temp;
         }
-        if (tokenGrp.associatedGroup != NoGroup)
+        if ((tokenGrp.associatedGroup != NoGroup) && !tokenGrp.isAuthority())
         {
-            if (amount < 0)
-            {
-                // from the perspective of balancing, a controller utxo is empty so nothing to add here
-            }
-            else
-            {
-                if (std::numeric_limits<CAmount>::max() - gBalance[tokenGrp.associatedGroup].input < amount)
-                    return state.Invalid(false, REJECT_INVALID, "token overflow");
-                gBalance[tokenGrp.associatedGroup].input += amount;
-            }
+            if (std::numeric_limits<CAmount>::max() - gBalance[tokenGrp.associatedGroup].input < amount)
+                return state.Invalid(false, REJECT_INVALID, "token overflow");
+            gBalance[tokenGrp.associatedGroup].input += amount;
         }
     }
 
