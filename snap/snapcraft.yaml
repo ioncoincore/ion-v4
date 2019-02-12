@@ -98,6 +98,9 @@ parts:
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
         make -j10 HOST=i686-linux-gnu
+      elif [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
+      then
+        make gcc=gcc-4.8 g++=g++-4.8 -j10 HOST=$SNAPCRAFT_ARCH_TRIPLET
       else
         make -j10 HOST=$SNAPCRAFT_ARCH_TRIPLET
       fi
@@ -109,17 +112,23 @@ parts:
         ./configure --prefix=`pwd`/depends/i686-linux-gnu
       elif [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
       then
-        /usr/bin/apt install arm-linux-gnueabihf-gcc-4.8 arm-linux-gnueabihf-g++-4.8
-        /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc \
-        arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.8 100\
-        /usr/sbin/update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ \
-        arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-4.8 100
-        ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
+        /usr/bin/apt install gcc-4.8 g++-4.8
+        /usr/sbin/update-alternatives --install /usr/bin/gcc \
+        gcc /usr/bin/gcc-4.8 100\
+        /usr/sbin/update-alternatives --install /usr/bin/g++ \
+        g++ /usr/bin/g++-4.8 100
+        ./configure gcc=gcc-4.8 gxx+=g++4.8 \
+        --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
       else
         ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
       fi
       # Compile Ion Core
-      make -j10
+      if [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
+      then
+        make -j10 gcc=gcc-4.8 gxx=g++-4.8 HOST=$SNAPCRAFT_ARCH_TRIPLET
+      else
+        make -j10
+      fi
       # Install Ion Core
       make install prefix=$SNAPCRAFT_PART_INSTALL
       # print in log which files are installed
