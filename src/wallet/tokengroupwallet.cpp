@@ -597,7 +597,7 @@ void GroupSend(CWalletTx &wtxNew,
         grpID, wallet);
 }
 
-std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &params, unsigned int curparam)
+std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &params, unsigned int &curparam)
 {
     std::vector<std::vector<unsigned char> > ret;
     std::string tickerStr = params[curparam].get_str();
@@ -967,9 +967,12 @@ extern UniValue token(const UniValue &params, bool fHelp)
                     opretScript = BuildTokenDescScript(desc);
                     outputs.push_back(CRecipient{opretScript, 0, false});
                 }
+                CPubKey authKey;
+                authKeyReservation.GetReservedKey(authKey);
+                authDest = authKey.GetID();
             }
-            curparam++;
         }
+        curparam++;
 
         CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), opretScript, TokenGroupIdFlags::NONE, grpNonce);
 
