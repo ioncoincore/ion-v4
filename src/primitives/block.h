@@ -27,7 +27,7 @@ class CBlockHeader
 {
 public:
     // header
-    static const int32_t CURRENT_VERSION=9;     // Version 5 supports CLTV activation
+    static const int32_t CURRENT_VERSION=10;     // Version 5 supports CLTV activation
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
@@ -156,6 +156,8 @@ public:
     {
         return IsProofOfStake()? std::make_pair(vtx[1].vin[0].prevout, nTime) : std::make_pair(COutPoint(), (unsigned int)0);
     }
+
+    unsigned int getXDMTxCount() const;
 
     // Build the in-memory merkle tree for this block and return the merkle root.
     // If non-NULL, *mutated is set to whether mutation was detected in the merkle

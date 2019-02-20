@@ -443,3 +443,9 @@ CTokenGroupID CTokenGroupID::parentGroup(void) const
 bool CTokenGroupID::hasFlag(TokenGroupIdFlags flag) const {
     return data.size() >= PARENT_GROUP_ID_SIZE ? hasTokenGroupIdFlag((TokenGroupIdFlags)data[31], flag) : false;
 }
+
+bool UpdateXDMSupply(const CBlock& block, CBlockIndex* pindex, bool fJustCheck) {
+    pindex->nXDMTransactions = 0;
+
+    return true;
+};
