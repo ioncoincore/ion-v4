@@ -100,15 +100,16 @@ parts:
       update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
-      update-alternatives --install /usr/bin/i686-linux-gnu-gcc \
-      i686-linux-gnu-gcc /usr/bin/i686-linux-gnu-gcc-8 100
-      update-alternatives --install /usr/bin/i686-linux-gnu-g++ \
-      i686-linux-gnu-g++ /usr/bin/i686-linux-gnu-g++-8 100
+        update-alternatives --install /usr/bin/i686-linux-gnu-gcc \
+        i686-linux-gnu-gcc /usr/bin/i686-linux-gnu-gcc-8 100
+        update-alternatives --install /usr/bin/i686-linux-gnu-g++ \
+        i686-linux-gnu-g++ /usr/bin/i686-linux-gnu-g++-8 100
       else 
-      update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc \
-      $SNAPCRAFT_ARCH_TRIPLET-gcc /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc-8 100
-      update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++ \
-      $SNAPCRAFT_ARCH_TRIPLET-g++ /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++-8 100
+        update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc \
+        $SNAPCRAFT_ARCH_TRIPLET-gcc /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc-8 100
+        update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++ \
+        $SNAPCRAFT_ARCH_TRIPLET-g++ /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++-8 100
+      fi
       make download-linux
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
