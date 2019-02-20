@@ -2,7 +2,7 @@
 
 name: ckti-ion
 base: core18
-version: 3.1.99
+version: 3.1.01
 summary:   gaming related peer-to-peer network based digital currency
 description: |
   Ion Core is an MIT licensed,
@@ -79,7 +79,7 @@ parts:
   ion:
     source: https://github.com/ioncoincore/ion
     source-type: git
-    source-tag: master
+    source-tag: v3.1.01
     plugin: nil
     override-build: |
       # Patch - Default home folder
