@@ -146,6 +146,12 @@ public:
     //! Change to 64-bit type when necessary; won't happen before 2030
     unsigned int nChainTx;
 
+    //! Number of XDM transactions in this block.
+    //! Note: in a potential headers-first mode, this number cannot be relied upon until after full block validation
+    unsigned int nXDMTransactions;
+    //! (memory only) Number of XDM transactions in the chain up to and including this block.
+    unsigned int nChainXDMTransactions;
+
     //! Verification status of this block. See enum BlockStatus
     unsigned int nStatus;
 
@@ -193,6 +199,8 @@ public:
         nChainWork = 0;
         nTx = 0;
         nChainTx = 0;
+        nXDMTransactions = 0;
+        nChainXDMTransactions = 0;
         nStatus = 0;
         nSequenceId = 0;
 
@@ -500,6 +508,9 @@ public:
             READWRITE(nAccumulatorCheckpoint);
             READWRITE(mapZerocoinSupply);
             READWRITE(vMintDenominationsInBlock);
+        }
+        if(this->nVersion > 9) {
+            READWRITE(VARINT(nXDMTransactions));
         }
 
     }

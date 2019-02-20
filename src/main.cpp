@@ -3454,10 +3454,16 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         return state.DoS(100, error("%s: Failed to calculate new xION supply for block=%s height=%d", __func__,
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
 
+    // Track XDM money supply in the block index
+    if (!UpdateXDMSupply(block, pindex, fJustCheck))
+        return state.DoS(100, error("%s: Failed to calculate new XDM supply for block=%s height=%d", __func__,
+                                    block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
     pindex->nMoneySupply = nMoneySupplyPrev + nValueOut - nValueIn;
     pindex->nMint = pindex->nMoneySupply - nMoneySupplyPrev + nFees;
+    CAmount nXDMTransactionsPrev = pindex->pprev ? pindex->pprev->nChainXDMTransactions : 0;
+    pindex->nChainXDMTransactions = nXDMTransactionsPrev + pindex->nXDMTransactions;
 
 //    LogPrintf("XX69----------> ConnectBlock(): nValueOut: %s, nValueIn: %s, nFees: %s, nMint: %s xIonSpent: %s\n",
 //              FormatMoney(nValueOut), FormatMoney(nValueIn),
@@ -4276,6 +4282,8 @@ bool ReceivedBlockTransactions(const CBlock& block, CValidationState& state, CBl
         pindexNew->SetProofOfStake();
     pindexNew->nTx = block.vtx.size();
     pindexNew->nChainTx = 0;
+    pindexNew->nXDMTransactions = block.getXDMTxCount();
+    pindexNew->nChainXDMTransactions = 0;
     pindexNew->nFile = pos.nFile;
     pindexNew->nDataPos = pos.nPos;
     pindexNew->nUndoPos = 0;
@@ -4293,6 +4301,7 @@ bool ReceivedBlockTransactions(const CBlock& block, CValidationState& state, CBl
             CBlockIndex* pindex = queue.front();
             queue.pop_front();
             pindex->nChainTx = (pindex->pprev ? pindex->pprev->nChainTx : 0) + pindex->nTx;
+            pindex->nChainXDMTransactions = (pindex->pprev ? pindex->pprev->nChainXDMTransactions : 0) + pindex->nXDMTransactions;
             {
                 LOCK(cs_nBlockSequenceId);
                 pindex->nSequenceId = nBlockSequenceId++;
@@ -5346,12 +5355,15 @@ bool static LoadBlockIndexDB(string& strError)
             if (pindex->pprev) {
                 if (pindex->pprev->nChainTx) {
                     pindex->nChainTx = pindex->pprev->nChainTx + pindex->nTx;
+                    pindex->nChainXDMTransactions = pindex->pprev->nChainXDMTransactions + pindex->nXDMTransactions;
                 } else {
                     pindex->nChainTx = 0;
+                    pindex->nChainXDMTransactions = 0;
                     mapBlocksUnlinked.insert(std::make_pair(pindex->pprev, pindex));
                 }
             } else {
                 pindex->nChainTx = pindex->nTx;
+                pindex->nChainXDMTransactions = pindex->nXDMTransactions;
             }
         }
         if (pindex->IsValid(BLOCK_VALID_TRANSACTIONS) && (pindex->nChainTx || pindex->pprev == NULL))
