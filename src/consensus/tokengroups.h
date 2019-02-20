@@ -19,9 +19,44 @@ static const unsigned int REJECT_GROUP_IMBALANCE = 0x104;
 enum class TokenGroupIdFlags : uint8_t
 {
     NONE = 0,
-    SAME_SCRIPT = 1, // covenants/ encumberances -- output script template must match input
-    BALANCE_BCH = 2 // group inputs and outputs must balance both tokens and BCH
+    SAME_SCRIPT = 1U, // covenants/ encumberances -- output script template must match input
+    BALANCE_BCH = 1U << 1, // group inputs and outputs must balance both tokens and BCH
+
+    DEFAULT = 0
 };
+
+inline TokenGroupIdFlags operator|(const TokenGroupIdFlags a, const TokenGroupIdFlags b)
+{
+    TokenGroupIdFlags ret = (TokenGroupIdFlags)(((uint8_t)a) | ((uint8_t)b));
+    return ret;
+}
+
+inline TokenGroupIdFlags operator~(const TokenGroupIdFlags a)
+{
+    TokenGroupIdFlags ret = (TokenGroupIdFlags)(~((uint8_t)a));
+    return ret;
+}
+
+inline TokenGroupIdFlags operator&(const TokenGroupIdFlags a, const TokenGroupIdFlags b)
+{
+    TokenGroupIdFlags ret = (TokenGroupIdFlags)(((uint8_t)a) & ((uint8_t)b));
+    return ret;
+}
+
+inline TokenGroupIdFlags &operator|=(TokenGroupIdFlags &a, const TokenGroupIdFlags b)
+{
+    a = (TokenGroupIdFlags)(((uint8_t)a) | ((uint8_t)b));
+    return a;
+}
+
+inline TokenGroupIdFlags &operator&=(TokenGroupIdFlags &a, const TokenGroupIdFlags b)
+{
+    a = (TokenGroupIdFlags)(((uint8_t)a) & ((uint8_t)b));
+    return a;
+}
+inline bool hasTokenGroupIdFlag(TokenGroupIdFlags object, TokenGroupIdFlags flag) {
+    return (((uint8_t)object) & ((uint8_t)flag)) == (uint8_t)flag;
+}
 
 // The definitions below are used internally.  They are defined here for use in unit tests.
 class CTokenGroupID
@@ -66,6 +101,8 @@ public:
     // CTxDestination ControllingAddress(txnouttype addrType) const;
     //* Returns this groupID as a string in bech32 format
     // std::string Encode(const CChainParams &params = Params()) const;
+
+    bool hasFlag(TokenGroupIdFlags flag) const;
 };
 
 namespace std
@@ -165,6 +202,14 @@ public:
     {
         return ((controllingGroupFlags & GroupAuthorityFlags::CTRL) == GroupAuthorityFlags::CTRL);
     }
+    // return true if this object is a new token creation output.
+    // Note that the group creation nonce cannot be 0
+    bool isGroupCreation(TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE) const
+    {
+        bool hasNonce = ((uint64_t)quantity & (uint64_t)~GroupAuthorityFlags::ALL_BITS) != 0;
+
+        return (((controllingGroupFlags & GroupAuthorityFlags::CTRL) == GroupAuthorityFlags::CTRL) && hasNonce && associatedGroup.hasFlag(tokenGroupIdFlags));
+    }
     // return true if this object allows minting.
     bool allowsMint() const
     {
@@ -210,6 +255,8 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
 
 // Return true if any output in this transaction is part of a group
 bool IsAnyTxOutputGrouped(const CTransaction &tx);
+
+bool IsAnyTxOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
 
 // Serialize a CAmount into an array of bytes.
 // This serialization does not store the length of the serialized data within the serialized data.

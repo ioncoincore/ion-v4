@@ -359,7 +359,7 @@ uint64_t RenewAuthority(const COutput &authority, std::vector<CRecipient> &outpu
         CPubKey pubkey;
         childAuthorityKey.GetReservedKey(pubkey);
         CTxDestination authDest = pubkey.GetID();
-        CScript script = GetScriptForDestination(authDest, tg.associatedGroup, (CAmount)tg.controllingGroupFlags);
+        CScript script = GetScriptForDestination(authDest, tg.associatedGroup, (CAmount)(tg.controllingGroupFlags & GroupAuthorityFlags::ALL_BITS));
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
         outputs.push_back(recipient);
         totalBchNeeded += GROUPED_SATOSHI_AMT;
