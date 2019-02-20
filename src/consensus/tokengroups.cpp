@@ -18,6 +18,7 @@
 #include "rpc/server.h"
 #include "utilmoneystr.h"
 #include "wallet/wallet.h"
+#include "wallet/tokengroupwallet.h"
 
 #include <unordered_map>
 #include <univalue.h>
@@ -231,6 +232,9 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     bool anyOutputGroups = false;
     bool anyOutputControlGroups = false;
 
+    // Tokens minted from the tokenGroupManagement address can create management tokens
+    bool anyInputsGroupManagement = false;
+
     CScript firstOpReturn;
 
     // Iterate through all the outputs constructing the final balances of every group.
@@ -282,6 +286,13 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         if (coin.nHeight < Params().OpGroup_StartHeight())
             continue;
         const CScript &script = coin.out.scriptPubKey;
+
+        CTxDestination payeeDest;
+        ExtractDestination(script, payeeDest);
+        if (EncodeDestination(payeeDest) == Params().TokenManagementKey())
+            anyInputsGroupManagement = true;
+        LogPrint("tokens", "%s - %d", __func__, chainActive.Tip()->nHeight);
+
         CTokenGroupInfo tokenGrp(script);
         // The prevout should never be invalid because that would mean that this node accepted a block with an
         // invalid OP_GROUP tx in it.
@@ -336,6 +347,8 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         }
     }
 
+    CAmount nXDMFeesNeeded = 0;
+
     // Now pass thru the outputs ensuring balance or mint/melt permission
     for (auto &txo : gBalance)
     {
@@ -359,6 +372,31 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
                 if (bal.numOutputs != 1) // only allow the single authority tx during a create
                     return state.Invalid(false, REJECT_GROUP_IMBALANCE, "grp-invalid-create",
                          "Multiple grouped outputs created during group creation transaction");
+
+                if (newGrpId.hasFlag(TokenGroupIdFlags::MGT_TOKEN))
+                {
+                    if (anyInputsGroupManagement) {
+                        LogPrint("token", "%s - Group management creation transaction. newGrpId=[%s]\n", __func__, EncodeTokenGroup(newGrpId));
+                    } else {
+                        return state.Invalid(false, REJECT_INVALID, "grp-invalid-tx",
+                            "No group management capability at any input address");
+                    }
+                }
+                if (EncodeTokenGroup(newGrpId) == "Params().DarkMatterGroup()")
+                {
+                    // No fee restrictions on creating the XDM token.
+                    // Since the DarkMatter group ID is deterministically derived from the a specific output, this creation tx is a singularity
+                    LogPrint("token", "%s - DarkMatter creation transaction.\nnewGrpId=[%s]\n", __func__, EncodeTokenGroup(newGrpId));
+                }
+                else
+                {
+                    // Creating a token costs a fee in XDM.
+                    // 10% of the weekly burned fees is distributed over masternode owners.
+                    // 10% of the weekly burned fees is distributed over atom token holders
+                    nXDMFeesNeeded += 1.0 * COIN;
+                    LogPrint("token", "%s - newGrpId=[%s] fee cost=[%d]\n", __func__, EncodeTokenGroup(newGrpId), nXDMFeesNeeded);
+                }
+
                 bal.allowedCtrlOutputPerms = bal.ctrlPerms = GroupAuthorityFlags::ALL;
             }
             else

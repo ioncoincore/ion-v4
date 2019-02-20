@@ -1271,14 +1271,18 @@ bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fReject
         }
     }
 
+    if (tx.IsCoinBase() || tx.IsCoinStake() || (fZerocoinActive && tx.HasZerocoinSpendInputs())) {
+        // These tx's can't have group outputs because it has no group inputs or mintable outputs
+        if (IsAnyTxOutputGrouped(tx))
+            return state.DoS(100, false, REJECT_INVALID, "wrong-inputs-for-group-outputs");
+    } else {
+        // Only allow new groups when not in management mode or when not creating management group tokens
+    }
+
     if (tx.IsCoinBase()) {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 150)
             return state.DoS(100, error("CheckTransaction() : coinbase script size=%d", tx.vin[0].scriptSig.size()),
                 REJECT_INVALID, "bad-cb-length");
-
-        // Coinbase tx can't have group outputs because it has no group inputs or mintable outputs
-        if (IsAnyTxOutputGrouped(tx))
-            return state.DoS(100, false, REJECT_INVALID, "coinbase-has-group-outputs");
     } else if (fZerocoinActive && tx.HasZerocoinSpendInputs()) {
         if (tx.vin.size() < 1)
             return state.DoS(10, error("CheckTransaction() : Zerocoin Spend has less than allowed txin's"), REJECT_INVALID, "bad-zerocoinspend");
@@ -1393,6 +1397,17 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
         if (IsAnyTxOutputGrouped(tx))
             return state.DoS(0, false, REJECT_NONSTANDARD, "premature-op_group-tx");
     }
+
+    //Temporarily disable new token creation during management mode
+    if (GetAdjustedTime() > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && IsAnyTxOutputGroupedCreation(tx)) {
+        if (IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
+            LogPrintf("%s: Management token creation during token group management mode\n", __func__);
+        } else {
+            return state.DoS(0, error("%s : new token creation is not possible during token group management mode",
+                            __func__), REJECT_INVALID, "token-group-management");
+        }
+    }
+
     // Only accept nLockTime-using transactions that can be mined in the next
     // block; we don't want our mempool filled up with transactions that can't
     // be mined yet.
@@ -3337,7 +3352,17 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                     if (!ContextualCheckZerocoinSpend(tx, &spend, pindex, hashBlock))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
                 }
+                // Set flag if input is a group token management address
             }
+            //Temporarily disable new token creation during management mode
+            if (block.nTime > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && !IsInitialBlockDownload() && IsAnyTxOutputGroupedCreation(tx)) {
+                if (IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
+                    LogPrintf("%s: Management token creation during token group management mode\n", __func__);
+                } else {
+                    return state.DoS(0, error("%s : new token creation is not possible during token group management mode",
+                                    __func__), REJECT_INVALID, "token-group-management");
+                }
+           }
 
             // Check that xION mints are not already known
             if (tx.HasZerocoinMintOutputs()) {
