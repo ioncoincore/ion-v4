@@ -38,6 +38,18 @@ bool IsAnyTxOutputGrouped(const CTransaction &tx)
     return false;
 }
 
+bool IsAnyTxOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags)
+{
+    for (const CTxOut& txout : tx.vout) {
+        CTokenGroupInfo grp(txout.scriptPubKey);
+        if (grp.invalid)
+            return false;
+        if (grp.isGroupCreation(tokenGroupIdFlags))
+            return true;
+    }
+    return false;
+}
+
 std::vector<unsigned char> SerializeAmount(CAmount num)
 {
     CDataStream strm(SER_NETWORK, CLIENT_VERSION);
@@ -349,6 +361,14 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
                          "Multiple grouped outputs created during group creation transaction");
                 bal.allowedCtrlOutputPerms = bal.ctrlPerms = GroupAuthorityFlags::ALL;
             }
+            else
+            {
+                if (((uint64_t)bal.ctrlOutputPerms & (uint64_t)~GroupAuthorityFlags::ALL_BITS) != 0)
+                {
+                    return state.Invalid(false, REJECT_INVALID, "grp-invalid-tx",
+                         "Only mint transactions can have a nonce");
+                }
+            }
         }
 
         if ((bal.input > bal.output) && !hasCapability(bal.ctrlPerms, GroupAuthorityFlags::MELT))
@@ -380,4 +400,8 @@ CTokenGroupID CTokenGroupID::parentGroup(void) const
     if (data.size() <= PARENT_GROUP_ID_SIZE)
         return CTokenGroupID(data);
     return CTokenGroupID(std::vector<unsigned char>(data.begin(), data.begin() + PARENT_GROUP_ID_SIZE));
+}
+
+bool CTokenGroupID::hasFlag(TokenGroupIdFlags flag) const {
+    return data.size() >= PARENT_GROUP_ID_SIZE ? hasTokenGroupIdFlag((TokenGroupIdFlags)data[31], flag) : false;
 }
