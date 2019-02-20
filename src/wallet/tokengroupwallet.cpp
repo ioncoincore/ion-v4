@@ -1145,6 +1145,143 @@ extern UniValue token(const UniValue &params, bool fHelp)
     return NullUniValue;
 }
 
+extern UniValue managementtoken(const UniValue &paramsIn, bool fHelp)
+{
+    CWallet *wallet = pwalletMain;
+    if (!pwalletMain)
+        return NullUniValue;
+
+     if (fHelp || paramsIn.size() < 1)
+        throw std::runtime_error(
+            "token [new, mint, melt, send] \n"
+            "\nToken functions.\n"
+            "'new' creates a new token type. args: authorityAddress\n"
+            "'mint' creates new tokens. args: groupId address quantity\n"
+            "'melt' removes tokens from circulation. args: groupId quantity\n"
+            "'balance' reports quantity of this token. args: groupId [address]\n"
+            "'send' sends tokens to a new address. args: groupId address quantity [address quantity...]\n"
+            "'authority create' creates a new authority args: groupId address [mint melt nochild rescript]\n"
+            "'subgroup' translates a group and additional data into a subgroup identifier. args: groupId data\n"
+            "\nArguments:\n"
+            "1. \"address\"     (string, required) the destination address\n"
+            "2. \"quantity\"    (numeric, required) the quantity desired\n"
+            "3. \"data\"        (number, 0xhex, or string) binary data\n"
+            "\nResult:\n"
+            "\n"
+            "\nExamples:\n"
+            "\nCreate a transaction with no inputs\n" +
+            HelpExampleCli("managementtoken", "new \"XDM\" \"DarkMatter\" \"https://github.com/ioncoincore/ion/desc.json\" 0") +
+            "\nAdd sufficient unsigned inputs to meet the output value\n" +
+            HelpExampleCli("fundrawtransaction", "\"rawtransactionhex\"") + "\nSign the transaction\n" +
+            HelpExampleCli("signrawtransaction", "\"fundedtransactionhex\"") + "\nSend the transaction\n" +
+            HelpExampleCli("sendrawtransaction", "\"signedtransactionhex\""));
+
+    std::string operation;
+    std::string p0 = paramsIn[0].get_str();
+    std::transform(p0.begin(), p0.end(), std::back_inserter(operation), ::tolower);
+    EnsureWalletIsUnlocked();
+
+    UniValue params(UniValue::VARR);
+    params.push_back(paramsIn[0]);
+    params.push_back("rtdarkmatter");
+    for (unsigned int i=1; i < paramsIn.size(); i++)
+    {
+        params.push_back(paramsIn[i]);
+    }
+
+    if (operation == "new")
+    {
+        LOCK2(cs_main, wallet->cs_wallet);
+        unsigned int curparam = 2;
+
+        CReserveKey authKeyReservation(wallet);
+        CTxDestination authDest;
+        CScript opretScript;
+        std::vector<CRecipient> outputs;
+
+        if (curparam >= params.size())
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");        }
+        else
+        {
+            authDest = DecodeDestination(params[curparam].get_str(), Params());
+            if (authDest == CTxDestination(CNoDestination()))
+            {
+                auto desc = ParseGroupDescParams(params, curparam);
+                if (desc.size()) // Add an op_return if there's a token desc doc
+                {
+                    opretScript = BuildTokenDescScript(desc);
+                    outputs.push_back(CRecipient{opretScript, 0, false});
+                }
+                CPubKey authKey;
+                authKeyReservation.GetReservedKey(authKey);
+                authDest = authKey.GetID();
+            }
+        }
+        curparam++;
+
+        COutput coin(nullptr, 0, 0, false);
+        CTxDestination dest = DecodeDestination(Params().TokenManagementKey());
+        {
+            std::vector<COutput> coins;
+            CAmount lowest = Params().MaxMoneyOut();
+            wallet->FilterCoins(coins, [&lowest, dest](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                // although its possible to spend a grouped input to produce
+                // a single mint group, I won't allow it to make the tx construction easier.
+
+                if ((tg.associatedGroup == NoGroup))
+                {
+                    CTxDestination address;
+                    txnouttype whichType;
+                    if (ExtractDestinationAndType(out->scriptPubKey, address, whichType))
+                    {
+                        if (address == dest){
+                            if ((out->nValue < lowest))
+                            {
+                                lowest = out->nValue;
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            });
+
+            if (0 == coins.size())
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Input tx is not available for spending");
+            }
+
+            coin = coins[coins.size() - 1];
+        }
+        if (coin.tx == nullptr)
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Management Group Token key is not available");
+
+        uint64_t grpNonce = 0;
+        CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), opretScript, (TokenGroupIdFlags)TokenGroupIdFlags::STICKY_MELT | TokenGroupIdFlags::MGT_TOKEN, grpNonce);
+
+        std::vector<COutput> chosenCoins;
+        chosenCoins.push_back(coin);
+
+        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
+        CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+        outputs.push_back(recipient);
+
+        CWalletTx wtx;
+        ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, grpID, wallet);
+        authKeyReservation.KeepKey();
+        UniValue ret(UniValue::VOBJ);
+        ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
+        ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
+        return ret;
+    }
+    else
+    {
+        throw JSONRPCError(RPC_INVALID_REQUEST, "Unknown group operation");
+    }
+    return NullUniValue;
+}
 
 extern void WalletTxToJSON(const CWalletTx &wtx, UniValue &entry);
 using namespace std;

@@ -21,6 +21,8 @@ enum class TokenGroupIdFlags : uint8_t
     NONE = 0,
     SAME_SCRIPT = 1U, // covenants/ encumberances -- output script template must match input
     BALANCE_BCH = 1U << 1, // group inputs and outputs must balance both tokens and BCH
+    STICKY_MELT = 1U << 2, // group can always melt tokens
+    MGT_TOKEN = 1U << 3, // group does not pay fees in XDM
 
     DEFAULT = 0
 };
