@@ -30,7 +30,7 @@ Table of Contents
       - [OS's supported by snap](#oss-supported-by-snap)
     - [Method 3. Download and install latest release](#method-3-download-and-install-latest-release)
       - [Latest stable Release](#latest-stable-release)
-      - [Candidate Release v3.1.00-rc7.2](#candidate-release-v3100-rc72)
+      - [Final Release v3.1.02](#final-release-v3102)
         - [MacOS/OSX downloads](#macososx-downloads)
         - [Windows XP/Vista/7/10 Installer downloads](#windows-xpvista710-installer-downloads)
         - [Windows XP/Vista/7/10 only binaries downloads](#windows-xpvista710-only-binaries-downloads)
@@ -184,34 +184,34 @@ Ion Core RPC client version v3.1.99.0-fc81e5f-dirty
 #### Latest stable Release
 - [![Latest stable Release](https://img.shields.io/github/downloads/ioncoincore/ion/latest/total.svg)](https://github.com/ioncoincore/ion/releases/latest)
 
-#### Candidate Release v3.1.00-rc7.2
-- [![Candidate Release v3.1.00-rc7.2](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/total.svg)](https://github.com/ioncoincore/ion/releases/latest)
+#### Final Release v3.1.02
+- [![Release v3.1.02](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/total.svg)](https://github.com/ioncoincore/ion/releases/latest)
 
 - [Build and install ion (all OS)](../../tree/master/doc)
 
 ##### MacOS/OSX downloads
 
-- [![Download ion Setup for OSX 32-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-osx-unsigned.dmg.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-osx-unsigned.dmg) [![Download ion Setup for OSX 64-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-osx64.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-osx64.tar.gz)
+- [![Download ion Setup for OSX 32-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-osx-unsigned.dmg.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-osx-unsigned.dmg) [![Download ion Setup for OSX 64-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-osx64.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-osx64.tar.gz)
 
 ##### Windows XP/Vista/7/10 Installer downloads
 
-- [![Download ion Setup for Windows 32-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-win32-setup-unsigned.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-win32-setup-unsigned.exe) [![Download ion Setup for Windows 64-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-win64-setup-unsigned.exe.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-win64-setup-unsigned.exe)
+- [![Download ion Setup for Windows 32-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-win32-setup-unsigned.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-win32-setup-unsigned.exe) [![Download ion Setup for Windows 64-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-win64-setup-unsigned.exe.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-win64-setup-unsigned.exe)
 
 ##### Windows XP/Vista/7/10 only binaries downloads
 
-- [![Download ion binaries for Windows 32-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-win32.zip.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-win32.zip) [![Download ion binaries for Windows 64-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-win64.zip.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-win64.zip)
+- [![Download ion binaries for Windows 32-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-win32.zip.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-win32.zip) [![Download ion binaries for Windows 64-bit](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-win64.zip.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-win64.zip)
 
 ##### Linux downloads
 
-- [![Download ion v3.1.00-rc7.2 for Linux 32-bit (i686)](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-i686-pc-linux-gnu.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-i686-pc-linux-gnu.tar.gz) [![Download ion v3.1.00-rc7.2 for Linux 64-bit (x86_x64)](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-x86_64-linux-gnu.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-x86_64-linux-gnu.tar.gz)
+- [![Download ion v3.1.02 for Linux 32-bit (i686)](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-i686-pc-linux-gnu.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-i686-pc-linux-gnu.tar.gz) [![Download ion v3.1.02 for Linux 64-bit (x86_x64)](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-x86_64-linux-gnu.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-x86_64-linux-gnu.tar.gz)
 
 ##### Linux ARM/aarch64 downloads
 
-- [![Download ion v3.1.00-rc7.2 for ARM Linux](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-arm-linux-gnueabihf.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-arm-linux-gnueabihf.tar.gz) [![Download ion v3.1.00-rc7.2 for aarch64 Linux](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/ion-3.1.00-aarch64-linux-gnu.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/ion-3.1.00-aarch64-linux-gnu.tar.gz)
+- [![Download ion v3.1.02 for ARM Linux](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-arm-linux-gnueabihf.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-arm-linux-gnueabihf.tar.gz) [![Download ion v3.1.02 for aarch64 Linux](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/ion-3.1.02-aarch64-linux-gnu.tar.gz.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/ion-3.1.02-aarch64-linux-gnu.tar.gz)
 
 ##### Download checksums
 
-- [![Download SHA256SUMS.asc](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.00-rc7.2/SHA256SUMS.asc.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.00-rc7.2/SHA256SUMS.asc)
+- [![Download SHA256SUMS.asc](https://img.shields.io/github/downloads/ioncoincore/ion/v3.1.02/SHA256SUMS.asc.svg)](https://github.com/ioncoincore/ion/releases/download/v3.1.02/SHA256SUMS.asc)
 
 ### Method 4. Build, compile and install from source
 

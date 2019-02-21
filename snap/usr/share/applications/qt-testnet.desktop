@@ -2,7 +2,7 @@
 
 [Desktop Entry]
 Type=Application
-Version=3.1.99
+Version=3.1.02
 Encoding=UTF-8
 Name=Ion Qt Testnet
 Icon=${SNAP}/qt-testnet.ico
