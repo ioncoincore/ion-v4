@@ -1,8 +1,8 @@
 # Copyright (c) 2018-2019 The Ion developers
 
 name: ckti-ion
-base: core18
 version: 3.1.02
+base: core18
 summary:   gaming related peer-to-peer network based digital currency
 description: |
   Ion Core is an MIT licensed,
@@ -98,16 +98,9 @@ parts:
       make download-linux
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
-        make HOST=i686-linux-gnu
-      elif [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
-      then
-        update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc \
-        arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.8 100
-        update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ \
-        arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-4.8 100
-        make HOST=$SNAPCRAFT_ARCH_TRIPLET
+        make HOST=i686-linux-gnu -j8
       else
-        make HOST=$SNAPCRAFT_ARCH_TRIPLET
+        make HOST=$SNAPCRAFT_ARCH_TRIPLET -j8
       fi
       # Configure Ion Core
       cd $SNAPCRAFT_PART_BUILD
@@ -115,18 +108,11 @@ parts:
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
       then
         ./configure --prefix=`pwd`/depends/i686-linux-gnu
-      elif [ $SNAPCRAFT_ARCH_TRIPLET = "arm-linux-gnueabihf" ]
-      then
-        update-alternatives --install /usr/bin/arm-linux-gnueabihf-gcc \
-        arm-linux-gnueabihf-gcc /usr/bin/arm-linux-gnueabihf-gcc-4.8 100
-        update-alternatives --install /usr/bin/arm-linux-gnueabihf-g++ \
-        arm-linux-gnueabihf-g++ /usr/bin/arm-linux-gnueabihf-g++-4.8 100
-        ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
       else
         ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
       fi
       # Compile Ion Core
-      make 
+      make -j8
       # Install Ion Core
       make install prefix=$SNAPCRAFT_PART_INSTALL
       # print in log which files are installed
@@ -135,10 +121,8 @@ parts:
     build-packages:
       - curl
       - wget
-      - gcc
       - g++
-      - gcc-4.8
-      - g++-4.8
+      - gcc
       - make
       - autoconf
       - automake
