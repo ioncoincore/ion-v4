@@ -169,6 +169,7 @@ BITCOIN_CORE_H = \
   threadsafety.h \
   timedata.h \
   tinyformat.h \
+  tokengroupmanager.h \
   torcontrol.h \
   txdb.h \
   txmempool.h \
@@ -285,6 +286,7 @@ libbitcoin_wallet_a_SOURCES = \
   xion/zerocoin.cpp \
   wallet/rpcwallet.cpp \
   kernel.cpp \
+  tokengroupmanager.cpp \
   wallet/wallet.cpp \
   wallet/wallet_ismine.cpp \
   wallet/walletdb.cpp \

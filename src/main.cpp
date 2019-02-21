@@ -30,6 +30,7 @@
 #include "spork.h"
 #include "sporkdb.h"
 #include "swifttx.h"
+#include "tokengroupmanager.h"
 #include "txdb.h"
 #include "txmempool.h"
 #include "guiinterface.h"
@@ -3431,6 +3432,10 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             control.Add(vChecks);
         }
         nValueOut += tx.GetValueOut();
+
+        if (IsAnyTxOutputGroupedCreation(tx)) {
+            tokenGroupManager.addNewTokenGroup(tx, state);
+        }
 
         CTxUndo undoDummy;
         if (i > 0) {
