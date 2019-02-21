@@ -359,7 +359,7 @@ uint64_t RenewAuthority(const COutput &authority, std::vector<CRecipient> &outpu
         CPubKey pubkey;
         childAuthorityKey.GetReservedKey(pubkey);
         CTxDestination authDest = pubkey.GetID();
-        CScript script = GetScriptForDestination(authDest, tg.associatedGroup, (CAmount)(tg.controllingGroupFlags & GroupAuthorityFlags::ALL_BITS));
+        CScript script = GetScriptForDestination(authDest, tg.associatedGroup, (CAmount)(tg.controllingGroupFlags() & GroupAuthorityFlags::ALL_BITS));
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
         outputs.push_back(recipient);
         totalBchNeeded += GROUPED_SATOSHI_AMT;
@@ -855,7 +855,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
                 if ((tg.associatedGroup == grpID) && tg.isAuthority() && tg.allowsRenew())
                 {
                     // does this authority have at least the needed bits set?
-                    if ((tg.controllingGroupFlags & auth) == auth)
+                    if ((tg.controllingGroupFlags() & auth) == auth)
                         return true;
                 }
                 return false;
@@ -870,7 +870,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
                     if (tg.isAuthority() && tg.allowsRenew() && tg.allowsSubgroup() &&
                         (tg.associatedGroup == grpID.parentGroup()))
                     {
-                        if ((tg.controllingGroupFlags & auth) == auth)
+                        if ((tg.controllingGroupFlags() & auth) == auth)
                             return true;
                     }
                     return false;

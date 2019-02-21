@@ -180,29 +180,34 @@ inline CAmount toAmount(GroupAuthorityFlags f) { return (CAmount)f; }
 class CTokenGroupInfo
 {
 public:
-    CTokenGroupInfo() : associatedGroup(), controllingGroupFlags(GroupAuthorityFlags::NONE), quantity(0), invalid(true)
+    CTokenGroupInfo() : associatedGroup(), quantity(0), invalid(true)
     {
     }
-    CTokenGroupInfo(const CTokenGroupID &associated, const GroupAuthorityFlags controllingGroupFlags, CAmount qty = 0)
-        : associatedGroup(associated), controllingGroupFlags(controllingGroupFlags), quantity(qty), invalid(false)
+    CTokenGroupInfo(const CTokenGroupID &associated, CAmount qty = 0)
+        : associatedGroup(associated), quantity(qty), invalid(false)
     {
     }
-    CTokenGroupInfo(const CKeyID &associated, const GroupAuthorityFlags controllingGroupFlags, CAmount qty = 0)
-        : associatedGroup(associated), controllingGroupFlags(controllingGroupFlags), quantity(qty), invalid(false)
+    CTokenGroupInfo(const CKeyID &associated, CAmount qty = 0)
+        : associatedGroup(associated), quantity(qty), invalid(false)
     {
     }
     // Return the controlling (can mint and burn) and associated (OP_GROUP in script) group of a script
     CTokenGroupInfo(const CScript &script);
 
     CTokenGroupID associatedGroup; // The group announced by the script (or the bitcoin group if no OP_GROUP)
-    GroupAuthorityFlags controllingGroupFlags; // if the utxo is a controller this is not NONE
     CAmount quantity; // The number of tokens specified in this script
     bool invalid;
+
+    // if the utxo is a controller this is not NONE
+    GroupAuthorityFlags controllingGroupFlags() const {
+        if (quantity < 0) return (GroupAuthorityFlags)quantity;
+        return GroupAuthorityFlags::NONE;
+    }
 
     // return true if this object is a token authority.
     bool isAuthority() const
     {
-        return ((controllingGroupFlags & GroupAuthorityFlags::CTRL) == GroupAuthorityFlags::CTRL);
+        return ((controllingGroupFlags() & GroupAuthorityFlags::CTRL) == GroupAuthorityFlags::CTRL);
     }
     // return true if this object is a new token creation output.
     // Note that the group creation nonce cannot be 0
@@ -210,36 +215,36 @@ public:
     {
         bool hasNonce = ((uint64_t)quantity & (uint64_t)~GroupAuthorityFlags::ALL_BITS) != 0;
 
-        return (((controllingGroupFlags & GroupAuthorityFlags::CTRL) == GroupAuthorityFlags::CTRL) && hasNonce && associatedGroup.hasFlag(tokenGroupIdFlags));
+        return (((controllingGroupFlags() & GroupAuthorityFlags::CTRL) == GroupAuthorityFlags::CTRL) && hasNonce && associatedGroup.hasFlag(tokenGroupIdFlags));
     }
     // return true if this object allows minting.
     bool allowsMint() const
     {
-        return (controllingGroupFlags & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT)) ==
+        return (controllingGroupFlags() & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT)) ==
                (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT);
     }
     // return true if this object allows melting.
     bool allowsMelt() const
     {
-        return (controllingGroupFlags & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MELT)) ==
+        return (controllingGroupFlags() & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MELT)) ==
                (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MELT);
     }
     // return true if this object allows child controllers.
     bool allowsRenew() const
     {
-        return (controllingGroupFlags & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::CCHILD)) ==
+        return (controllingGroupFlags() & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::CCHILD)) ==
                (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::CCHILD);
     }
     // return true if this object allows rescripting.
     bool allowsRescript() const
     {
-        return (controllingGroupFlags & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::RESCRIPT)) ==
+        return (controllingGroupFlags() & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::RESCRIPT)) ==
                (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::RESCRIPT);
     }
     // return true if this object allows subgroups.
     bool allowsSubgroup() const
     {
-        return (controllingGroupFlags & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::SUBGROUP)) ==
+        return (controllingGroupFlags() & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::SUBGROUP)) ==
                (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::SUBGROUP);
     }
 
@@ -248,7 +253,7 @@ public:
     {
         if (g.invalid || invalid)
             return false;
-        return ((associatedGroup == g.associatedGroup) && (controllingGroupFlags == g.controllingGroupFlags));
+        return ((associatedGroup == g.associatedGroup) && (controllingGroupFlags() == g.controllingGroupFlags()));
     }
 };
 
