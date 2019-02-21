@@ -1,8 +1,8 @@
 # Copyright (c) 2018-2019 The Ion developers
 
 name: ckti-ion
+version: 3.1.02
 base: core18
-version: 3.1.01
 summary:   gaming related peer-to-peer network based digital currency
 description: |
   Ion Core is an MIT licensed,
@@ -34,7 +34,7 @@ description: |
     Reddit:    https://www.reddit.com/r/ionomy/
     Facebook:  https://facebook.com/ionomy
 
-grade: devel
+grade: stable
 confinement: strict
 icon: src/qt/res/src/ion.svg
 apps:
@@ -79,7 +79,7 @@ parts:
   ion:
     source: https://github.com/ioncoincore/ion
     source-type: git
-    source-tag: v3.1.01
+    source-tag: v3.1.02
     plugin: nil
     override-build: |
       # Patch - Default home folder
@@ -95,6 +95,13 @@ parts:
       cd $SNAPCRAFT_PART_BUILD/depends
       # Fix building ARM and AARCh64, as on some point they fail with, predownload all packages
       #   curl: (22) The requested URL returned error: 407
+      make download-linux
+      if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
+      then
+        make HOST=i686-linux-gnu -j8
+      else
+        make HOST=$SNAPCRAFT_ARCH_TRIPLET -j8
+      fi
       # Set gXX-8 as default
       update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
       update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
@@ -110,13 +117,7 @@ parts:
         update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++ \
         $SNAPCRAFT_ARCH_TRIPLET-g++ /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++-8 100
       fi
-      make download-linux
-      if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
-      then
-        make -j8 HOST=i686-linux-gnu
-      else
-        make -j8 HOST=$SNAPCRAFT_ARCH_TRIPLET
-      fi
+
       # Configure Ion Core
       cd $SNAPCRAFT_PART_BUILD
       ./autogen.sh
@@ -127,7 +128,7 @@ parts:
         ./configure --prefix=`pwd`/depends/$SNAPCRAFT_ARCH_TRIPLET
       fi
       # Compile Ion Core
-      make -j8 
+      make -j8
       # Install Ion Core
       make install prefix=$SNAPCRAFT_PART_INSTALL
       # print in log which files are installed
@@ -136,10 +137,10 @@ parts:
     build-packages:
       - curl
       - wget
-      - gcc
       - g++
-      - gcc-8
+      - gcc
       - g++-8
+      - gcc-1
       - make
       - autoconf
       - automake
