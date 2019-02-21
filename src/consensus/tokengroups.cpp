@@ -138,7 +138,7 @@ CTokenGroupID ExtractControllingGroup(const CScript &scriptPubKey)
 #endif
 
 CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
-    : associatedGroup(), controllingGroupFlags(GroupAuthorityFlags::NONE), quantity(0), invalid(false)
+    : associatedGroup(), quantity(0), invalid(false)
 {
     CScript::const_iterator pc = script.begin();
     std::vector<unsigned char> groupId;
@@ -196,10 +196,6 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
     catch (std::ios_base::failure &f)
     {
         invalid = true;
-    }
-    if (quantity < 0)
-    {
-        controllingGroupFlags = (GroupAuthorityFlags)quantity;
     }
     associatedGroup = groupId;
 }
@@ -299,9 +295,9 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         if (tokenGrp.invalid)
             continue;
         CAmount amount = tokenGrp.quantity;
-        if (tokenGrp.controllingGroupFlags != GroupAuthorityFlags::NONE)
+        if (tokenGrp.controllingGroupFlags() != GroupAuthorityFlags::NONE)
         {
-            auto temp = tokenGrp.controllingGroupFlags;
+            auto temp = tokenGrp.controllingGroupFlags();
             // outputs can have all the permissions of inputs, except for 1 special case
             // If CCHILD is not set, no outputs can be authorities (so unset the CTRL flag)
             if (hasCapability(temp, GroupAuthorityFlags::CCHILD))
