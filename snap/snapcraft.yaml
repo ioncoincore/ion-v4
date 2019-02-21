@@ -154,6 +154,7 @@ parts:
       - desktop-qt5
       - patches
   desktop-qt5:
+    source: snap/usr/share/applications
     stage-packages:
       - libxkbcommon0
       - ttf-ubuntu-font-family
