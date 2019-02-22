@@ -1,6 +1,6 @@
 # Copyright (c) 2018-2019 The Ion developers
 
-name: ckti-ion
+name: from-lp
 version: 3.1.01
 base: core18
 summary:   gaming related peer-to-peer network based digital currency
@@ -77,7 +77,7 @@ apps:
     plugs: [home]
 parts:
   ion:
-    source: https://github.com/ioncoincore/ion
+    source: https://github.com/ckti/ion
     source-type: git
     source-tag: v3.1.01
     plugin: nil
