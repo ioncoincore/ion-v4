@@ -91,6 +91,10 @@ public:
     void NoGroup(void) { data.resize(0); }
     bool operator==(const CTokenGroupID &id) const { return data == id.data; }
     bool operator!=(const CTokenGroupID &id) const { return data != id.data; }
+    bool operator<(const CTokenGroupID &id) const { return data < id.data; }
+    bool operator>(const CTokenGroupID &id) const { return data > id.data; }
+    bool operator<=(const CTokenGroupID &id) const { return data <= id.data; }
+    bool operator>=(const CTokenGroupID &id) const { return data >= id.data; }
     //* returns true if this is a user-defined group -- ie NOT bitcoin cash or no group
     bool isUserGroup(void) const;
     //* returns true if this is a subgroup
