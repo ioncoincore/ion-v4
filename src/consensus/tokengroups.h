@@ -104,6 +104,13 @@ public:
     //* Returns this groupID as a string in bech32 format
     // std::string Encode(const CChainParams &params = Params()) const;
 
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(data);
+    }
+
     bool hasFlag(TokenGroupIdFlags flag) const;
 };
 
@@ -197,6 +204,15 @@ public:
     CTokenGroupID associatedGroup; // The group announced by the script (or the bitcoin group if no OP_GROUP)
     CAmount quantity; // The number of tokens specified in this script
     bool invalid;
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(this->associatedGroup);
+        READWRITE(this->quantity);
+        READWRITE(this->invalid);
+    }
 
     // if the utxo is a controller this is not NONE
     GroupAuthorityFlags controllingGroupFlags() const {
