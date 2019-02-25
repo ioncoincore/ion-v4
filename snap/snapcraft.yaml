@@ -1,6 +1,6 @@
 # Copyright (c) 2018-2019 The Ion developers
 
-name: from-git
+name: from-lp
 version: 3.1.01
 base: core18
 summary:   gaming related peer-to-peer network based digital currency
@@ -77,7 +77,7 @@ apps:
     plugs: [home]
 parts:
   ion:
-    source: https://github.com/ckti/ion
+    source: https://github.com/ioncoincore/ion
     source-type: git
     source-tag: v3.1.01
     plugin: nil
@@ -90,6 +90,21 @@ parts:
       git apply $SNAPCRAFT_STAGE/fix-bdb-tmp-folder.patch
       ## Patch - Fix Bug extracting sources without ownership
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' $SNAPCRAFT_PART_BUILD/depends/funcs.mk
+      # Set gXX-8 as default
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
+      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
+      if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
+      then
+        update-alternatives --install /usr/bin/i686-linux-gnu-gcc \
+        i686-linux-gnu-gcc /usr/bin/i686-linux-gnu-gcc-8 100
+        update-alternatives --install /usr/bin/i686-linux-gnu-g++ \
+        i686-linux-gnu-g++ /usr/bin/i686-linux-gnu-g++-8 100
+      else
+        update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc \
+        $SNAPCRAFT_ARCH_TRIPLET-gcc /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc-8 100
+        update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++ \
+        $SNAPCRAFT_ARCH_TRIPLET-g++ /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++-8 100
+      fi
       # Build Dependencies
       echo "START BUILDING FOR $SNAPCRAFT_ARCH_TRIPLET architecture"
       cd $SNAPCRAFT_PART_BUILD/depends
@@ -101,21 +116,6 @@ parts:
         make HOST=i686-linux-gnu -j8
       else
         make HOST=$SNAPCRAFT_ARCH_TRIPLET -j8
-      fi
-      # Set gXX-8 as default
-      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
-      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
-      if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]
-      then
-        update-alternatives --install /usr/bin/i686-linux-gnu-gcc \
-        i686-linux-gnu-gcc /usr/bin/i686-linux-gnu-gcc-8 100
-        update-alternatives --install /usr/bin/i686-linux-gnu-g++ \
-        i686-linux-gnu-g++ /usr/bin/i686-linux-gnu-g++-8 100
-      else 
-        update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc \
-        $SNAPCRAFT_ARCH_TRIPLET-gcc /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-gcc-8 100
-        update-alternatives --install /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++ \
-        $SNAPCRAFT_ARCH_TRIPLET-g++ /usr/bin/$SNAPCRAFT_ARCH_TRIPLET-g++-8 100
       fi
       # Configure Ion Core
       cd $SNAPCRAFT_PART_BUILD
