@@ -12,30 +12,74 @@
 class CTokenGroupManager;
 extern CTokenGroupManager tokenGroupManager;
 
-class CTokenGroupCreation
+class CTokenGroupDescription
 {
 public:
-    CTokenGroupInfo tokenGroupInfo;
-    CTransaction creationTransaction;
+    // Token ticker name
+    // Max 8 characters
+    std::string strTicker;
 
-    CTokenGroupCreation(){};
+    // Token name
+    std::string strName;
 
-    CTokenGroupCreation(CTokenGroupInfo tokenGroupInfoIn, CTransaction creationTransactionIn)
-        : tokenGroupInfo(tokenGroupInfoIn), creationTransaction(creationTransactionIn) {}
+    // Extended token description document URL
+    // TODO: get URL
+    std::string strDocumentUrl;
+
+    uint256 documentHash;
+    bool invalid;
+
+    CTokenGroupDescription() : invalid(true) {};
+    CTokenGroupDescription(std::string strTicker, std::string strName, std::string strDocumentUrl, uint256 documentHash) :
+        strTicker(strTicker), strName(strName), strDocumentUrl(strDocumentUrl), documentHash(documentHash), invalid(false)
+    {
+        ValidateTokenDescription();
+    };
 
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
-        READWRITE(tokenGroupInfo);
+        READWRITE(strTicker);
+        READWRITE(strName);
+        READWRITE(strDocumentUrl);
+        READWRITE(documentHash);
+    }
+    bool operator==(const CTokenGroupDescription &c)
+    {
+        return (strTicker == c.strTicker && strName == c.strName && strDocumentUrl == c.strDocumentUrl && documentHash == c.documentHash);
+    }
+
+    bool ValidateTokenDescription();
+};
+
+class CTokenGroupCreation
+{
+public:
+    CTransaction creationTransaction;
+    CTokenGroupInfo tokenGroupInfo;
+    CTokenGroupDescription tokenGroupDescription;
+
+    CTokenGroupCreation(){};
+
+    CTokenGroupCreation(CTransaction creationTransaction, CTokenGroupInfo tokenGroupInfo, CTokenGroupDescription tokenGroupDescription)
+        : creationTransaction(creationTransaction), tokenGroupInfo(tokenGroupInfo), tokenGroupDescription(tokenGroupDescription) {}
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
+    {
         READWRITE(creationTransaction);
+        READWRITE(tokenGroupInfo);
+        READWRITE(tokenGroupDescription);
     }
     bool operator==(const CTokenGroupCreation &c)
     {
         if (c.tokenGroupInfo.invalid || tokenGroupInfo.invalid)
             return false;
-        return ((tokenGroupInfo == c.tokenGroupInfo) && (creationTransaction == c.creationTransaction));
+        return (creationTransaction == c.creationTransaction && tokenGroupInfo == c.tokenGroupInfo && tokenGroupDescription == c.tokenGroupDescription);
     }
 };
 
@@ -57,8 +101,12 @@ public:
 
     bool addNewTokenGroup(CTransaction tx, CValidationState &state);
 
-    std::string GetTokenGroupNameByID(int id);
+    std::string GetTokenGroupNameByID(CTokenGroupID tokenGroupId);
     int GetTokenGroupIdByName(std::string strName);
+    std::map<CTokenGroupID, CTokenGroupCreation> GetMapTokenGroups() { return mapTokenGroups; };
+
+    bool BuildGroupDescData(CScript script, std::vector<std::vector<unsigned char> > &descriptionData);
+    bool ParseGroupDescData(const std::vector<std::vector<unsigned char> > descriptionData, CTokenGroupDescription &tokenGroupDescription);
 };
 
 #endif
