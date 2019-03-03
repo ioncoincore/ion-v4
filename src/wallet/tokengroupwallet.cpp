@@ -18,6 +18,7 @@
 #include "rpc/server.h"
 #include "script/script.h"
 #include "script/standard.h"
+#include "tokengroupmanager.h"
 #include "utilmoneystr.h"
 #include "wallet.h"
 #include <algorithm>
@@ -1279,6 +1280,48 @@ extern UniValue managementtoken(const UniValue &paramsIn, bool fHelp)
     else
     {
         throw JSONRPCError(RPC_INVALID_REQUEST, "Unknown group operation");
+    }
+    return NullUniValue;
+}
+
+extern UniValue tokendescription(const UniValue &params, bool fHelp)
+{
+    if (!pwalletMain)
+        return NullUniValue;
+
+    if (fHelp || params.size() < 1)
+        throw std::runtime_error(
+            "tokengroupdescription [get, checksum] \n"
+            "\nToken group description functions.\n"
+            "'get' downloads the token group description json file. args: URL\n"
+            "'checksum' generates the checksum of the token group description file. args: URL\n"
+            "\nArguments:\n"
+            "1. \"URL\"     (string, required) the URL of the token group description file\n" +
+            HelpExampleCli("tokengroupdescription", "\"https://github.com/ioncoincore/ion/desc.json\""));
+
+    std::string operation;
+    std::string p0 = params[0].get_str();
+    std::transform(p0.begin(), p0.end(), std::back_inserter(operation), ::tolower);
+
+    std::string url;
+
+    if (operation == "get") {
+        unsigned int curparam = 1;
+
+        if (curparam >= params.size())
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");
+        } else {
+            url = params[curparam].get_str(), Params();
+        }
+        curparam++;
+
+        for (auto tokenGroupMapping : tokenGroupManager.GetMapTokenGroups()) {
+            LogPrintf("token", "%s - tokenGroupMapping", __func__);
+        }
+
+    } else {
+        throw JSONRPCError(RPC_INVALID_REQUEST, "Unknown operation");
     }
     return NullUniValue;
 }
