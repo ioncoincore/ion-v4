@@ -10,7 +10,7 @@
 #include <unordered_map>
 
 class CTokenGroupManager;
-extern CTokenGroupManager tokenGroupManager;
+extern std::shared_ptr<CTokenGroupManager> tokenGroupManager;
 
 class CTokenGroupDescription
 {

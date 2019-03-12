@@ -12,7 +12,7 @@
 #include <regex>
 #include <string.h>
 
-CTokenGroupManager tokenGroupManager;
+std::shared_ptr<CTokenGroupManager> tokenGroupManager;
 
 bool CTokenGroupDescription::ValidateTokenDescription() {
     regex regexAlpha("^[a-zA-Z]+$");
