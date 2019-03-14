@@ -30,6 +30,7 @@
 #include "spork.h"
 #include "sporkdb.h"
 #include "swifttx.h"
+#include "tokendb.h"
 #include "tokengroupmanager.h"
 #include "txdb.h"
 #include "txmempool.h"
@@ -642,6 +643,7 @@ std::unique_ptr<CCoinsViewCache> pcoinsTip;
 std::unique_ptr<CBlockTreeDB> pblocktree;
 std::unique_ptr<CZerocoinDB> zerocoinDB;
 std::unique_ptr<CSporkDB> pSporkDB;
+std::unique_ptr<CTokenDB> pTokenDB;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -2703,6 +2705,8 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 
 bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool* pfClean)
 {
+    std::vector<CTokenGroupID> newTokenGroupIDs;
+
     if (pindex->GetBlockHash() != view.GetBestBlock())
         LogPrintf("%s : pindex=%s view=%s\n", __func__, pindex->GetBlockHash().GetHex(), view.GetBestBlock().GetHex());
     assert(pindex->GetBlockHash() == view.GetBestBlock());
@@ -2832,8 +2836,16 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
                     coins->vout.resize(out.n + 1);
                 coins->vout[out.n] = undo.txout;
             }
+            if (IsAnyTxOutputGroupedCreation(tx)) {
+                CTokenGroupID newTokenGroupID;
+                if (tokenGroupManager->RemoveTokenGroup(tx, newTokenGroupID))
+                    newTokenGroupIDs.push_back(newTokenGroupID);
+            }
         }
     }
+
+    if (!pTokenDB->EraseTokenGroupBatch(newTokenGroupIDs))
+        return error("failed to erase token group creations");
 
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
@@ -3288,6 +3300,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     std::vector<std::pair<CoinSpend, uint256> > vSpends;
     std::vector<std::pair<PublicCoin, uint256> > vMints;
+    std::vector<CTokenGroupCreation> newTokenGroups;
     vPos.reserve(block.vtx.size());
     CBlockUndo blockundo;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
@@ -3405,6 +3418,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                 }
                 CTokenGroupCreation newTokenGroupCreation;
                 if (tokenGroupManager->AddTokenGroup(tx, newTokenGroupCreation)) {
+                    newTokenGroups.push_back(newTokenGroupCreation);
                 } else {
                     return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");
                 }
@@ -3589,6 +3603,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     if (fTxIndex)
         if (!pblocktree->WriteTxIndex(vPos))
             return AbortNode(state, "Failed to write transaction index");
+
+    if (!pTokenDB->WriteTokenGroupsBatch(newTokenGroups))
+        return AbortNode(state, "Failed to write token creation data");
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());

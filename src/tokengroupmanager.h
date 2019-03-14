@@ -99,6 +99,7 @@ public:
     }
 
     bool AddTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation);
+    bool RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID);
 
     std::string GetTokenGroupNameByID(CTokenGroupID tokenGroupId);
     int GetTokenGroupIdByName(std::string strName);
