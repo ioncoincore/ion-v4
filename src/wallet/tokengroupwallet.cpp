@@ -1291,13 +1291,13 @@ extern UniValue tokendescription(const UniValue &params, bool fHelp)
 
     if (fHelp || params.size() < 1)
         throw std::runtime_error(
-            "tokengroupdescription [get, checksum] \n"
+            "tokendescription [get, checksum] \n"
             "\nToken group description functions.\n"
             "'get' downloads the token group description json file. args: URL\n"
             "'checksum' generates the checksum of the token group description file. args: URL\n"
             "\nArguments:\n"
             "1. \"URL\"     (string, required) the URL of the token group description file\n" +
-            HelpExampleCli("tokengroupdescription", "\"https://github.com/ioncoincore/ion/desc.json\""));
+            HelpExampleCli("tokendescription", "\"https://github.com/ioncoincore/ion/desc.json\""));
 
     std::string operation;
     std::string p0 = params[0].get_str();
@@ -1305,11 +1305,31 @@ extern UniValue tokendescription(const UniValue &params, bool fHelp)
 
     std::string url;
 
-    if (operation == "get") {
+    UniValue ret(UniValue::VARR);
+
+    if (operation == "list") {
         unsigned int curparam = 1;
 
-        if (curparam >= params.size())
-        {
+        if (curparam < params.size()) {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Too many parameters");
+        }
+
+        for (auto tokenGroupMapping : tokenGroupManager->GetMapTokenGroups()) {
+            LogPrint("token", "%s - tokenGroupMapping has [%s] [%s]\n", __func__, tokenGroupMapping.second.tokenGroupDescription.strTicker, EncodeTokenGroup(tokenGroupMapping.second.tokenGroupInfo.associatedGroup));
+            UniValue entry(UniValue::VOBJ);
+            entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(tokenGroupMapping.second.tokenGroupInfo.associatedGroup)));
+            entry.push_back(Pair("txid", tokenGroupMapping.second.creationTransaction.GetHash().GetHex()));
+            entry.push_back(Pair("ticker", tokenGroupMapping.second.tokenGroupDescription.strTicker));
+            entry.push_back(Pair("name", tokenGroupMapping.second.tokenGroupDescription.strName));
+            entry.push_back(Pair("URL", tokenGroupMapping.second.tokenGroupDescription.strDocumentUrl));
+            entry.push_back(Pair("documentHash", tokenGroupMapping.second.tokenGroupDescription.documentHash.ToString()));
+            ret.push_back(entry);
+        }
+
+    } else if (operation == "get") {
+        unsigned int curparam = 1;
+
+        if (curparam >= params.size()) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");
         } else {
             url = params[curparam].get_str(), Params();
@@ -1323,7 +1343,7 @@ extern UniValue tokendescription(const UniValue &params, bool fHelp)
     } else {
         throw JSONRPCError(RPC_INVALID_REQUEST, "Unknown operation");
     }
-    return NullUniValue;
+    return ret;
 }
 
 extern void WalletTxToJSON(const CWalletTx &wtx, UniValue &entry);
