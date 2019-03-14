@@ -84,7 +84,7 @@ public:
     {
         // for the conceivable future there is no possible way a group could be bigger but the spec does allow larger
         if (!(id.size() < OP_PUSHDATA1)) {
-            LogPrint("tokens", "%s - Debug Assertion failed", __func__);
+            LogPrint("token", "%s - Debug Assertion failed", __func__);
         };
     }
 

@@ -1317,7 +1317,7 @@ extern UniValue tokendescription(const UniValue &params, bool fHelp)
         curparam++;
 
         for (auto tokenGroupMapping : tokenGroupManager->GetMapTokenGroups()) {
-            LogPrintf("token", "%s - tokenGroupMapping", __func__);
+            LogPrint("token", "%s - tokenGroupMapping\n", __func__);
         }
 
     } else {

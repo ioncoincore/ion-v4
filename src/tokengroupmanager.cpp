@@ -122,10 +122,11 @@ bool CTokenGroupManager::addNewTokenGroup(CTransaction tx, CValidationState &sta
                 mapTokenGroups[tokenGroupInfo.associatedGroup] = tokenGroupCreation;
                 // Token ID already exists. Since the hash is the same, the token specs are the same.
                 // However, until reorgs are handled  properly: log this to avoid 'misplaced' token group creation transactions.
-                LogPrintf("token", "%s - Double token creation; updated.\n", __func__);
+                LogPrint("token", "%s - Double token creation; updated.\n", __func__);
             } else {
-                LogPrintf("token", "%s - Double token creation; NOT updated.\n", __func__);
+                LogPrint("token", "%s - Double token creation; NOT updated.\n", __func__);
             }
+        } else {
         }
 
     }

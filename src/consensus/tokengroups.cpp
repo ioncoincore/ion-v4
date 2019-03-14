@@ -275,7 +275,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         const Coin &coin = view.AccessCoin(prevout);
         if (coin.IsSpent()) // should never happen because you've already CheckInputs(tx,...)
         {
-            LogPrint("tokens", "%s - Checking token group for spent coin", __func__);
+            LogPrint("token", "%s - Checking token group for spent coin\n", __func__);
             return state.Invalid(false, REJECT_INVALID, "already-spent");
         }
         // no prior coins can be grouped.
@@ -287,7 +287,6 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         ExtractDestination(script, payeeDest);
         if (EncodeDestination(payeeDest) == Params().TokenManagementKey())
             anyInputsGroupManagement = true;
-        LogPrint("tokens", "%s - %d", __func__, chainActive.Tip()->nHeight);
 
         CTokenGroupInfo tokenGrp(script);
         // The prevout should never be invalid because that would mean that this node accepted a block with an
