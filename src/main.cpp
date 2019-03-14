@@ -3393,6 +3393,22 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                                   tx.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-inputs");
                 }
             }
+            if (IsAnyTxOutputGroupedCreation(tx)) {
+                //Disable new token creation during management mode
+                if (block.nTime > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && !IsInitialBlockDownload()) {
+                    if (IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
+                        LogPrintf("%s: Management token creation during token group management mode\n", __func__);
+                    } else {
+                        return state.DoS(0, error("%s : new token creation is not possible during token group management mode",
+                                        __func__), REJECT_INVALID, "token-group-management");
+                    }
+                }
+                CTokenGroupCreation newTokenGroupCreation;
+                if (tokenGroupManager->AddTokenGroup(tx, newTokenGroupCreation)) {
+                } else {
+                    return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");
+                }
+            }
 
             // Check that xION mints are not already known
             if (tx.HasZerocoinMintOutputs()) {
@@ -3432,10 +3448,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             control.Add(vChecks);
         }
         nValueOut += tx.GetValueOut();
-
-        if (IsAnyTxOutputGroupedCreation(tx)) {
-            tokenGroupManager->addNewTokenGroup(tx, state);
-        }
 
         CTxUndo undoDummy;
         if (i > 0) {

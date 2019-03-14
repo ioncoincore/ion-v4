@@ -82,7 +82,7 @@ bool CTokenGroupManager::ParseGroupDescData(const std::vector<std::vector<unsign
     return true;
 }
 
-bool CTokenGroupManager::addNewTokenGroup(CTransaction tx, CValidationState &state) {
+bool CTokenGroupManager::AddTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation) {
     CScript firstOpReturn;
     CTokenGroupInfo tokenGroupInfo;
 
@@ -95,7 +95,7 @@ bool CTokenGroupManager::addNewTokenGroup(CTransaction tx, CValidationState &sta
             firstOpReturn = txout.scriptPubKey;
         }
         if (tokenGrp.invalid)
-            return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");
+            return false;
         if (tokenGrp.associatedGroup != NoGroup && tokenGrp.isGroupCreation() && !hasNewTokenGroup) {
             hasNewTokenGroup = true;
             tokenGroupInfo = tokenGrp;
@@ -127,6 +127,7 @@ bool CTokenGroupManager::addNewTokenGroup(CTransaction tx, CValidationState &sta
                 LogPrint("token", "%s - Double token creation; NOT updated.\n", __func__);
             }
         } else {
+            newTokenGroupCreation = tokenGroupCreationRet;
         }
 
     }
