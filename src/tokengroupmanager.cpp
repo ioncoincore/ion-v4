@@ -134,6 +134,35 @@ bool CTokenGroupManager::AddTokenGroup(CTransaction tx, CTokenGroupCreation &new
     return true;
 }
 
+bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID) {
+    CScript firstOpReturn;
+    CTokenGroupInfo tokenGroupInfo;
+
+    bool hasNewTokenGroup = false;
+
+    for (const auto &txout : tx.vout) {
+        const CScript &scriptPubKey = txout.scriptPubKey;
+        CTokenGroupInfo tokenGrp(scriptPubKey);
+        if ((txout.nValue == 0) && (firstOpReturn.size() == 0) && (txout.scriptPubKey[0] == OP_RETURN)) {
+            firstOpReturn = txout.scriptPubKey;
+        }
+        if (tokenGrp.invalid)
+            return false;
+        if (tokenGrp.associatedGroup != NoGroup && tokenGrp.isGroupCreation() && !hasNewTokenGroup) {
+            hasNewTokenGroup = true;
+            tokenGroupInfo = tokenGrp;
+        }
+    }
+    if (hasNewTokenGroup) {
+        std::map<CTokenGroupID, CTokenGroupCreation>::iterator iter = mapTokenGroups.find(tokenGroupInfo.associatedGroup);
+        if (iter != mapTokenGroups.end()) {
+            mapTokenGroups.erase(iter);
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string CTokenGroupManager::GetTokenGroupNameByID(CTokenGroupID tokenGroupId) {
     CTokenGroupCreation tokenGroupCreation = mapTokenGroups.at(tokenGroupId);
     return "";

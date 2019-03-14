@@ -51,6 +51,7 @@ class CBlockTreeDB;
 class CCoinsViewDB;
 class CZerocoinDB;
 class CSporkDB;
+class CTokenDB;
 class CBloomFilter;
 class CInv;
 class CScriptCheck;
@@ -571,6 +572,9 @@ extern std::unique_ptr<CZerocoinDB> zerocoinDB;
 
 /** Global variable that points to the spork database (protected by cs_main) */
 extern std::unique_ptr<CSporkDB> pSporkDB;
+
+/** Global variable that points to the token database (protected by cs_main) */
+extern std::unique_ptr<CTokenDB> pTokenDB;
 
 struct CBlockTemplate {
     CBlock block;
