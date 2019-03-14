@@ -23,7 +23,6 @@ public:
     std::string strName;
 
     // Extended token description document URL
-    // TODO: get URL
     std::string strDocumentUrl;
 
     uint256 documentHash;
@@ -99,7 +98,7 @@ public:
     {
     }
 
-    bool addNewTokenGroup(CTransaction tx, CValidationState &state);
+    bool AddTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation);
 
     std::string GetTokenGroupNameByID(CTokenGroupID tokenGroupId);
     int GetTokenGroupIdByName(std::string strName);
