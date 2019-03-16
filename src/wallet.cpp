@@ -4827,7 +4827,7 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     libzerocoin::AccumulatorWitness witness(paramsAccumulator, accumulator, pubCoinSelected);
     string strFailReason = "";
     int nMintsAdded = 0;
-    if (!GenerateAccumulatorWitness(pubCoinSelected, accumulator, witness, nSecurityLevel, nMintsAdded, strFailReason, isV1Coin, pindexCheckpoint)) {
+    if (!GenerateAccumulatorWitness(pubCoinSelected, accumulator, witness, nSecurityLevel, nMintsAdded, strFailReason, pindexCheckpoint)) {
         receipt.SetStatus(_("Try to spend with a higher security level to include more coins"), XION_FAILED_ACCUMULATOR_INITIALIZATION);
         return error("%s : %s", __func__, receipt.GetStatusMessage());
     }
@@ -4854,13 +4854,7 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     uint32_t nChecksum = GetChecksum(accumulator.getValue());
     CBigNum bnValue;
     if (!GetAccumulatorValueFromChecksum(nChecksum, false, bnValue) || bnValue == 0)
-    {
-        if (isV1Coin){
-            LogPrintf("%s: spending v1 coin\n", __func__);
-        } else {
         return error("%s: could not find checksum used for spend\n", __func__);
-        }
-    }
 
     try {
         libzerocoin::CoinSpend spend(paramsCoin, paramsAccumulator, privateCoin, accumulator, nChecksum, witness, hashTxOut,

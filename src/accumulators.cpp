@@ -536,19 +536,13 @@ std::list<CBlockIndex*> calculateAccumulatedBlocksFor(
 
             bnAccValue = 0;
             uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->nAccumulatorCheckpoint;
-            if (!isV1Coin){
-                if (!GetAccumulatorValueFromDB(nCheckpointSpend, den, bnAccValue) || bnAccValue == 0) {
-                    throw new ChecksumInDbNotFoundException(
-                            "calculateAccumulatedBlocksFor : failed to find checksum in database for accumulator");
-                }
-
-                accumulator.setValue(bnAccValue);
+            if (!GetAccumulatorValueFromDB(nCheckpointSpend, den, bnAccValue) || bnAccValue == 0) {
+                throw new ChecksumInDbNotFoundException(
+                        "calculateAccumulatedBlocksFor : failed to find checksum in database for accumulator");
             }
-            break;
-        }
 
-        if (isV1Coin){
-            AddBlockMintsToAccumulator(coin, nHeightMintAdded, pindex, &accumulator, false);
+            accumulator.setValue(bnAccValue);
+            break;
         }
 
         // Add it
