@@ -193,3 +193,56 @@ std::string CTokenGroupManager::GetTokenGroupNameByID(CTokenGroupID tokenGroupId
     CTokenGroupCreation tokenGroupCreation = mapTokenGroups.at(tokenGroupId);
     return "";
 }
+
+unsigned int CTokenGroupManager::GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount) {
+    int nXDMCountInBlock = 0;
+    for (auto tx : block.vtx) {
+        if (!tx.IsCoinBase() && !tx.ContainsZerocoins()) {
+            if (IsXDMTx(tx, view)) {
+                nXDMCountInBlock++;
+            }
+        }
+    }
+    nXDMCount += nXDMCountInBlock;
+    return nXDMCountInBlock;
+}
+
+bool CTokenGroupManager::IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& view) {
+    if (!tgDarkMatterCreation) return false;
+
+    bool anyInputsXDM = false;
+    if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.IsZerocoinSpend()) {
+
+        if (!view.HaveInputs(transaction))
+            return false;
+
+        if (((int)chainActive.Tip()->nHeight >= Params().OpGroup_StartHeight())) {
+            // Now iterate through the inputs to match to DarkMatter inputs
+            for (const auto &inp : transaction.vin)
+            {
+                const COutPoint &prevout = inp.prevout;
+                const Coin &coin = view.AccessCoin(prevout);
+                if (coin.IsSpent()) {
+                    LogPrint("token", "%s - Checking token group for spent coin\n", __func__);
+                    return false;
+                }
+                // no prior coins can be grouped.
+                if (coin.nHeight < Params().OpGroup_StartHeight())
+                    continue;
+                const CScript &script = coin.out.scriptPubKey;
+
+                CTokenGroupInfo tokenGrp(script);
+                // The prevout should never be invalid because that would mean that this node accepted a block with an
+                // invalid OP_GROUP tx in it.
+                if (tokenGrp.invalid)
+                    continue;
+                if (tokenGrp.associatedGroup == tgDarkMatterCreation->tokenGroupInfo.associatedGroup) {
+                    LogPrint("token", "%s - Found a XDM input: [%s] at height [%d]\n", __func__, coin.out.ToString(), coin.nHeight);
+                    anyInputsXDM = true;
+                }
+            }
+        }
+    }
+
+    return anyInputsXDM;
+}

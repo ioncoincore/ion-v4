@@ -299,6 +299,4 @@ CAmount DeserializeAmount(std::vector<unsigned char> &vec);
 inline CTokenGroupID GetTokenGroup(const CScript &script) { return CTokenGroupInfo(script).associatedGroup; }
 extern CTokenGroupID NoGroup;
 
-bool UpdateXDMSupply(const CBlock& block, CBlockIndex* pindex, bool fJustCheck);
-
 #endif

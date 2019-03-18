@@ -3309,6 +3309,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     unsigned int nMaxBlockSigOps = MAX_BLOCK_SIGOPS_CURRENT;
     vector<uint256> vSpendsInBlock;
     uint256 hashBlock = block.GetHash();
+    unsigned int nXDMCountInBlock = 0;
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
         const CTransaction& tx = block.vtx[i];
 
@@ -3462,6 +3463,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             control.Add(vChecks);
         }
         nValueOut += tx.GetValueOut();
+        if (tokenGroupManager->IsXDMTx(tx, view))
+            nXDMCountInBlock++;
 
         CTxUndo undoDummy;
         if (i > 0) {
@@ -3486,9 +3489,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
 
     // Track XDM money supply in the block index
-    if (!UpdateXDMSupply(block, pindex, fJustCheck))
-        return state.DoS(100, error("%s: Failed to calculate new XDM supply for block=%s height=%d", __func__,
-                                    block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
+    pindex->nXDMTransactions = nXDMCountInBlock;
+
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
     pindex->nMoneySupply = nMoneySupplyPrev + nValueOut - nValueIn;
@@ -3723,8 +3725,9 @@ void static UpdateTip(CBlockIndex* pindexNew)
     nTimeBestReceived = GetTime();
     mempool.AddTransactionsUpdated(1);
 
-    LogPrintf("UpdateTip: new best=%s  height=%d version=%d  log2_work=%.8g  tx=%lu  date=%s progress=%f  cache=%u\n",
+    LogPrintf("UpdateTip: new best=%s  height=%d version=%d  log2_work=%.8g  tx=%lu  xdm_tx=%lu date=%s progress=%f  cache=%u\n",
         chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), chainActive.Tip()->nVersion, log(chainActive.Tip()->nChainWork.getdouble()) / log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
+        (unsigned long)chainActive.Tip()->nChainXDMTransactions,
         DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
         Checkpoints::GuessVerificationProgress(chainActive.Tip()), (unsigned int)pcoinsTip->GetCacheSize());
 
@@ -4316,8 +4319,6 @@ bool ReceivedBlockTransactions(const CBlock& block, CValidationState& state, CBl
         pindexNew->SetProofOfStake();
     pindexNew->nTx = block.vtx.size();
     pindexNew->nChainTx = 0;
-    pindexNew->nXDMTransactions = block.getXDMTxCount();
-    pindexNew->nChainXDMTransactions = 0;
     pindexNew->nFile = pos.nFile;
     pindexNew->nDataPos = pos.nPos;
     pindexNew->nUndoPos = 0;
@@ -4335,7 +4336,6 @@ bool ReceivedBlockTransactions(const CBlock& block, CValidationState& state, CBl
             CBlockIndex* pindex = queue.front();
             queue.pop_front();
             pindex->nChainTx = (pindex->pprev ? pindex->pprev->nChainTx : 0) + pindex->nTx;
-            pindex->nChainXDMTransactions = (pindex->pprev ? pindex->pprev->nChainXDMTransactions : 0) + pindex->nXDMTransactions;
             {
                 LOCK(cs_nBlockSequenceId);
                 pindex->nSequenceId = nBlockSequenceId++;

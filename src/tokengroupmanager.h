@@ -110,6 +110,9 @@ public:
 
     bool ProcessManagementTokenGroups(CTokenGroupCreation tokenGroupCreation);
     void ClearManagementTokenGroups();
+
+    unsigned int GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount);
+    bool IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& inputs);
 };
 
 #endif
