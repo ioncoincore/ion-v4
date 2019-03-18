@@ -1284,20 +1284,20 @@ extern UniValue managementtoken(const UniValue &paramsIn, bool fHelp)
     return NullUniValue;
 }
 
-extern UniValue tokendescription(const UniValue &params, bool fHelp)
+extern UniValue tokeninfo(const UniValue &params, bool fHelp)
 {
     if (!pwalletMain)
         return NullUniValue;
 
     if (fHelp || params.size() < 1)
         throw std::runtime_error(
-            "tokendescription [get, checksum] \n"
+            "tokeninfo [list, stats] \n"
             "\nToken group description functions.\n"
             "'get' downloads the token group description json file. args: URL\n"
             "'checksum' generates the checksum of the token group description file. args: URL\n"
             "\nArguments:\n"
             "1. \"URL\"     (string, required) the URL of the token group description file\n" +
-            HelpExampleCli("tokendescription", "\"https://github.com/ioncoincore/ion/desc.json\""));
+            HelpExampleCli("tokeninfo", "\"https://github.com/ioncoincore/ion/desc.json\""));
 
     std::string operation;
     std::string p0 = params[0].get_str();
@@ -1326,19 +1326,36 @@ extern UniValue tokendescription(const UniValue &params, bool fHelp)
             ret.push_back(entry);
         }
 
-    } else if (operation == "get") {
+    } else if (operation == "stats") {
+        LOCK2(cs_main, pwalletMain->cs_wallet);
+
+        CBlockIndex *pindex = NULL;
+
         unsigned int curparam = 1;
 
-        if (curparam >= params.size()) {
-            throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");
-        } else {
-            url = params[curparam].get_str(), Params();
-        }
-        curparam++;
+        if (params.size() > curparam) {
+            uint256 blockId;
 
-        for (auto tokenGroupMapping : tokenGroupManager->GetMapTokenGroups()) {
-            LogPrint("token", "%s - tokenGroupMapping\n", __func__);
+            blockId.SetHex(params[curparam].get_str());
+            BlockMap::iterator it = mapBlockIndex.find(blockId);
+            if (it != mapBlockIndex.end()) {
+                pindex = it->second;
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Block not found");
+            }
+        } else {
+            pindex = chainActive[chainActive.Height()];
         }
+
+        uint256 hash = pindex ? pindex->GetBlockHash() : uint256();
+        uint64_t nXDMTransactions = pindex ? pindex->nChainXDMTransactions : 0;
+        uint64_t nHeight = pindex ? pindex->nHeight : -1;
+
+        UniValue entry(UniValue::VOBJ);
+        entry.push_back(Pair("height", nHeight));
+        entry.push_back(Pair("blockhash", hash.GetHex()));
+        entry.push_back(Pair("XDM_count", nXDMTransactions));
+        ret.push_back(entry);
 
     } else {
         throw JSONRPCError(RPC_INVALID_REQUEST, "Unknown operation");

@@ -287,7 +287,7 @@ extern UniValue createrawzerocoinstake(const UniValue& params, bool fHelp);
 extern UniValue createrawzerocoinpublicspend(const UniValue& params, bool fHelp);
 extern UniValue token(const UniValue& params, bool fHelp);
 extern UniValue managementtoken(const UniValue& params, bool fHelp);
-extern UniValue tokendescription(const UniValue& params, bool fHelp);
+extern UniValue tokeninfo(const UniValue& params, bool fHelp);
 
 extern UniValue findserial(const UniValue& params, bool fHelp); // in rpc/blockchain.cpp
 extern UniValue getblockcount(const UniValue& params, bool fHelp);
