@@ -89,9 +89,9 @@ class CTokenGroupManager
 {
 private:
     std::map<CTokenGroupID, CTokenGroupCreation> mapTokenGroups;
-    CTokenGroupCreation tgManagementTokenCreation;
-    CTokenGroupCreation tgDarkMatterCreation;
-    CTokenGroupCreation tgAtomCreation;
+    std::unique_ptr<CTokenGroupCreation> tgMagicCreation;
+    std::unique_ptr<CTokenGroupCreation> tgDarkMatterCreation;
+    std::unique_ptr<CTokenGroupCreation> tgAtomCreation;
 
 public:
     CTokenGroupManager() {
@@ -107,6 +107,9 @@ public:
 
     bool BuildGroupDescData(CScript script, std::vector<std::vector<unsigned char> > &descriptionData);
     bool ParseGroupDescData(const std::vector<std::vector<unsigned char> > descriptionData, CTokenGroupDescription &tokenGroupDescription);
+
+    bool ProcessManagementTokenGroups(CTokenGroupCreation tokenGroupCreation);
+    void ClearManagementTokenGroups();
 };
 
 #endif

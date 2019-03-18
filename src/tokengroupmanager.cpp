@@ -82,6 +82,26 @@ bool CTokenGroupManager::ParseGroupDescData(const std::vector<std::vector<unsign
     return true;
 }
 
+bool CTokenGroupManager::ProcessManagementTokenGroups(CTokenGroupCreation tokenGroupCreation) {
+    if (!tgMagicCreation && tokenGroupCreation.tokenGroupDescription.strTicker == "MAGIC") {
+        this->tgMagicCreation = std::unique_ptr<CTokenGroupCreation>(new CTokenGroupCreation((tokenGroupCreation)));
+        return true;
+    } else if (!tgDarkMatterCreation && tokenGroupCreation.tokenGroupDescription.strTicker == "XDM") {
+        this->tgDarkMatterCreation = std::unique_ptr<CTokenGroupCreation>(new CTokenGroupCreation((tokenGroupCreation)));
+        return true;
+    } else if (!tgAtomCreation && tokenGroupCreation.tokenGroupDescription.strTicker == "ATOM") {
+        this->tgAtomCreation = std::unique_ptr<CTokenGroupCreation>(new CTokenGroupCreation((tokenGroupCreation)));
+        return true;
+    }
+    return false;
+}
+
+void CTokenGroupManager::ClearManagementTokenGroups() {
+    tgMagicCreation.reset();
+    tgDarkMatterCreation.reset();
+    tgAtomCreation.reset();
+}
+
 bool CTokenGroupManager::AddTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation) {
     CScript firstOpReturn;
     CTokenGroupInfo tokenGroupInfo;
@@ -111,6 +131,8 @@ bool CTokenGroupManager::AddTokenGroup(CTransaction tx, CTokenGroupCreation &new
         }
 
         CTokenGroupCreation tokenGroupCreation = CTokenGroupCreation(tx, tokenGroupInfo, tokenGroupDescription);
+
+        ProcessManagementTokenGroups(tokenGroupCreation);
 
         std::pair<std::map<CTokenGroupID, CTokenGroupCreation>::iterator, bool> ret;
         ret = mapTokenGroups.insert(std::pair<CTokenGroupID, CTokenGroupCreation>(tokenGroupInfo.associatedGroup, tokenGroupCreation));
