@@ -94,12 +94,12 @@ private:
     CTokenGroupCreation tgAtomCreation;
 
 public:
-    CTokenGroupManager()
-    {
+    CTokenGroupManager() {
     }
 
     bool AddTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation);
     bool RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID);
+    void ResetTokenGroups();
 
     std::string GetTokenGroupNameByID(CTokenGroupID tokenGroupId);
     int GetTokenGroupIdByName(std::string strName);

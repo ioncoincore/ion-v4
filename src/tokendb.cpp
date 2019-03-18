@@ -41,6 +41,8 @@ bool CTokenDB::DropTokenGroups() {
 }
 
 bool CTokenDB::LoadTokensFromDB(std::string &strError) {
+    tokenGroupManager->ResetTokenGroups();
+
     boost::scoped_ptr<CLevelDBIterator> pcursor(NewIterator());
 
     pcursor->SeekToFirst();
@@ -66,6 +68,7 @@ bool ReindexTokenDB(std::string &strError) {
         strError = "Failed to reset token database";
         return false;
     }
+    tokenGroupManager->ResetTokenGroups();
 
     uiInterface.ShowProgress(_("Reindexing token database..."), 0);
 
