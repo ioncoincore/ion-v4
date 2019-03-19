@@ -28,12 +28,17 @@ public:
     uint256 documentHash;
     bool invalid;
 
-    CTokenGroupDescription() : invalid(true) {};
+    CTokenGroupDescription() : invalid(true) { };
     CTokenGroupDescription(std::string strTicker, std::string strName, std::string strDocumentUrl, uint256 documentHash) :
         strTicker(strTicker), strName(strName), strDocumentUrl(strDocumentUrl), documentHash(documentHash), invalid(false)
-    {
-        ValidateTokenDescription();
-    };
+    { };
+
+    void Clear() {
+        strTicker = "";
+        strName = "";
+        strDocumentUrl = "";
+        documentHash = uint256();
+    }
 
     ADD_SERIALIZE_METHODS;
 
@@ -49,8 +54,6 @@ public:
     {
         return (strTicker == c.strTicker && strName == c.strName && strDocumentUrl == c.strDocumentUrl && documentHash == c.documentHash);
     }
-
-    bool ValidateTokenDescription();
 };
 
 class CTokenGroupCreation
@@ -102,17 +105,20 @@ public:
     void ResetTokenGroups();
 
     std::string GetTokenGroupNameByID(CTokenGroupID tokenGroupId);
-    int GetTokenGroupIdByName(std::string strName);
+    bool GetTokenGroupIdByTicker(std::string strTicker, CTokenGroupID &tokenGroupID);
+    bool GetTokenGroupIdByName(std::string strName, CTokenGroupID &tokenGroupID);
     std::map<CTokenGroupID, CTokenGroupCreation> GetMapTokenGroups() { return mapTokenGroups; };
 
     bool BuildGroupDescData(CScript script, std::vector<std::vector<unsigned char> > &descriptionData);
-    bool ParseGroupDescData(const std::vector<std::vector<unsigned char> > descriptionData, CTokenGroupDescription &tokenGroupDescription);
+    bool ParseGroupDescData(const CTokenGroupInfo &tgInfo, const std::vector<std::vector<unsigned char> > descriptionData, CTokenGroupDescription &tokenGroupDescription);
 
     bool ProcessManagementTokenGroups(CTokenGroupCreation tokenGroupCreation);
     void ClearManagementTokenGroups();
 
     unsigned int GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount);
     bool IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& inputs);
+
+    bool ValidateTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc);
 };
 
 #endif
