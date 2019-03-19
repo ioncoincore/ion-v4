@@ -211,15 +211,6 @@ CScript GetScriptForDestination(const CTxDestination &dest, const CTokenGroupID 
     return script;
 }
 
-static CAmount AmountFromIntegralValue(const UniValue &value)
-{
-    if (!value.isNum() && !value.isStr())
-        throw std::runtime_error("Amount is not a number or string");
-    int64_t val = atoi64(value.getValStr());
-    CAmount amount = val;
-    return amount;
-}
-
 static GroupAuthorityFlags ParseAuthorityParams(const UniValue &params, unsigned int &curparam)
 {
     GroupAuthorityFlags flags = GroupAuthorityFlags::CTRL | GroupAuthorityFlags::CCHILD;
@@ -272,7 +263,7 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: destination address");
         }
-        CAmount amount = AmountFromIntegralValue(params[curparam + 1]);
+        CAmount amount = tokenGroupManager->AmountFromTokenValue(params[curparam + 1], grpID);
         if (amount <= 0)
             throw JSONRPCError(RPC_TYPE_ERROR, "Invalid parameter: amount");
         CScript script;
@@ -619,6 +610,23 @@ std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &pa
     ret.push_back(std::vector<unsigned char>(name.begin(), name.end()));
     curparam++;
     // we will accept just ticker and name
+    if (curparam >= params.size())
+    {
+        ret.push_back(std::vector<unsigned char>());
+        ret.push_back(std::vector<unsigned char>());
+        ret.push_back(std::vector<unsigned char>());
+        return ret;
+    }
+
+    uint64_t lDecimalPosition = params[curparam].get_int64();
+    if (lDecimalPosition > 16) {
+        std::string strError = strprintf("Parameter %d is too large, maximum is 16", lDecimalPosition);
+        throw JSONRPCError(RPC_INVALID_PARAMS, strError);
+    }
+    ret.push_back(std::vector<unsigned char>({(unsigned char)lDecimalPosition}));
+    curparam++;
+
+    // we will accept just ticker, name and decimal position
     if (curparam >= params.size())
     {
         ret.push_back(std::vector<unsigned char>());
@@ -1086,7 +1094,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
             UniValue ret(UniValue::VOBJ);
             for (const auto &item : balances)
             {
-                ret.push_back(Pair(EncodeTokenGroup(item.first), item.second));
+                ret.push_back(Pair(EncodeTokenGroup(item.first), tokenGroupManager->TokenValueFromAmount(item.second, item.first)));
             }
             return ret;
         }
@@ -1133,7 +1141,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
         }
 
-        CAmount totalNeeded = AmountFromIntegralValue(params[2]);
+        CAmount totalNeeded = tokenGroupManager->AmountFromTokenValue(params[2], grpID);
 
         CWalletTx wtx;
         GroupMelt(wtx, grpID, totalNeeded, wallet);
@@ -1321,6 +1329,7 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
             entry.push_back(Pair("txid", tokenGroupMapping.second.creationTransaction.GetHash().GetHex()));
             entry.push_back(Pair("ticker", tokenGroupMapping.second.tokenGroupDescription.strTicker));
             entry.push_back(Pair("name", tokenGroupMapping.second.tokenGroupDescription.strName));
+            entry.push_back(Pair("decimalPos", tokenGroupMapping.second.tokenGroupDescription.decimalPos));
             entry.push_back(Pair("URL", tokenGroupMapping.second.tokenGroupDescription.strDocumentUrl));
             entry.push_back(Pair("documentHash", tokenGroupMapping.second.tokenGroupDescription.documentHash.ToString()));
             ret.push_back(entry);

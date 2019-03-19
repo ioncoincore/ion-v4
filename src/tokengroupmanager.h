@@ -8,9 +8,20 @@
 #include "wallet/wallet.h"
 
 #include <unordered_map>
+#include <univalue.h>
 
 class CTokenGroupManager;
 extern std::shared_ptr<CTokenGroupManager> tokenGroupManager;
+
+static CAmount COINFromDecimalPos(const uint8_t& decimalPos) {
+    uint8_t n = decimalPos < 16 ? decimalPos : 0;
+    static CAmount pow10[16] = {
+        1, 10, 100, 1000, 10000, 100000, 1000000, 10000000,
+        100000000, 1000000000, 10000000000, 100000000000, 1000000000000, 10000000000000, 100000000000000, 1000000000000000
+    };
+
+    return pow10[n];
+}
 
 class CTokenGroupDescription
 {
@@ -22,6 +33,9 @@ public:
     // Token name
     std::string strName;
 
+    // Decimal position to translate between token value and amount
+    uint8_t decimalPos;
+
     // Extended token description document URL
     std::string strDocumentUrl;
 
@@ -29,15 +43,25 @@ public:
     bool invalid;
 
     CTokenGroupDescription() : invalid(true) { };
-    CTokenGroupDescription(std::string strTicker, std::string strName, std::string strDocumentUrl, uint256 documentHash) :
+    CTokenGroupDescription(std::string strTicker, std::string strName, uint8_t decimalPosIn, std::string strDocumentUrl, uint256 documentHash) :
         strTicker(strTicker), strName(strName), strDocumentUrl(strDocumentUrl), documentHash(documentHash), invalid(false)
-    { };
+    {
+        decimalPos = decimalPosIn <= 16 ? decimalPosIn : 0;
+    };
 
     void Clear() {
         strTicker = "";
         strName = "";
+        decimalPos = 0; // Tokens with no fractional quantities have decimalPos=0
         strDocumentUrl = "";
         documentHash = uint256();
+    }
+
+    // Tokens with no fractional quantities have decimalPos=0
+    // ION has has decimalpos=8 (1 ION is 100000000 satoshi)
+    // Maximum value is 10^16
+    CAmount GetCoin() {
+        return COINFromDecimalPos(decimalPos);
     }
 
     ADD_SERIALIZE_METHODS;
@@ -47,12 +71,13 @@ public:
     {
         READWRITE(strTicker);
         READWRITE(strName);
+        READWRITE(decimalPos);
         READWRITE(strDocumentUrl);
         READWRITE(documentHash);
     }
     bool operator==(const CTokenGroupDescription &c)
     {
-        return (strTicker == c.strTicker && strName == c.strName && strDocumentUrl == c.strDocumentUrl && documentHash == c.documentHash);
+        return (strTicker == c.strTicker && strName == c.strName && decimalPos == c.decimalPos && strDocumentUrl == c.strDocumentUrl && documentHash == c.documentHash);
     }
 };
 
@@ -85,7 +110,6 @@ public:
     }
 };
 
-
 // TokenGroup Class
 // Keeps track of all of the token groups
 class CTokenGroupManager
@@ -104,6 +128,7 @@ public:
     bool RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID);
     void ResetTokenGroups();
 
+    bool GetTokenGroupCreation(const CTokenGroupID& tgID, CTokenGroupCreation& tgCreation);
     std::string GetTokenGroupNameByID(CTokenGroupID tokenGroupId);
     bool GetTokenGroupIdByTicker(std::string strTicker, CTokenGroupID &tokenGroupID);
     bool GetTokenGroupIdByName(std::string strName, CTokenGroupID &tokenGroupID);
@@ -119,6 +144,10 @@ public:
     bool IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& inputs);
 
     bool ValidateTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc);
+
+    bool TokenMoneyRange(CAmount nValueOut);
+    CAmount AmountFromTokenValue(const UniValue& value, const CTokenGroupID& tgID);
+    UniValue TokenValueFromAmount(const CAmount& amount, const CTokenGroupID& tgID);
 };
 
 #endif

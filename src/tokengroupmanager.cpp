@@ -32,6 +32,10 @@ bool CTokenGroupManager::ValidateTokenDescription(const CTokenGroupInfo &tgInfo,
         LogPrint("token", "Token description document URL cannot be parsed.\n");
         return false;
     }
+    if (tgDesc.decimalPos > 16) {
+        LogPrint("token", "Token decimal separation position is too large, maximum is 16.\n");
+        return false;
+    }
     // Iterate existing token groups and verify that the new group has an unique ticker and name
     auto result = std::find_if(
           mapTokenGroups.begin(),
@@ -78,17 +82,19 @@ bool CTokenGroupManager::ParseGroupDescData(const CTokenGroupInfo &tgInfo, const
     std::string tickerStr;
     std::string name;
     std::string url;
+    uint8_t decimalPos;
     uint256 docHash;
 
     try {
         tickerStr = std::string(descriptionData[0].begin(), descriptionData[0].end());
         name = std::string(descriptionData[1].begin(), descriptionData[1].end());
-        url = std::string(descriptionData[2].begin(), descriptionData[2].end());
-        docHash = uint256(descriptionData[3]);
+        decimalPos = (uint8_t)descriptionData[2][0];
+        url = std::string(descriptionData[3].begin(), descriptionData[3].end());
+        docHash = uint256(descriptionData[4]);
     } catch (const std::exception& e) {
         return false;
     }
-    tokenGroupDescription = CTokenGroupDescription(tickerStr, name, url, docHash);
+    tokenGroupDescription = CTokenGroupDescription(tickerStr, name, decimalPos, url, docHash);
     if (!ValidateTokenDescription(tgInfo, tokenGroupDescription)) {
         tokenGroupDescription.Clear();
         tokenGroupDescription.invalid = true;
@@ -203,6 +209,15 @@ bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTok
     return false;
 }
 
+bool CTokenGroupManager::GetTokenGroupCreation(const CTokenGroupID& tgID, CTokenGroupCreation& tgCreation) {
+    std::map<CTokenGroupID, CTokenGroupCreation>::iterator iter = mapTokenGroups.find(tgID);
+    if (iter != mapTokenGroups.end()) {
+        tgCreation = mapTokenGroups.at(tgID);
+    } else {
+        return false;
+    }
+    return true;
+}
 std::string CTokenGroupManager::GetTokenGroupNameByID(CTokenGroupID tokenGroupId) {
     CTokenGroupCreation tokenGroupCreation = mapTokenGroups.at(tokenGroupId);
     return "";
@@ -287,4 +302,34 @@ bool CTokenGroupManager::IsXDMTx(const CTransaction &transaction, const CCoinsVi
     }
 
     return anyInputsXDM;
+}
+
+bool CTokenGroupManager::TokenMoneyRange(CAmount nValueOut) {
+    // Token amount max is 2^63-1 = 9223372036854775807
+    return nValueOut >= 0 && nValueOut <= 922337203685477580;
+}
+
+CAmount CTokenGroupManager::AmountFromTokenValue(const UniValue& value, const CTokenGroupID& tgID) {
+    if (!value.isNum() && !value.isStr())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Amount is not a number or string");
+    CAmount amount;
+    CTokenGroupCreation tgCreation;
+    GetTokenGroupCreation(tgID, tgCreation);
+    if (!ParseFixedPoint(value.getValStr(), tgCreation.tokenGroupDescription.decimalPos, &amount))
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
+    if (!TokenMoneyRange(amount))
+        throw JSONRPCError(RPC_TYPE_ERROR, "Amount out of range");
+    return amount;
+}
+
+UniValue CTokenGroupManager::TokenValueFromAmount(const CAmount& amount, const CTokenGroupID& tgID) {
+    CTokenGroupCreation tgCreation;
+    GetTokenGroupCreation(tgID, tgCreation);
+    CAmount tokenCOIN = tgCreation.tokenGroupDescription.GetCoin();
+    bool sign = amount < 0;
+    int64_t n_abs = (sign ? -amount : amount);
+    int64_t quotient = n_abs / tokenCOIN;
+    int64_t remainder = n_abs % tokenCOIN;
+    return UniValue(UniValue::VNUM,
+            strprintf("%s%d.%0*d", sign ? "-" : "", quotient, tgCreation.tokenGroupDescription.decimalPos, remainder));
 }
