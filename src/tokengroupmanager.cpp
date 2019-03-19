@@ -14,27 +14,39 @@
 
 std::shared_ptr<CTokenGroupManager> tokenGroupManager;
 
-bool CTokenGroupDescription::ValidateTokenDescription() {
+bool CTokenGroupManager::ValidateTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc) {
     regex regexAlpha("^[a-zA-Z]+$");
     regex regexUrl(R"((https?|ftp)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$)");
 
     smatch matchResult;
-    if (!std::regex_match(strName, matchResult, regexAlpha)) {
-        LogPrint("token", "Token name can only contain letters.");
-        invalid = true;
+
+    if (!std::regex_match(tgDesc.strName, matchResult, regexAlpha)) {
+        LogPrint("token", "Token name can only contain letters.\n");
         return false;
     }
-    if (!std::regex_match(strTicker, matchResult, regexAlpha)) {
-        LogPrint("token", "Token ticker can only contain letters.");
-        invalid = true;
+    if (!std::regex_match(tgDesc.strTicker, matchResult, regexAlpha)) {
+        LogPrint("token", "Token ticker can only contain letters.\n");
         return false;
     }
-    if (!std::regex_match(strDocumentUrl, matchResult, regexUrl)) {
-        LogPrint("token", "Token description document URL cannot be parsed.");
-        invalid = true;
+    if (!std::regex_match(tgDesc.strDocumentUrl, matchResult, regexUrl)) {
+        LogPrint("token", "Token description document URL cannot be parsed.\n");
         return false;
     }
-    invalid = false;
+    // Iterate existing token groups and verify that the new group has an unique ticker and name
+    auto result = std::find_if(
+          mapTokenGroups.begin(),
+          mapTokenGroups.end(),
+          [tgInfo, tgDesc](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
+                if (tokenGroup.second.tokenGroupInfo.associatedGroup == tgInfo.associatedGroup) return false;
+                bool exists = tokenGroup.second.tokenGroupDescription.strTicker == tgDesc.strTicker ||
+                    tokenGroup.second.tokenGroupDescription.strName == tgDesc.strName;
+                return exists;
+            });
+    if (result != mapTokenGroups.end()) {
+        LogPrint("token", "Token ticker and name must be unique.\n");
+        return false;
+    };
+
     return true;
 }
 
@@ -55,14 +67,14 @@ bool CTokenGroupManager::BuildGroupDescData(CScript script, std::vector<std::vec
     if (OpRetGroupId != 88888888) return false;
 
     while (script.GetOp(pc, opcode, data)) {
-        LogPrintf("More data! opcode=[%d] data=[%s]\n", opcode, std::string(data.begin(), data.end()));
+        LogPrint("token", "Token description data: opcode=[%d] data=[%s]\n", opcode, std::string(data.begin(), data.end()));
         desc.emplace_back(data);
     }
     descriptionData = desc;
     return true;
 }
 
-bool CTokenGroupManager::ParseGroupDescData(const std::vector<std::vector<unsigned char> > descriptionData, CTokenGroupDescription &tokenGroupDescription) {
+bool CTokenGroupManager::ParseGroupDescData(const CTokenGroupInfo &tgInfo, const std::vector<std::vector<unsigned char> > descriptionData, CTokenGroupDescription &tokenGroupDescription) {
     std::string tickerStr;
     std::string name;
     std::string url;
@@ -76,10 +88,12 @@ bool CTokenGroupManager::ParseGroupDescData(const std::vector<std::vector<unsign
     } catch (const std::exception& e) {
         return false;
     }
-    CTokenGroupDescription tgDesc(tickerStr, name, url, docHash);
-    if (tgDesc.ValidateTokenDescription()) tokenGroupDescription = tgDesc;
-
-    return true;
+    tokenGroupDescription = CTokenGroupDescription(tickerStr, name, url, docHash);
+    if (!ValidateTokenDescription(tgInfo, tokenGroupDescription)) {
+        tokenGroupDescription.Clear();
+        tokenGroupDescription.invalid = true;
+    }
+    return !tokenGroupDescription.invalid;
 }
 
 bool CTokenGroupManager::ProcessManagementTokenGroups(CTokenGroupCreation tokenGroupCreation) {
@@ -126,7 +140,7 @@ bool CTokenGroupManager::AddTokenGroup(CTransaction tx, CTokenGroupCreation &new
         if (firstOpReturn.size()) {
             std::vector<std::vector<unsigned char> > desc;
             if (BuildGroupDescData(firstOpReturn, desc)) {
-                ParseGroupDescData(desc, tokenGroupDescription);
+                ParseGroupDescData(tokenGroupInfo, desc, tokenGroupDescription);
             }
         }
 
@@ -192,6 +206,34 @@ bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTok
 std::string CTokenGroupManager::GetTokenGroupNameByID(CTokenGroupID tokenGroupId) {
     CTokenGroupCreation tokenGroupCreation = mapTokenGroups.at(tokenGroupId);
     return "";
+}
+
+bool CTokenGroupManager::GetTokenGroupIdByTicker(std::string strTicker, CTokenGroupID &tokenGroupID) {
+    auto result = std::find_if(
+          mapTokenGroups.begin(),
+          mapTokenGroups.end(),
+          [strTicker](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
+                return tokenGroup.second.tokenGroupDescription.strTicker == strTicker;
+            });
+    if (result != mapTokenGroups.end()) {
+        tokenGroupID = result->first;
+        return true;
+    };
+    return false;
+}
+
+bool CTokenGroupManager::GetTokenGroupIdByName(std::string strName, CTokenGroupID &tokenGroupID) {
+    auto result = std::find_if(
+          mapTokenGroups.begin(),
+          mapTokenGroups.end(),
+          [strName](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
+                return tokenGroup.second.tokenGroupDescription.strName == strName;
+            });
+    if (result != mapTokenGroups.end()) {
+        tokenGroupID = result->first;
+        return true;
+    };
+    return false;
 }
 
 unsigned int CTokenGroupManager::GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount) {
