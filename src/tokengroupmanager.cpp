@@ -122,7 +122,29 @@ void CTokenGroupManager::ClearManagementTokenGroups() {
     tgAtomCreation.reset();
 }
 
-bool CTokenGroupManager::AddTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation) {
+bool CTokenGroupManager::AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups) {
+    for (auto tokenGroupCreation : newTokenGroups) {
+        ProcessManagementTokenGroups(tokenGroupCreation);
+
+        std::pair<std::map<CTokenGroupID, CTokenGroupCreation>::iterator, bool> ret;
+        ret = mapTokenGroups.insert(std::pair<CTokenGroupID, CTokenGroupCreation>(tokenGroupCreation.tokenGroupInfo.associatedGroup, tokenGroupCreation));
+
+        CTokenGroupCreation& tokenGroupCreationRet = (*ret.first).second;
+        bool fInsertedNew = ret.second;
+        if (!fInsertedNew) {
+            if (!(tokenGroupCreation == tokenGroupCreationRet)) {
+                mapTokenGroups[tokenGroupCreation.tokenGroupInfo.associatedGroup] = tokenGroupCreation;
+                // Token ID already exists. Since the hash is the same, the token specs are the same.
+                // However, until reorgs are handled  properly: log this to avoid 'misplaced' token group creation transactions.
+                LogPrint("token", "%s - Double token creation; updated.\n", __func__);
+            } else {
+                LogPrint("token", "%s - Double token creation; NOT updated.\n", __func__);
+            }
+        }
+    }
+    return true;
+}
+bool CTokenGroupManager::CreateTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation) {
     CScript firstOpReturn;
     CTokenGroupInfo tokenGroupInfo;
 
@@ -150,30 +172,10 @@ bool CTokenGroupManager::AddTokenGroup(CTransaction tx, CTokenGroupCreation &new
             }
         }
 
-        CTokenGroupCreation tokenGroupCreation = CTokenGroupCreation(tx, tokenGroupInfo, tokenGroupDescription);
-
-        ProcessManagementTokenGroups(tokenGroupCreation);
-
-        std::pair<std::map<CTokenGroupID, CTokenGroupCreation>::iterator, bool> ret;
-        ret = mapTokenGroups.insert(std::pair<CTokenGroupID, CTokenGroupCreation>(tokenGroupInfo.associatedGroup, tokenGroupCreation));
-
-        CTokenGroupCreation& tokenGroupCreationRet = (*ret.first).second;
-        bool fInsertedNew = ret.second;
-        if (!fInsertedNew) {
-            if (!(tokenGroupCreation == tokenGroupCreationRet)) {
-                mapTokenGroups[tokenGroupInfo.associatedGroup] = tokenGroupCreation;
-                // Token ID already exists. Since the hash is the same, the token specs are the same.
-                // However, until reorgs are handled  properly: log this to avoid 'misplaced' token group creation transactions.
-                LogPrint("token", "%s - Double token creation; updated.\n", __func__);
-            } else {
-                LogPrint("token", "%s - Double token creation; NOT updated.\n", __func__);
-            }
-        } else {
-            newTokenGroupCreation = tokenGroupCreationRet;
-        }
-
+        newTokenGroupCreation = CTokenGroupCreation(tx, tokenGroupInfo, tokenGroupDescription);
+        return true;
     }
-    return true;
+    return false;
 }
 
 void CTokenGroupManager::ResetTokenGroups() {

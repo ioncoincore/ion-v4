@@ -45,6 +45,8 @@ bool CTokenDB::LoadTokensFromDB(std::string &strError) {
 
     boost::scoped_ptr<CLevelDBIterator> pcursor(NewIterator());
 
+    std::vector<CTokenGroupCreation> vTokenGroups;
+
     pcursor->SeekToFirst();
 
     while (pcursor->Valid()) {
@@ -53,13 +55,16 @@ bool CTokenDB::LoadTokensFromDB(std::string &strError) {
         if (pcursor->GetKey(key) && key.first == 'c') {
             CTokenGroupCreation tokenGroupCreation;
             if (pcursor->GetValue(tokenGroupCreation)) {
-                tokenGroupManager->AddTokenGroup(tokenGroupCreation.creationTransaction, tokenGroupCreation);
+                if (tokenGroupManager->CreateTokenGroup(tokenGroupCreation.creationTransaction, tokenGroupCreation)) {
+                    vTokenGroups.push_back(tokenGroupCreation);
+                }
             } else {
                 return error("LoadTokensFromDB() : failed to read value");
             }
         }
         pcursor->Next();
     }
+    tokenGroupManager->AddTokenGroups(vTokenGroups);
     return true;
 }
 
@@ -90,7 +95,7 @@ bool ReindexTokenDB(std::string &strError) {
             if (!tx.IsCoinBase() && !tx.HasZerocoinSpendInputs() && IsAnyTxOutputGroupedCreation(tx)) {
                 LogPrint("token", "%s - tx with token create: [%s]\n", __func__, tx.HexStr());
                 CTokenGroupCreation tokenGroupCreation;
-                if (tokenGroupManager->AddTokenGroup(tx, tokenGroupCreation)) {
+                if (tokenGroupManager->CreateTokenGroup(tx, tokenGroupCreation)) {
                     vTokenGroups.push_back(tokenGroupCreation);
                 }
             }
@@ -102,6 +107,7 @@ bool ReindexTokenDB(std::string &strError) {
                 strError = "Error writing token database to disk";
                 return false;
             }
+            tokenGroupManager->AddTokenGroups(vTokenGroups);
             vTokenGroups.clear();
         }
 
