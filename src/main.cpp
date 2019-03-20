@@ -3418,7 +3418,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                     }
                 }
                 CTokenGroupCreation newTokenGroupCreation;
-                if (tokenGroupManager->AddTokenGroup(tx, newTokenGroupCreation)) {
+                if (tokenGroupManager->CreateTokenGroup(tx, newTokenGroupCreation)) {
                     newTokenGroups.push_back(newTokenGroupCreation);
                 } else {
                     return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");
@@ -3608,6 +3608,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     if (!pTokenDB->WriteTokenGroupsBatch(newTokenGroups))
         return AbortNode(state, "Failed to write token creation data");
+    if (!tokenGroupManager->AddTokenGroups(newTokenGroups)) {
+        return AbortNode(state, "Failed to add token creation data");
+    }
 
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());

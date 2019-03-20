@@ -124,7 +124,8 @@ public:
     CTokenGroupManager() {
     }
 
-    bool AddTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation);
+    bool AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups);
+    bool CreateTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation);
     bool RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID);
     void ResetTokenGroups();
 
