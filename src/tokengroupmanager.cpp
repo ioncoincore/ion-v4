@@ -3,7 +3,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "tokengroupmanager.h"
+#include "wallet/tokengroupwallet.h"
 
+#include "dstencode.h"
 #include "rpc/protocol.h"
 #include "utilstrencodings.h"
 
@@ -356,4 +358,164 @@ UniValue CTokenGroupManager::TokenValueFromAmount(const CAmount& amount, const C
     int64_t remainder = n_abs % tokenCOIN;
     return UniValue(UniValue::VNUM,
             strprintf("%s%d.%0*d", sign ? "-" : "", quotient, tgCreation.tokenGroupDescription.decimalPos, remainder));
+}
+
+bool CTokenGroupManager::GetXDMFee(const uint32_t& nXDMTransactions, CAmount& fee) {
+    if (!tgDarkMatterCreation) {
+        fee = 0;
+        return false;
+    }
+    CAmount XDMCoin = tgDarkMatterCreation->tokenGroupDescription.GetCoin();
+    if (nXDMTransactions < 100000) {
+        fee = 0.10 * XDMCoin;
+    } else if (nXDMTransactions < 200000) {
+        fee = 0.09 * XDMCoin;
+    } else if (nXDMTransactions < 300000) {
+        fee = 0.08 * XDMCoin;
+    } else if (nXDMTransactions < 400000) {
+        fee = 0.07 * XDMCoin;
+    } else if (nXDMTransactions < 500000) {
+        fee = 0.06 * XDMCoin;
+    } else if (nXDMTransactions < 600000) {
+        fee = 0.05 * XDMCoin;
+    } else if (nXDMTransactions < 700000) {
+        fee = 0.04 * XDMCoin;
+    } else if (nXDMTransactions < 800000) {
+        fee = 0.03 * XDMCoin;
+    } else if (nXDMTransactions < 900000) {
+        fee = 0.02 * XDMCoin;
+    } else {
+        fee = 0.01 * XDMCoin;
+    }
+    return true;
+}
+
+bool CTokenGroupManager::GetXDMFee(const CBlockIndex* pindex, CAmount& fee) {
+    return GetXDMFee(pindex->nChainXDMTransactions, fee);
+}
+
+bool CTokenGroupManager::CheckXDMFees(const CTransaction &tx, const std::unordered_map<CTokenGroupID, CTokenGroupBalance>& tgMintMeltBalance, CValidationState& state, CBlockIndex* pindex, CAmount& nXDMFees) {
+    if (!tgDarkMatterCreation) return true;
+    // Creating a token costs a fee in XDM.
+    // Fees are paid to an XDM management address.
+    // 80% of the fees are burned weekly
+    // 10% of the fees are distributed over masternode owners weekly
+    // 10% of the fees are distributed over atom token holders weekly
+
+    // A token group creation costs 5x the standard XDM fee
+    // A token mint transaction costs 5x the standard XDM fee
+    // Sending XDM costs 1x the standard XDM fee
+    // When paying fees, there are 2 'free' XDM outputs (fee and change)
+
+    CAmount XDMMelted = 0;
+    CAmount XDMMinted = 0;
+    CAmount XDMFeesPaid = 0;
+    uint32_t nXDMOutputs = 0;
+    uint32_t nXDMFreeOutputs = 0;
+    uint32_t nXDMPaidOutputs = 0;
+
+    CAmount curXDMFee;
+    GetXDMFee(pindex, curXDMFee);
+
+    nXDMFees = 0;
+
+    for (auto txout : tx.vout) {
+        CTokenGroupInfo grp(txout.scriptPubKey);
+        if (grp.invalid)
+            return false;
+        if (grp.isGroupCreation() && !grp.associatedGroup.hasFlag(TokenGroupIdFlags::MGT_TOKEN)) {
+            // Creation tx of regular token
+            nXDMFees = 5 * curXDMFee;
+            nXDMFreeOutputs = nXDMFreeOutputs < 2 ? 2 : nXDMFreeOutputs; // Fe free outputs for fee and change
+        }
+        if (MatchesDarkMatter(grp.associatedGroup) && !grp.isAuthority()) {
+            // XDM output (send or mint)
+            nXDMOutputs++;
+
+            // Currenlty, fees are paid to the address belonging to the Token Management Key
+            // TODO: change this to paying fees to the latest address that received an XDM Melt Authority
+            CTxDestination payeeDest;
+            ExtractDestination(txout.scriptPubKey, payeeDest);
+            if (EncodeDestination(payeeDest) == Params().TokenManagementKey()) {
+                XDMFeesPaid += grp.quantity;
+            }
+        }
+    }
+    for (auto bal : tgMintMeltBalance) {
+        CTokenGroupCreation tgCreation;
+        CTokenGroupID tgID = bal.first;
+        CTokenGroupBalance tgBalance = bal.second;
+        if (tgBalance.output - tgBalance.input > 0) {
+            // Mint
+            if (!tgID.hasFlag(TokenGroupIdFlags::MGT_TOKEN)) {
+                // Regular token mint tx
+                nXDMFees += 5 * curXDMFee;
+                nXDMFreeOutputs = nXDMFreeOutputs < 2 ? 2 : nXDMFreeOutputs; // Fee free outputs for fee and change
+            }
+            if (tgID == tgDarkMatterCreation->tokenGroupInfo.associatedGroup) {
+                // XDM mint
+                XDMMinted += tgBalance.output - tgBalance.input;
+                nXDMFreeOutputs = nXDMFreeOutputs < 1 ? 1 : nXDMFreeOutputs; // Fee free output for XDM mint
+            }
+        } else if (tgBalance.output - tgBalance.input < 0) {
+            // Melt
+            if (tgID == tgDarkMatterCreation->tokenGroupInfo.associatedGroup) {
+                XDMMelted += tgBalance.output - tgBalance.input;
+            }
+        }
+    }
+    nXDMPaidOutputs = nXDMOutputs > nXDMFreeOutputs ? nXDMOutputs - nXDMFreeOutputs : 0;
+    nXDMFees += nXDMPaidOutputs * curXDMFee;
+
+    return XDMFeesPaid >= nXDMFees;
+}
+
+CAmount CTokenGroupManager::GetXDMFeesPaid(const std::vector<CRecipient> outputs) {
+    CAmount XDMFeesPaid = 0;
+    for (auto output : outputs) {
+        CTxDestination payeeDest;
+        if (ExtractDestination(output.scriptPubKey, payeeDest))
+        {
+            if (EncodeDestination(payeeDest) == Params().TokenManagementKey()) {
+                CTokenGroupInfo tgInfo(output.scriptPubKey);
+                if (MatchesDarkMatter(tgInfo.associatedGroup)) {
+                    XDMFeesPaid += tgInfo.isAuthority() ? 0 : tgInfo.quantity;
+                }
+            }
+        }
+    }
+    return XDMFeesPaid;
+}
+
+// Ensure that one of the recipients is an XDM fee payment
+// If an output to the fee address already exists, it ensures that the output is at least XDMFee large
+// Returns true if a new output is added and false if a current output is either increased or kept as-is
+bool CTokenGroupManager::EnsureXDMFee(std::vector<CRecipient> &outputs, CAmount XDMFee) {
+    if (!tgDarkMatterCreation) return false;
+    if (XDMFee <= 0) return false;
+    CTxDestination payeeDest;
+    for (auto &output : outputs) {
+        if (ExtractDestination(output.scriptPubKey, payeeDest))
+        {
+            if (EncodeDestination(payeeDest) == Params().TokenManagementKey()) {
+                CTokenGroupInfo tgInfo(output.scriptPubKey);
+                if (MatchesDarkMatter(tgInfo.associatedGroup) && !tgInfo.isAuthority()) {
+                    if (tgInfo.quantity < XDMFee) {
+                        CScript script = GetScriptForDestination(payeeDest, tgInfo.associatedGroup, XDMFee);
+                        CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+
+                        output.scriptPubKey = script;
+                        return false;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    CScript script = GetScriptForDestination(DecodeDestination(Params().TokenManagementKey()), tgDarkMatterCreation->tokenGroupInfo.associatedGroup, XDMFee);
+    CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+    outputs.push_back(recipient);
+
+    return true;
 }
