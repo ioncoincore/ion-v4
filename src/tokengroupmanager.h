@@ -141,6 +141,14 @@ public:
     bool ProcessManagementTokenGroups(CTokenGroupCreation tokenGroupCreation);
     void ClearManagementTokenGroups();
 
+    bool MatchesMagic(CTokenGroupID tgID);
+    bool MatchesDarkMatter(CTokenGroupID tgID);
+    bool MatchesAtom(CTokenGroupID tgID);
+
+    CTokenGroupID GetMagicID() { return tgMagicCreation->tokenGroupInfo.associatedGroup; };
+    CTokenGroupID GetDarkMatterID() { return tgDarkMatterCreation->tokenGroupInfo.associatedGroup; };
+    CTokenGroupID GetAtomID() { return tgAtomCreation->tokenGroupInfo.associatedGroup; };
+
     unsigned int GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount);
     bool IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& inputs);
 
