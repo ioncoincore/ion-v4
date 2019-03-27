@@ -157,6 +157,13 @@ public:
     bool TokenMoneyRange(CAmount nValueOut);
     CAmount AmountFromTokenValue(const UniValue& value, const CTokenGroupID& tgID);
     UniValue TokenValueFromAmount(const CAmount& amount, const CTokenGroupID& tgID);
+
+    bool GetXDMFee(const uint32_t& nXDMTransactions, CAmount& fee);
+    bool GetXDMFee(const CBlockIndex* pindex, CAmount& fee);
+
+    bool CheckXDMFees(const CTransaction &tx, const std::unordered_map<CTokenGroupID, CTokenGroupBalance>& tgMintMeltBalance, CValidationState& state, CBlockIndex* pindex, CAmount& nXDMFees);
+    CAmount GetXDMFeesPaid(const std::vector<CRecipient> outputs);
+    bool EnsureXDMFee(std::vector<CRecipient> &outputs, CAmount XDMFee);
 };
 
 #endif
