@@ -364,6 +364,8 @@ void ConstructTx(CWalletTx &wtxNew,
     CAmount totalNeeded,
     CAmount totalGroupedAvailable,
     CAmount totalGroupedNeeded,
+    CAmount totalXDMAvailable,
+    CAmount totalXDMNeeded,
     CTokenGroupID grpID,
     CWallet *wallet)
 {
@@ -403,6 +405,20 @@ void ConstructTx(CWalletTx &wtxNew,
 
             CTxOut txout(GROUPED_SATOSHI_AMT,
                 GetScriptForDestination(newKey.GetID(), grpID, totalGroupedAvailable - totalGroupedNeeded));
+            tx.vout.push_back(txout);
+            approxSize += ::GetSerializeSize(txout, SER_DISK, CLIENT_VERSION);
+        }
+
+        if (totalXDMAvailable > totalXDMNeeded) // need to make a group change output
+        {
+            CPubKey newKey;
+
+            if (!groupChangeKeyReservation.GetReservedKey(newKey))
+                throw JSONRPCError(
+                    RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+
+            CTxOut txout(GROUPED_SATOSHI_AMT,
+                GetScriptForDestination(newKey.GetID(), tokenGroupManager->GetDarkMatterID(), totalXDMAvailable - totalXDMNeeded));
             tx.vout.push_back(txout);
             approxSize += ::GetSerializeSize(txout, SER_DISK, CLIENT_VERSION);
         }
@@ -457,6 +473,16 @@ void ConstructTx(CWalletTx &wtxNew,
     wtxNew.BindWallet(wallet);
     wtxNew.fFromMe = true;
     *static_cast<CTransaction *>(&wtxNew) = CTransaction(tx);
+
+    for (auto vout : wtxNew.vout) {
+        CTokenGroupInfo tgInfo(vout.scriptPubKey);
+        if (!tgInfo.isInvalid()) {
+            CTokenGroupCreation tgCreation;
+            tokenGroupManager->GetTokenGroupCreation(tgInfo.associatedGroup, tgCreation);
+            LogPrint("token", "%s - name[%s] amount[%d]\n", __func__, tgCreation.tokenGroupDescription.strName, tgInfo.quantity);
+        }
+    }
+
     // I'll manage my own keys because I have multiple.  Passing a valid key down breaks layering.
     CReserveKey dummy(wallet);
     if (!wallet->CommitTransaction(wtxNew, dummy))
@@ -547,7 +573,7 @@ void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeede
     totalBchNeeded += RenewAuthority(authority, outputs, childAuthorityKey);
     // by passing a fewer tokens available than are actually in the inputs, there is a surplus.
     // This surplus will be melted.
-    ConstructTx(wtxNew, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, totalAvailable - totalNeeded, 0, grpID,
+    ConstructTx(wtxNew, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, totalAvailable - totalNeeded, 0, 0, 0, grpID,
         wallet);
     childAuthorityKey.KeepKey();
 }
@@ -556,11 +582,44 @@ void GroupSend(CWalletTx &wtxNew,
     const CTokenGroupID &grpID,
     const std::vector<CRecipient> &outputs,
     CAmount totalNeeded,
+    CAmount totalXDMNeeded,
     CWallet *wallet)
 {
     LOCK2(cs_main, wallet->cs_wallet);
     std::string strError;
     std::vector<COutput> coins;
+    std::vector<COutput> chosenCoins;
+
+    // Add XDM inputs
+    // Increase tokens needed when sending XDM and select XDM coins otherwise
+    CAmount totalXDMAvailable = 0;
+    if (tokenGroupManager->MatchesDarkMatter(grpID)) {
+        totalNeeded += totalXDMNeeded;
+        totalXDMNeeded = 0;
+    } else {
+        if (totalXDMNeeded > 0) {
+            CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
+            wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
+                {
+                    totalXDMAvailable += tg.quantity;
+                    return true;
+                }
+                return false;
+            });
+
+            if (totalXDMAvailable < totalXDMNeeded)
+            {
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", totalXDMNeeded - totalXDMAvailable);
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
+            }
+
+            // Get a near but greater quantity
+            totalXDMAvailable = GroupCoinSelection(coins, totalXDMNeeded, chosenCoins);
+        }
+    }
+
     CAmount totalAvailable = 0;
     wallet->FilterCoins(coins, [grpID, &totalAvailable](const CWalletTx *tx, const CTxOut *out) {
         CTokenGroupInfo tg(out->scriptPubKey);
@@ -579,11 +638,20 @@ void GroupSend(CWalletTx &wtxNew,
     }
 
     // Get a near but greater quantity
-    std::vector<COutput> chosenCoins;
     totalAvailable = GroupCoinSelection(coins, totalNeeded, chosenCoins);
 
+    // Display outputs
+    for (auto output : outputs) {
+        CTokenGroupInfo tgInfo(output.scriptPubKey);
+        if (!tgInfo.isInvalid()) {
+            CTokenGroupCreation tgCreation;
+            tokenGroupManager->GetTokenGroupCreation(tgInfo.associatedGroup, tgCreation);
+            LogPrint("token", "%s - name[%s] amount[%d]\n", __func__, tgCreation.tokenGroupDescription.strName, tgInfo.quantity);
+        }
+    }
+
     ConstructTx(wtxNew, chosenCoins, outputs, 0, GROUPED_SATOSHI_AMT * outputs.size(), totalAvailable, totalNeeded,
-        grpID, wallet);
+        totalXDMAvailable, totalXDMNeeded, grpID, wallet);
 }
 
 std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &params, unsigned int &curparam)
@@ -806,7 +874,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
         CTokenGroupID subgrpID(subgroupbytes);
         return EncodeTokenGroup(subgrpID);
     }
-    else if (operation == "authority")
+    else if (operation == "createauthority")
     {
         LOCK2(cs_main, wallet->cs_wallet);
         CAmount totalBchNeeded = 0;
@@ -818,101 +886,98 @@ extern UniValue token(const UniValue &params, bool fHelp)
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");
         }
-        std::string suboperation;
-        std::string p1 = params[curparam].get_str();
-        std::transform(p1.begin(), p1.end(), std::back_inserter(suboperation), ::tolower);
-        curparam++;
-        if (suboperation == "create")
+
+        CTokenGroupID grpID;
+        GroupAuthorityFlags auth = GroupAuthorityFlags();
+        // Get the group id from the command line
+        grpID = GetTokenGroup(params[curparam].get_str());
+        if (!grpID.isUserGroup())
         {
-            CTokenGroupID grpID;
-            GroupAuthorityFlags auth = GroupAuthorityFlags();
-            // Get the group id from the command line
-            grpID = GetTokenGroup(params[curparam].get_str());
-            if (!grpID.isUserGroup())
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
-            }
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+        }
 
-            // Get the destination address from the command line
-            curparam++;
-            CTxDestination dst = DecodeDestination(params[curparam].get_str(), Params());
-            if (dst == CTxDestination(CNoDestination()))
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: destination address");
-            }
+        // Get the destination address from the command line
+        curparam++;
+        CTxDestination dst = DecodeDestination(params[curparam].get_str(), Params());
+        if (dst == CTxDestination(CNoDestination()))
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: destination address");
+        }
 
-            // Get what authority permissions the user wants from the command line
-            curparam++;
-            if (curparam < params.size()) // If flags are not specified, we dup existing flags.
+        // Get what authority permissions the user wants from the command line
+        curparam++; // Skip dummy
+        curparam++;
+        if (curparam < params.size()) // If flags are not specified, we assign all authorities
+        {
+            auth = ParseAuthorityParams(params, curparam);
+            if (curparam < params.size())
             {
-                auth = ParseAuthorityParams(params, curparam);
-                if (curparam < params.size())
-                {
-                    std::string strError;
-                    strError = strprintf("Invalid parameter: flag %s", params[curparam].get_str());
-                    throw JSONRPCError(RPC_INVALID_PARAMS, strError);
-                }
+                std::string strError;
+                strError = strprintf("Invalid parameter: flag %s", params[curparam].get_str());
+                throw JSONRPCError(RPC_INVALID_PARAMS, strError);
             }
+        } else {
+            auth = GroupAuthorityFlags::ALL;
+        }
 
-            // Now find a compatible authority
-            std::vector<COutput> coins;
-            int nOptions = wallet->FilterCoins(coins, [auth, grpID](const CWalletTx *tx, const CTxOut *out) {
+        // Now find a compatible authority
+        std::vector<COutput> coins;
+        int nOptions = wallet->FilterCoins(coins, [auth, grpID](const CWalletTx *tx, const CTxOut *out) {
+            CTokenGroupInfo tg(out->scriptPubKey);
+            if ((tg.associatedGroup == grpID) && tg.isAuthority() && tg.allowsRenew())
+            {
+                // does this authority have at least the needed bits set?
+                if ((tg.controllingGroupFlags() & auth) == auth)
+                    return true;
+            }
+            return false;
+        });
+
+        // if its a subgroup look for a parent authority that will work
+        if ((nOptions == 0) && (grpID.isSubgroup()))
+        {
+            // if its a subgroup look for a parent authority that will work
+            nOptions = wallet->FilterCoins(coins, [auth, grpID](const CWalletTx *tx, const CTxOut *out) {
                 CTokenGroupInfo tg(out->scriptPubKey);
-                if ((tg.associatedGroup == grpID) && tg.isAuthority() && tg.allowsRenew())
+                if (tg.isAuthority() && tg.allowsRenew() && tg.allowsSubgroup() &&
+                    (tg.associatedGroup == grpID.parentGroup()))
                 {
-                    // does this authority have at least the needed bits set?
                     if ((tg.controllingGroupFlags() & auth) == auth)
                         return true;
                 }
                 return false;
             });
-
-            // if its a subgroup look for a parent authority that will work
-            if ((nOptions == 0) && (grpID.isSubgroup()))
-            {
-                // if its a subgroup look for a parent authority that will work
-                nOptions = wallet->FilterCoins(coins, [auth, grpID](const CWalletTx *tx, const CTxOut *out) {
-                    CTokenGroupInfo tg(out->scriptPubKey);
-                    if (tg.isAuthority() && tg.allowsRenew() && tg.allowsSubgroup() &&
-                        (tg.associatedGroup == grpID.parentGroup()))
-                    {
-                        if ((tg.controllingGroupFlags() & auth) == auth)
-                            return true;
-                    }
-                    return false;
-                });
-            }
-
-            if (nOptions == 0) // TODO: look for multiple authorities that can be combined to form the required bits
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "No authority exists that can grant the requested priviledges.");
-            }
-            else
-            {
-                // Just pick the first compatible authority.
-                for (auto coin : coins)
-                {
-                    totalBchAvailable += coin.tx->vout[coin.i].nValue;
-                    chosenCoins.push_back(coin);
-                    break;
-                }
-            }
-
-            CReserveKey renewAuthorityKey(wallet);
-            totalBchNeeded += RenewAuthority(chosenCoins[0], outputs, renewAuthorityKey);
-
-            { // Construct the new authority
-                CScript script = GetScriptForDestination(dst, grpID, (CAmount)auth);
-                CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
-                outputs.push_back(recipient);
-                totalBchNeeded += GROUPED_SATOSHI_AMT;
-            }
-
-            CWalletTx wtx;
-            ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, grpID, wallet);
-            renewAuthorityKey.KeepKey();
-            return wtx.GetHash().GetHex();
         }
+
+        if (nOptions == 0) // TODO: look for multiple authorities that can be combined to form the required bits
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "No authority exists that can grant the requested priviledges.");
+        }
+        else
+        {
+            // Just pick the first compatible authority.
+            for (auto coin : coins)
+            {
+                totalBchAvailable += coin.tx->vout[coin.i].nValue;
+                chosenCoins.push_back(coin);
+                break;
+            }
+        }
+
+        CReserveKey renewAuthorityKey(wallet);
+        totalBchNeeded += RenewAuthority(chosenCoins[0], outputs, renewAuthorityKey);
+
+        { // Construct the new authority
+            CScript script = GetScriptForDestination(dst, grpID, (CAmount)auth);
+            CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+            outputs.push_back(recipient);
+            totalBchNeeded += GROUPED_SATOSHI_AMT;
+        }
+
+        CWalletTx wtx;
+        ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, 0, 0, grpID, wallet);
+        renewAuthorityKey.KeepKey();
+        return wtx.GetHash().GetHex();
     }
     else if (operation == "new")
     {
@@ -986,8 +1051,46 @@ extern UniValue token(const UniValue &params, bool fHelp)
         CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
         outputs.push_back(recipient);
 
+        std::string strError;
+        std::vector<COutput> coins;
+
+        // When minting a regular (non-management) token, an XDM fee is needed
+        // Note that XDM itself is also a management token
+        // Add XDM output to fee address and to change address
+        CAmount XDMFeeNeeded = 0;
+        CAmount totalXDMAvailable = 0;
+        if (!grpID.hasFlag(TokenGroupIdFlags::MGT_TOKEN))
+        {
+            tokenGroupManager->GetXDMFee(chainActive.Tip(), XDMFeeNeeded);
+            XDMFeeNeeded *= 5;
+
+            // Ensure enough XDM fees are paid
+            tokenGroupManager->EnsureXDMFee(outputs, XDMFeeNeeded);
+
+            // Add XDM inputs
+            CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
+            wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
+                {
+                    totalXDMAvailable += tg.quantity;
+                    return true;
+                }
+                return false;
+            });
+
+            if (totalXDMAvailable < XDMFeeNeeded)
+            {
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", XDMFeeNeeded - totalXDMAvailable);
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
+            }
+
+            // Get a near but greater quantity
+            totalXDMAvailable = GroupCoinSelection(coins, XDMFeeNeeded, chosenCoins);
+        }
+
         CWalletTx wtx;
-        ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, grpID, wallet);
+        ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, totalXDMAvailable, XDMFeeNeeded, grpID, wallet);
         authKeyReservation.KeepKey();
         UniValue ret(UniValue::VOBJ);
         ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
@@ -1071,10 +1174,45 @@ extern UniValue token(const UniValue &params, bool fHelp)
         CReserveKey childAuthorityKey(wallet);
         totalBchNeeded += RenewAuthority(authority, outputs, childAuthorityKey);
 
-        CWalletTx wtx;
+        // When minting a regular (non-management) token, an XDM fee is needed
+        // Note that XDM itself is also a management token
+        // Add XDM output to fee address and to change address
+        CAmount XDMFeeNeeded = 0;
+        CAmount totalXDMAvailable = 0;
+        if (!grpID.hasFlag(TokenGroupIdFlags::MGT_TOKEN))
+        {
+            tokenGroupManager->GetXDMFee(chainActive.Tip(), XDMFeeNeeded);
+            XDMFeeNeeded *= 5;
+
+            // Ensure enough XDM fees are paid
+            tokenGroupManager->EnsureXDMFee(outputs, XDMFeeNeeded);
+
+            // Add XDM inputs
+            CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
+            wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
+                {
+                    totalXDMAvailable += tg.quantity;
+                    return true;
+                }
+                return false;
+            });
+
+            if (totalXDMAvailable < XDMFeeNeeded)
+            {
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", XDMFeeNeeded - totalXDMAvailable);
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
+            }
+
+            // Get a near but greater quantity
+            totalXDMAvailable = GroupCoinSelection(coins, XDMFeeNeeded, chosenCoins);
+        }
+
         // I don't "need" tokens even though they are in the output because I'm minting, which is why
         // the token quantities are 0
-        ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, grpID, wallet);
+        CWalletTx wtx;
+        ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, totalXDMAvailable, XDMFeeNeeded, grpID, wallet);
         childAuthorityKey.KeepKey();
         return wtx.GetHash().GetHex();
     }
@@ -1123,8 +1261,18 @@ extern UniValue token(const UniValue &params, bool fHelp)
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Improper number of parameters, did you forget the payment amount?");
         }
+
+        // Optionally, add XDM fee
+        CAmount XDMFeeNeeded = 0;
+        if (tokenGroupManager->MatchesDarkMatter(grpID)) {
+            tokenGroupManager->GetXDMFee(chainActive.Tip(), XDMFeeNeeded);
+        }
+
+        // Ensure enough XDM fees are paid
+        tokenGroupManager->EnsureXDMFee(outputs, XDMFeeNeeded);
+
         CWalletTx wtx;
-        GroupSend(wtx, grpID, outputs, totalTokensNeeded, wallet);
+        GroupSend(wtx, grpID, outputs, totalTokensNeeded, XDMFeeNeeded, wallet);
         return wtx.GetHash().GetHex();
     }
     else if (operation == "melt")
@@ -1275,7 +1423,7 @@ extern UniValue managementtoken(const UniValue &paramsIn, bool fHelp)
         outputs.push_back(recipient);
 
         CWalletTx wtx;
-        ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, grpID, wallet);
+        ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, 0, 0, grpID, wallet);
         authKeyReservation.KeepKey();
         UniValue ret(UniValue::VOBJ);
         ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));

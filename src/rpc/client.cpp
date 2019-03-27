@@ -133,6 +133,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"listspentzerocoins", 0},
         {"listzerocoinamounts", 0},
         {"managementtoken", 3},
+        {"token", 3},
         {"mintzerocoin", 0},
         {"mintzerocoin", 1},
         {"spendzerocoin", 0},
