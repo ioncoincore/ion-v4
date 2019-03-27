@@ -684,6 +684,8 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
 
     // Now test transaction balances
     {
+        std::unordered_map<CTokenGroupID, CTokenGroupBalance> tgBalance;
+
         CTokenGroupID grp1(1);
         CTokenGroupID grp2(2);
         CTokenGroupID grp3(3);
@@ -745,14 +747,14 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
             CTokenGroupID grpID = findGroupId(putxo, opretScript, TokenGroupIdFlags::NONE, grpNonce);
             CScript script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
             CTransaction t = tx1x1(putxo, script, 1);
-            bool ok = CheckTokenGroups(t, state, coins);
+            bool ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // script has bad nonce
             grpID = findGroupId(putxo, opretScript, TokenGroupIdFlags::NONE, grpNonce);
             script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | (grpNonce + 1));
             t = tx1x1(putxo, script, 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // Check that OP_RETURN is included in group calc
@@ -761,89 +763,89 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
             grpID = findGroupId(putxo, CScript(), TokenGroupIdFlags::NONE, grpNonce);
             script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
             t = tx2x2(putxo, putxo2, script, 1, opretScript, 0);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // Check that OP_RETURN is included in group calc
             grpID = findGroupId(putxo, opretScript, TokenGroupIdFlags::NONE, grpNonce);
             script = GetScriptForDestination(u1.addr, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
             t = tx2x2(putxo, putxo2, script, 1, opretScript, 0);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // check mint tx
 
             // without mint authority
             t = tx2x1(putxo2, putxo, gp2pkh(grp1, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // same, grouped
             t = tx2x1(putxo2, putxo, gp2pkh(subgrp1a, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // with an authority that does not include minting
             t = tx2x1(meltctrl1, putxo, gp2pkh(grp1, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // with minting authority
             t = tx2x1(mintctrl1, putxo, gp2pkh(grp1, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
             // same, grouped
             t = tx2x1(mintctrl1, putxo, gp2pkh(subgrp1a, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
             t = tx2x1(mintctrl1sg, putxo, gp2pkh(subgrp1a, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
             t = tx2x1(mintctrl1sg, putxo, gp2pkh(subgrp1c, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // this works because the size limitation enforced during script execution only.
             // token subgroups have no max size...
             t = tx2x1(mintctrl1sg, putxo, gp2pkh(subgrp1cTooBig, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // mint to 2 utxos, 1 is p2sh
             t = tx1x2(mintctrl1, gp2pkh(grp1, u1.addr, 100000), 1, gp2sh(grp1, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
             t = tx1x2(mintctrl1, gp2pkh(grp1, u1.addr, 100000), 1, gp2sh(subgrp1a, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
             t = tx1x2(mintctrl1, gp2pkh(subgrp1b, u1.addr, 100000), 1, gp2sh(subgrp1a, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
             t = tx1x2(mintctrl1sg, gp2pkh(grp1, u1.addr, 100000), 1, gp2sh(subgrp1a, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
             t = tx1x2(mintctrl1sg, gp2pkh(subgrp1b, u1.addr, 100000), 1, gp2sh(subgrp1a, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // mint to 1 utxos, 2 outputs
             t = tx1x2(mintctrl1, p2pkh(u1.addr), 1, gp2sh(grp1, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
             // mint to 1 utxos, 2 outputs
             t = tx1x2(mintctrl1, gp2sh(grp1, u1.addr, 100000), 1, p2pkh(u1.addr), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // mint to 2 utxos, 1 group is wrong
             t = tx1x2(mintctrl1, gp2pkh(grp1, u1.addr, 100000), 1, gp2pkh(grp2, u2.addr, 10000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // mint and create child, without auth
             t = tx1x2(mintctrl1, gp2pkh(grp1, u1.addr, 100000), 1,
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT)), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // 2 input auths combine into 1 output utxo with both auths
@@ -851,7 +853,7 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
                                                GroupAuthorityFlags::RESCRIPT | GroupAuthorityFlags::CCHILD)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // Same but rescript is not subgroupable
@@ -859,19 +861,19 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
                                                GroupAuthorityFlags::RESCRIPT | GroupAuthorityFlags::CCHILD)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
             t = tx2x1(rescriptChildAuth1, mintChildAuth1sg,
                 gp2pkh(subgrp1a, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
                                                    GroupAuthorityFlags::RESCRIPT | GroupAuthorityFlags::CCHILD)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
             t = tx2x1(rescriptChildAuth1sg, mintChildAuth1sg,
                 gp2pkh(subgrp1b, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
                                                    GroupAuthorityFlags::RESCRIPT | GroupAuthorityFlags::CCHILD)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // 1 input has child auth, one does not, but output tries to claim both functions
@@ -879,13 +881,13 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
                                                GroupAuthorityFlags::MELT | GroupAuthorityFlags::CCHILD)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
             t = tx2x1(meltctrl1, mintChildAuth1,
                 gp2pkh(grp1, u1.addr,
                           toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT | GroupAuthorityFlags::MELT)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // 2 input auths combine, but wrong output auth bits
@@ -893,13 +895,13 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
                                                GroupAuthorityFlags::MELT | GroupAuthorityFlags::CCHILD)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // mint and create child, with auth
             t = tx1x2(mintChildAuth1, gp2pkh(grp1, u1.addr, 100000), 1,
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT)), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // mint and create child, with auth
@@ -907,40 +909,40 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
                 gp2pkh(grp1, u1.addr, toAmount(GroupAuthorityFlags::CTRL | GroupAuthorityFlags::MINT |
                                                GroupAuthorityFlags::CCHILD)),
                 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // double mint
             t = tx2x2(mintctrl1, mintctrl2, gp2pkh(grp1, u1.addr, 100000), 1, gp2pkh(grp2, u2.addr, 10000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
 
             // double mint 1 wrong group
             t = tx2x2(mintctrl1, mintctrl2, gp2pkh(grp1, u1.addr, 100000), 1, gp2pkh(grp3, u2.addr, 10000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
         }
 
         {
             // check p2sh melt
             CTransaction t = tx1x1(gp2sh1, p2pkh(u1.addr), 5);
-            bool ok = CheckTokenGroups(t, state, coins);
+            bool ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // check p2sh move to another group (should fail)
             t = tx1x1(gp2sh1, gp2pkh(grp2, u1.addr, 100), 5);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             // check p2sh to p2pkh within group controlled by p2sh address
             t = tx1x1(gp2sh1, gp2pkh(grp1, u1.addr, 100), 4);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(ok);
 
             // check p2sh mint
             t = tx1x1(p2sh1, gp2sh(sid, u1.addr, 100000), 1);
-            ok = CheckTokenGroups(t, state, coins);
+            ok = CheckTokenGroups(t, state, coins, tgBalance);
             BOOST_CHECK(!ok);
 
             /// TODO check p2sh mint working
@@ -948,110 +950,110 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
 
         // check same group 1 input 1 output
         CTransaction t = tx1x1(gutxo, gp2pkh(grp1, u1.addr, 100), 1);
-        bool ok = CheckTokenGroups(t, state, coins);
+        bool ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // check same group 1 input 1 output, wrong value
         t = tx1x1(gutxo, gp2pkh(grp1, u1.addr, 10), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
         t = tx1x1(gutxo, gp2pkh(grp1, u1.addr, 1000), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // check different groups 1 input 1 output
         t = tx1x1(gutxo, gp2pkh(grp2, u1.addr, 100), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // check mint, incorrect input group address
         t = tx1x1(putxo, gp2pkh(grp2, u1.addr, 100), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // check melt but no authority
         t = tx1x1(gutxo, p2pkh(u2.addr), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // check melt with authority
         t = tx2x1(gutxo, meltctrl1, p2pkh(u1.addr), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // check melt with wrong authority
         t = tx2x1(gutxo, mintctrl1, p2pkh(u1.addr), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // check melt with wrong group authority
         t = tx2x1(gutxo, meltctrl2, p2pkh(u1.addr), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // check burnable utxo but not burning
         t = tx1x1(gutxo_burnable, gp2pkh(grp1, u1.addr, 100), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // Test multiple input/output transactions
 
         // send 1 coin and melt 100 tokens (with 1 satoshi) into output
         t = tx3x1(putxo, gutxo, meltctrl1, p2pkh(u2.addr), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // this sends 2 satoshi into the fee so it works and melts tokens
         t = tx2x1(gutxo, meltctrl1, p2pkh(u2.addr), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // send 1 coins and melt tokens, but incorrect BCH amount
         // this will work because CheckTokenGroups does not enforce bitcoin balances
         t = tx3x1(putxo, meltctrl1, gutxo, p2pkh(u2.addr), 300);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // partial melt
         t = tx2x2(gutxo, meltctrl1, gp2pkh(grp1, u1.addr, 10), 1, gp2pkh(grp1, u1.addr, 50), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // Exceed input without mint, but in separate outputs with melt authority so if outputs
         // are not combined correctly it would work.
         t = tx2x2(gutxo, meltctrl1, gp2pkh(grp1, u1.addr, 60), 1, gp2pkh(grp1, u1.addr, 50), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // atomic swap tokens
         COutPoint gutxo2 = AddUtxo(gp2pkh(grp2, u2.addr, 100), 1, coins);
 
         t = tx2x2(gutxo, gutxo2, gp2pkh(grp1, u2.addr, 100), 1, gp2pkh(grp2, u1.addr, 100), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // wrong amounts
         t = tx2x2(gutxo, gutxo2, gp2pkh(grp1, u2.addr, 101), 1, gp2pkh(grp2, u1.addr, 100), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
         t = tx2x2(gutxo, gutxo2, gp2pkh(grp1, u2.addr, 100), 1, gp2pkh(grp2, u1.addr, 99), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // group transaction with 50 sat fee
         COutPoint p100utxo = AddUtxo(p2pkh(u1.addr), 100, coins);
 
         t = tx2x2(p100utxo, gutxo, p2pkh(u1.addr), 50, gp2pkh(grp1, u2.addr, 100), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(ok);
 
         // group transaction with group imbalance
         t = tx2x2(p100utxo, gutxo, p2pkh(u1.addr), 50, gp2pkh(grp1, u2.addr, 101), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
         // group transaction with group imbalance
         t = tx2x2(p100utxo, gutxo, p2pkh(u1.addr), 50, gp2pkh(grp1, u2.addr, 99), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // Check overflow/underflow errors
@@ -1061,17 +1063,17 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
         CAmount amt = std::numeric_limits<CAmount>::max();
         amt += 50;
         t = tx2x1(gutxo3, gutxo, breakable_gp2pkh(grp1, u1.addr, amt), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
         // Check direct negative number in utxo
         t = tx2x1(gutxo3, gutxo, breakable_gp2pkh(grp1, u1.addr, -300), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // include enough valid utxos to overflow into a valid summed output that equals the input
         t = tx1x3(gutxo, gp2pkh(grp1, u1.addr, std::numeric_limits<CAmount>::max()), 1,
             gp2pkh(grp1, u1.addr, std::numeric_limits<CAmount>::max()), 1, gp2pkh(grp1, u1.addr, 102), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
 
         // Add enough positive inputs to overflow into a valid positive number
@@ -1080,7 +1082,7 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
         COutPoint gutxo6 = AddUtxo(gp2pkh(grp1, u1.addr, 3), 1, coins);
         // max*2 overflows into negative number + 3 -> 1
         t = tx3x1(gutxo4, gutxo5, gutxo6, gp2pkh(grp1, u1.addr, 1), 1);
-        ok = CheckTokenGroups(t, state, coins);
+        ok = CheckTokenGroups(t, state, coins, tgBalance);
         BOOST_CHECK(!ok);
     }
     miningEnforceOpGroup.value = opgEnforcing;

@@ -13,8 +13,8 @@
 #include "script/standard.h"
 #include <unordered_map>
 
-
-#endif
+// Number of satoshis we will put into a grouped output
+static const CAmount GROUPED_SATOSHI_AMT = 1;
 
 // Pass a group and a destination address (or CNoDestination) to get the balance of all outputs in the group
 // or all outputs in that group and on that destination address.
@@ -39,3 +39,5 @@ CTokenGroupID findGroupId(const COutPoint &input, CScript opRetTokDesc, TokenGro
 
 //* Group script helper function
 CScript GetScriptForDestination(const CTxDestination &dest, const CTokenGroupID &group, const CAmount &amount);
+
+#endif

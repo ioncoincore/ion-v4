@@ -31,9 +31,6 @@
 UniValue groupedlistsinceblock(const UniValue &params, bool fHelp);
 UniValue groupedlisttransactions(const UniValue &params, bool fHelp);
 
-// Number of satoshis we will put into a grouped output
-static const CAmount GROUPED_SATOSHI_AMT = 1;
-
 // Approximate size of signature in a script -- used for guessing fees
 const unsigned int TX_SIG_SCRIPT_LEN = 72;
 

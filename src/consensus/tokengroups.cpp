@@ -201,29 +201,9 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
 }
 
 
-// local class that just keeps track of the amounts of each group coming into and going out of a transaction
-class CBalance
+bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCoinsViewCache &view, std::unordered_map<CTokenGroupID, CTokenGroupBalance>& gBalance)
 {
-public:
-    CBalance()
-        : ctrlPerms(GroupAuthorityFlags::NONE), allowedCtrlOutputPerms(GroupAuthorityFlags::NONE),
-          allowedSubgroupCtrlOutputPerms(GroupAuthorityFlags::NONE), ctrlOutputPerms(GroupAuthorityFlags::NONE),
-          input(0), output(0), numOutputs(0)
-    {
-    }
-    // CTokenGroupInfo groups; // possible groups
-    GroupAuthorityFlags ctrlPerms; // what permissions are provided in inputs
-    GroupAuthorityFlags allowedCtrlOutputPerms; // What permissions are provided in inputs with CHILD set
-    GroupAuthorityFlags allowedSubgroupCtrlOutputPerms; // What permissions are provided in inputs with CHILD set
-    GroupAuthorityFlags ctrlOutputPerms; // What permissions are enabled in outputs
-    CAmount input;
-    CAmount output;
-    uint64_t numOutputs;
-};
-
-bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCoinsViewCache &view)
-{
-    std::unordered_map<CTokenGroupID, CBalance> gBalance;
+    gBalance.clear();
     // This is an optimization allowing us to skip single-mint hashes if there are no output groups
     bool anyOutputGroups = false;
     bool anyOutputControlGroups = false;
@@ -320,14 +300,14 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     for (auto &txo : gBalance)
     {
         CTokenGroupID group = txo.first;
-        CBalance &bal = txo.second;
+        CTokenGroupBalance &bal = txo.second;
         if (group.isSubgroup())
         {
             CTokenGroupID parentgrp = group.parentGroup();
             auto parentSearch = gBalance.find(parentgrp);
             if (parentSearch != gBalance.end()) // The parent group is part of the inputs
             {
-                CBalance &parentData = parentSearch->second;
+                CTokenGroupBalance &parentData = parentSearch->second;
                 if (hasCapability(parentData.ctrlPerms, GroupAuthorityFlags::SUBGROUP))
                 {
                     // Give the subgroup has all the capabilities the parent group had,
@@ -347,7 +327,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
     // Now pass thru the outputs ensuring balance or mint/melt permission
     for (auto &txo : gBalance)
     {
-        CBalance &bal = txo.second;
+        CTokenGroupBalance &bal = txo.second;
         // If it has an authority, with no input authority, check mint
         if (hasCapability(bal.ctrlOutputPerms, GroupAuthorityFlags::CTRL) &&
             (bal.ctrlPerms == GroupAuthorityFlags::NONE))
