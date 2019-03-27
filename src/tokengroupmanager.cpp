@@ -122,6 +122,21 @@ void CTokenGroupManager::ClearManagementTokenGroups() {
     tgAtomCreation.reset();
 }
 
+bool CTokenGroupManager::MatchesMagic(CTokenGroupID tgID) {
+    if (!tgMagicCreation) return false;
+    return tgID == tgMagicCreation->tokenGroupInfo.associatedGroup;
+}
+
+bool CTokenGroupManager::MatchesDarkMatter(CTokenGroupID tgID) {
+    if (!tgDarkMatterCreation) return false;
+    return tgID == tgDarkMatterCreation->tokenGroupInfo.associatedGroup;
+}
+
+bool CTokenGroupManager::MatchesAtom(CTokenGroupID tgID) {
+    if (!tgAtomCreation) return false;
+    return tgID == tgAtomCreation->tokenGroupInfo.associatedGroup;
+}
+
 bool CTokenGroupManager::AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups) {
     for (auto tokenGroupCreation : newTokenGroups) {
         ProcessManagementTokenGroups(tokenGroupCreation);
@@ -180,6 +195,13 @@ bool CTokenGroupManager::CreateTokenGroup(CTransaction tx, CTokenGroupCreation &
 
 void CTokenGroupManager::ResetTokenGroups() {
     mapTokenGroups.clear();
+
+    CTokenGroupInfo tgInfoION(NoGroup, (CAmount)GroupAuthorityFlags::ALL);
+    CTransaction tgTxION = CTransaction();
+    CTokenGroupDescription tgDescriptionION("ION", "Ion", 8, "https://www.ionomy.com", 0);
+    CTokenGroupCreation tgCreationION(tgTxION, tgInfoION, tgDescriptionION);
+    mapTokenGroups.insert(std::pair<CTokenGroupID, CTokenGroupCreation>(NoGroup, tgCreationION));
+
 }
 
 bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID) {
