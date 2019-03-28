@@ -412,7 +412,6 @@ bool CTokenGroupManager::CheckXDMFees(const CTransaction &tx, const std::unorder
     CAmount XDMFeesPaid = 0;
     uint32_t nXDMOutputs = 0;
     uint32_t nXDMFreeOutputs = 0;
-    uint32_t nXDMPaidOutputs = 0;
 
     CAmount curXDMFee;
     GetXDMFee(pindex, curXDMFee);
@@ -464,8 +463,7 @@ bool CTokenGroupManager::CheckXDMFees(const CTransaction &tx, const std::unorder
             }
         }
     }
-    nXDMPaidOutputs = nXDMOutputs > nXDMFreeOutputs ? nXDMOutputs - nXDMFreeOutputs : 0;
-    nXDMFees += nXDMPaidOutputs * curXDMFee;
+    nXDMFees += nXDMOutputs > nXDMFreeOutputs ?  1 * curXDMFee : 0;
 
     return XDMFeesPaid >= nXDMFees;
 }
