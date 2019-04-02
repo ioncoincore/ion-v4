@@ -16,6 +16,9 @@
 
 std::shared_ptr<CTokenGroupManager> tokenGroupManager;
 
+// Checks that the token description data fulfills basic criteria
+// Such as: max ticker length, no special characters, and sane decimal positions.
+// Validation is performed before data is written to the database
 bool CTokenGroupManager::ValidateTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc) {
     regex regexAlpha("^[a-zA-Z]+$");
     regex regexUrl(R"((https?|ftp)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$)");
@@ -38,6 +41,16 @@ bool CTokenGroupManager::ValidateTokenDescription(const CTokenGroupInfo &tgInfo,
         LogPrint("token", "Token decimal separation position is too large, maximum is 16.\n");
         return false;
     }
+
+    return true;
+}
+
+// Checks that the token description data fulfils context dependent criteria
+// Such as: no reserved names, no double names
+// Validation is performed after data is written to the database and before it is written to the map
+// Returns true if the description can be displayed, false if the description should not be displayed
+bool CTokenGroupManager::FilterTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc) {
+
     // Iterate existing token groups and verify that the new group has an unique ticker and name
     auto result = std::find_if(
           mapTokenGroups.begin(),
@@ -46,7 +59,7 @@ bool CTokenGroupManager::ValidateTokenDescription(const CTokenGroupInfo &tgInfo,
                 if (tokenGroup.second.tokenGroupInfo.associatedGroup == tgInfo.associatedGroup) return false;
                 bool exists = tokenGroup.second.tokenGroupDescription.strTicker == tgDesc.strTicker ||
                     tokenGroup.second.tokenGroupDescription.strName == tgDesc.strName;
-                return exists;
+                return exists && !tokenGroup.second.tokenGroupDescription.invalid && !tgDesc.invalid;
             });
     if (result != mapTokenGroups.end()) {
         LogPrint("token", "Token ticker and name must be unique.\n");
@@ -99,7 +112,6 @@ bool CTokenGroupManager::ParseGroupDescData(const CTokenGroupInfo &tgInfo, const
     tokenGroupDescription = CTokenGroupDescription(tickerStr, name, decimalPos, url, docHash);
     if (!ValidateTokenDescription(tgInfo, tokenGroupDescription)) {
         tokenGroupDescription.Clear();
-        tokenGroupDescription.invalid = true;
     }
     return !tokenGroupDescription.invalid;
 }
@@ -141,6 +153,9 @@ bool CTokenGroupManager::MatchesAtom(CTokenGroupID tgID) {
 
 bool CTokenGroupManager::AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups) {
     for (auto tokenGroupCreation : newTokenGroups) {
+        if (!FilterTokenDescription(tokenGroupCreation.tokenGroupInfo, tokenGroupCreation.tokenGroupDescription)) {
+            tokenGroupCreation.tokenGroupDescription.Clear();
+        }
         ProcessManagementTokenGroups(tokenGroupCreation);
 
         std::pair<std::map<CTokenGroupID, CTokenGroupCreation>::iterator, bool> ret;
@@ -182,6 +197,7 @@ bool CTokenGroupManager::CreateTokenGroup(CTransaction tx, CTokenGroupCreation &
     }
     if (hasNewTokenGroup) {
         CTokenGroupDescription tokenGroupDescription;
+        tokenGroupDescription.Clear();
         if (firstOpReturn.size()) {
             std::vector<std::vector<unsigned char> > desc;
             if (BuildGroupDescData(firstOpReturn, desc)) {

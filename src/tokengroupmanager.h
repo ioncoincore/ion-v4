@@ -55,6 +55,7 @@ public:
         decimalPos = 0; // Tokens with no fractional quantities have decimalPos=0
         strDocumentUrl = "";
         documentHash = uint256();
+        invalid = true;
     }
 
     // Tokens with no fractional quantities have decimalPos=0
@@ -153,6 +154,7 @@ public:
     bool IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& inputs);
 
     bool ValidateTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc);
+    bool FilterTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc);
 
     bool TokenMoneyRange(CAmount nValueOut);
     CAmount AmountFromTokenValue(const UniValue& value, const CTokenGroupID& tgID);
