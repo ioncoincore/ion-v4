@@ -58,67 +58,67 @@ confinement: strict
 icon: src/qt/res/src/ion.svg
 apps:
   daemon:
-    command: desktop-launch iond
+    command: iond
     plugs: [network, network-bind, network-status, home, removable-media]
     desktop: iond.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-testnet:
-    command: desktop-launch iond --testnet
+    command: iond --testnet
     plugs: [network, network-bind, network-status, home, removable-media]
     desktop: iond_testnet.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-regtest:
-    command: desktop-launch iond --regtest
+    command: iond --regtest
     desktop: iond_regtest.desktop
     plugs: [network, network-bind, network-status, home, removable-media]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt:
-    command: desktop-launch ion-qt
+    command: ion-qt
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
     desktop: ion-qt.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-testnet:
-    command: desktop-launch ion-qt --testnet
+    command: ion-qt --testnet
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
     desktop: ion-qt_testnet.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-regtest:
-    command: desktop-launch ion-qt --regtest
+    command: ion-qt --regtest
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
     desktop: ion-qt_regtest.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   cli:
-    command: desktop-launch ion-cli
+    command: ion-cli
     plugs: [network, network-bind, network-status, home]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   cli-testnet:
-    command: desktop-launch ion-cli --testnet
+    command: ion-cli --testnet
     plugs: [network, network-bind, home]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   cli-regtest:
-    command: desktop-launch ion-cli --regtest
+    command: ion-cli --regtest
     plugs: [network, network-bind, home]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   tx:
-    command: desktop-launch ion-tx
+    command: ion-tx
     plugs: [home]
   test:
-    command: desktop-launch test_ion
+    command: test_ion
     plugs: [home]
   testqt:
-    command: desktop-launch test_ion-qt
+    command: test_ion-qt
     plugs: [home]
 parts:
   ion:
@@ -253,11 +253,6 @@ parts:
       - python3
       - help2man
       - doxygen
-    stage-packages: [ca-certificates]
-    after:
-      - desktop-qt5
-      - patches
-  desktop-qt5:
     stage-packages:
       - libxkbcommon0
       - ttf-ubuntu-font-family
@@ -270,6 +265,8 @@ parts:
       - locales-all
       - qtwayland5
       - ca-certificates
+    after:
+      - patches
   patches:
     source: snap/patches
     plugin: dump
