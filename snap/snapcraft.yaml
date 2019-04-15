@@ -4,20 +4,38 @@ base: core18
 version: 3.2.99
 summary:   gaming related peer-to-peer network based digital currency
 description: |
-  Ion Core is an MIT licensed,
-  open source, gaming oriented, blockchain-based cryptocurrency with
-  ultra fast transactions, low fees, high network decentralization, and
-  Zero Knowledge cryptography proofs for industry-leading
-  transaction anonymity. 
+  Ion Core is an MIT licensed,  open source, gaming oriented,
+  blockchain-based cryptocurrency with ultra fast transactions,
+  low fees, high network decentralization, and Zero Knowledge
+  cryptography proofs for industry-leading transaction anonymity.
   
+  This package includes following binaries:
+    iond, ion-cli, ion-tx, ion-qt, test_ion, test_ion-qt
+  
+  Default homefolder: ~/snap/ioncore/common/.ioncoin
+  How to launch snap binaries in terminal?:
+    ioncore.qt     - launches Ion Core QT (ion-qt)
+    ioncore.daemon - launches Ion Core daemon (iond)
+    ioncore.cli    - launches Ion Core RPC (ion-cli)
+    ioncore.tx     - launches Ion Core ion-tx utility (ion-tx)
+    test           - launches test_ion
+    testqt         - launches test_ion-qt
+  
+  Additional launchers for tegtest and testnet:
+    ioncore.qt-testnet     - launches Ion Core QT with testnet=1
+    ioncore.daemon-testnet - launches Ion Core daemon with testnet=1
+    ioncore.cli-testnet    - launches Ion Core RPC with testnet=1
+  
+    ioncore.qt-regtest     - launches Ion Core QT with regtest=1
+    ioncore.daemon-regtest - launches Ion Core daemon with regtest=1
+    ioncore.cli-regtest    - launches Ion Core RPC with regtest=1
   Documentation and wiki:
   - Wiki (Ion Core):    https://github.com/ioncoincore/ion/wiki
   - Wiki (Ionomy):      https://github.com/ionomy/ion/wiki
   - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
   - Technical documentation: https://techdoc.ioncoin.org
   - Whitepaper: https://ionomy.com/en/whitepaper
-  - Technical whitepaper: 
-    https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+  - Technical whitepaper: https://tinyurl.com/y3st8jfb
   
   Get source code from Github: https://github.com/ioncoincore/ion.git
   Get CE source code from Github: https://github.com/cevap/ion.git
@@ -31,7 +49,7 @@ description: |
     Facebook:  https://facebook.com/ionomy
   
   - Feature request: https://tinyurl.com/y5ds7s3t
-  - I need help/support (observed by ionomy.com staff): https://tinyurl.com/yy6xa3p4
+  - I need help/support: https://tinyurl.com/yy6xa3p4
   - Report a bug: https://tinyurl.com/y5wzybwe
   - Report some random issue: https://tinyurl.com/y5cgm2vp
   - Testing Report: https://tinyurl.com/y39n2hsv
@@ -40,67 +58,67 @@ confinement: strict
 icon: src/qt/res/src/ion.svg
 apps:
   daemon:
-    command: iond
+    command: desktop-launch iond
     plugs: [network, network-bind, network-status, home, removable-media]
-    desktop: iond-snap.desktop
+    desktop: iond.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-testnet:
-    command: iond --testnet
+    command: desktop-launch iond --testnet
     plugs: [network, network-bind, network-status, home, removable-media]
-    desktop: iond-testnet-snap.desktop
+    desktop: iond_testnet.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-regtest:
-    command: iond --regtest
-    desktop: iond-regtest-snap.desktop
+    command: desktop-launch iond --regtest
+    desktop: iond_regtest.desktop
     plugs: [network, network-bind, network-status, home, removable-media]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt:
-    command: ion-qt
+    command: desktop-launch ion-qt
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: ion-qt-snap.desktop
+    desktop: ion-qt.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-testnet:
-    command: ion-qt --testnet
+    command: desktop-launch ion-qt --testnet
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: ion-qt-testnet-snap.desktop
+    desktop: ion-qt_testnet.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-regtest:
-    command: ion-qt --regtest
+    command: desktop-launch ion-qt --regtest
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: ion-qt-regtest-snap.desktop
+    desktop: ion-qt_regtest.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   cli:
-    command: ion-cli
+    command: desktop-launch ion-cli
     plugs: [network, network-bind, network-status, home]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   cli-testnet:
-    command: ion-cli --testnet
+    command: desktop-launch ion-cli --testnet
     plugs: [network, network-bind, home]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   cli-regtest:
-    command: ion-cli --regtest
+    command: desktop-launch ion-cli --regtest
     plugs: [network, network-bind, home]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   tx:
-    command: ion-tx
+    command: desktop-launch ion-tx
     plugs: [home]
   test:
-    command: test_ion
+    command: desktop-launch test_ion
     plugs: [home]
   testqt:
-    command: test_ion-qt
+    command: desktop-launch test_ion-qt
     plugs: [home]
 parts:
   ion:
@@ -109,103 +127,114 @@ parts:
     source-tag: master
     plugin: nil
     override-build: |
-      SHORTNAME="ion"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "CUSTOM SETTINGS"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      #    use overrife prefix if binaries differ from project name, for ion it does,
+      #    project is called ioncore because ion exists already as package. For anybody
+      #    offering non official release and using own SNAP, this var should be used
+      #      default value is "false", to enable it, use binary prefex, for us it is ion
+      OVERRIDEBINPREFIX="ion"
+      OVERRIDEDATADIR="ioncoin"
+      OVERRIDECONF="${OVERRIDEDATADIR}"
       JOBS=4
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "SET OVERRIDE VARIABLES IF SET" # checks OVERRIDEBINPREFIX, OVERRIDEDATADIR and OVERRIDECONF
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      if [ $OVERRIDEBINPREFIX = "false" ]; then
+        BINPREF="${SNAPCRAFT_PROJECT_NAME}"
+      else
+        BINPREF="${OVERRIDEBINPREFIX}"
+      fi
+      if [ $OVERRIDEDATADIR = "false" ]; then
+        DATADIR="${SNAPCRAFT_PROJECT_NAME}"
+      else
+        DATADIR="${OVERRIDEDATADIR}"
+      fi
+      if [ $OVERRIDECONF = "false" ]; then
+        CONF="${SNAPCRAFT_PROJECT_NAME}"
+      else
+        CONF="${OVERRIDECONF}"
+      fi
+      echo "BINPREF VARIABLE - ${BINPREF}"
+      echo "DATADIR VARIABLE - ${DATADIR}"
+      echo "CONF VARIABLE - ${CONF}"
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "OVERRIDE ARCHITECTURE" # applies currently only on i386,  for i386 architecture, we will use i686-linux-gnu to compile dependencies
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       if [ $SNAPCRAFT_ARCH_TRIPLET = "i386-linux-gnu" ]; then
         HOST="i686-linux-gnu"
       else
         HOST="${SNAPCRAFT_ARCH_TRIPLET}"
       fi
-      # APPLY PATCHES
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "APPLY PATCHES ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}" # patches which have to be applied for compilation, replace splash screen
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       cd ${SNAPCRAFT_PART_BUILD}
       echo "apply patches:"
-      git apply $SNAPCRAFT_PART_BUILD/share/snap/patches/default_data_dir
-      git apply $SNAPCRAFT_PART_BUILD/share/snap/patches/fix-bdb-tmp-folder
-      git apply $SNAPCRAFT_PART_BUILD/share/snap/patches/fix-use-snap-instead-of-dirty
+      git apply $SNAPCRAFT_PART_BUILD/share/snap/patches/X001-default_data_dir.patch
+      git apply $SNAPCRAFT_PART_BUILD/share/snap/patches/X002-fix-bdb-tmp-folder.patch
+      git apply $SNAPCRAFT_PART_BUILD/share/snap/patches/X003-fix-use-snap-instead-of-dirty.patch
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' ${SNAPCRAFT_PART_BUILD}/depends/funcs.mk
-      # BUILD DEPENDENCIES
-      echo "START BUILDING ${SHORTNAME} FOR ${SNAPCRAFT_ARCH_TRIPLET} architecture"
+      echo "replace splash screen with snapcrafts"
+      mv -f $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_snap.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash.png
+      mv -f $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_regtest_snap.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_regtest.png
+      mv -f $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_testnet_snap.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_testnet.png
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "BUILD DEPENDENCIES"
+      echo "PRECOMPILE ${SNAPCRAFT_ARCH_TRIPLET} DEPENDENCIES FOR ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}" # cd to depends folder, download and precompile
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       cd ${SNAPCRAFT_PART_BUILD}/depends
       make download-linux
       make -j${JOBS} HOST=${HOST}
-      # CONFIGURE
-      echo "Configure ${SHORTNAME}"
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "CONFIGURATION OF ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}" # run configure with prefix to include depends
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       cd ${SNAPCRAFT_PART_BUILD}
-      echo "Configure and build ${SHORTNAME}"
+      echo "Configure and build ${BINPREF}"
       ./autogen.sh
       ./configure --prefix=`pwd`/depends/${HOST}
-      # COMPILE
-      echo "Compile ${SHORTNAME}"
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "COMPILATION OF ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}" # run make to compile using -j
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       make -j${JOBS}
-      # INSTALL
-      echo "Install ${SHORTNAME}"
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "INSTALLATION OF ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}" # run make install with a prefix where to install
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       make install prefix=${SNAPCRAFT_PART_INSTALL}
-      # POST INSTALL
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "POST INSTALL SCRIPTS OF ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}" # run make install with a prefix where to install
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       if [ $SNAPCRAFT_ARCH_TRIPLET = "powerpc64le-linux-gnu" ]; then
-        if [ -e $SNAPCRAFT_PART_BUILD/src/qt/${SHORTNAME}-qt ]; then
-          echo "PPC64EL fix - ${SHORTNAME}-qt exists, fix unrequired"
+        if [ -e $SNAPCRAFT_PART_BUILD/src/qt/${BINPREF}-qt ]; then
+          echo "PPC64EL fix - ${BINPREF}-qt exists, fix unrequired"
         else
-          echo "echo ${SHORTNAME}-qt is not installed" > ${SNAPCRAFT_PART_INSTALL}/usr/bin/${SHORTNAME}-qt
-          chmod +x ${SNAPCRAFT_PART_INSTALL}/usr/bin/${SHORTNAME}-qt
-          echo "PPC64EL fix - ${SHORTNAME}-qt does not exist, fix required, dummy as ${SHORTNAME}-qt"
+          echo "echo ${BINPREF}-qt is not installed" > ${SNAPCRAFT_PART_INSTALL}/usr/bin/${BINPREF}-qt
+          chmod +x ${SNAPCRAFT_PART_INSTALL}/usr/bin/${BINPREF}-qt
+          echo "PPC64EL fix - ${BINPREF}-qt does not exist, fix required, dummy as ${BINPREF}-qt"
         fi
       fi
-      ## COPY ICONS AND SHORTCUTS
-      #   we can place icons into projects ./snap/usr/share/applications folder
-      #   instead we will copy them in this step and remove snap/usr folder, we
-      #   wll use instead icons from ./share/pixmap foler
-      #mkdir -p ${SNAPCRAFT_PART_INSTALL}/usr/share/applications
-      cp ${SNAPCRAFT_PART_BUILD}/share/pixmaps/${SHORTNAME}.ico ${SNAPCRAFT_PRIME}/${SHORTNAME}qtsnap.ico
-      cp ${SNAPCRAFT_PART_BUILD}/share/pixmaps/${SHORTNAME}testnet.ico ${SNAPCRAFT_PRIME}/${SHORTNAME}qttestnetsnap.ico
-      cp ${SNAPCRAFT_PART_BUILD}/share/pixmaps/${SHORTNAME}regtest.ico ${SNAPCRAFT_PRIME}/${SHORTNAME}qtregtestsnap.ico
-      cp ${SNAPCRAFT_PART_BUILD}/share/pixmaps/${SHORTNAME}d.ico ${SNAPCRAFT_PRIME}/${SHORTNAME}dsnap.ico
-      cp ${SNAPCRAFT_PART_BUILD}/share/pixmaps/${SHORTNAME}d.ico ${SNAPCRAFT_PRIME}/${SHORTNAME}d-testnet-snap.ico
-      cp ${SNAPCRAFT_PART_BUILD}/share/pixmaps/${SHORTNAME}d.ico ${SNAPCRAFT_PRIME}/${SHORTNAME}d-regtest-snap.ico
-      # very simply test of binaries, run a command to get version and use it to set vars
-      SNAPCRAFT_PROJECT_VERSION=$(src/${SHORTNAME}-cli --version | grep "version" | awk '{print $6;}')
-      cp ${SNAPCRAFT_PART_BUILD}/debian/${SHORTNAME}-qt.desktop ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-snap.desktop
-      cp ${SNAPCRAFT_PART_BUILD}/debian/${SHORTNAME}-qt-testnet.desktop ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-testnet-snap.desktop
-      cp ${SNAPCRAFT_PART_BUILD}/debian/${SHORTNAME}-qt-regtest.desktop ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-regtest-snap.desktop
-      cp ${SNAPCRAFT_PART_BUILD}/debian/${SHORTNAME}d.desktop ${SNAPCRAFT_PRIME}/${SHORTNAME}d-snap.desktop
-      cp ${SNAPCRAFT_PART_BUILD}/debian/${SHORTNAME}d.desktop ${SNAPCRAFT_PRIME}/${SHORTNAME}d-testnet-snap.desktop
-      cp ${SNAPCRAFT_PART_BUILD}/debian/${SHORTNAME}d.desktop ${SNAPCRAFT_PRIME}/${SHORTNAME}d-regtest-snap.desktop
-      # patch desktop files
-      sed -i "s/Exec\=${SHORTNAME}-qt/Exec\=${SNAPCRAFT_PROJECT_NAME}.qt/" ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-snap.desktop
-      sed -i "s/Exec\=${SHORTNAME}-qt/Exec\=${SNAPCRAFT_PROJECT_NAME}.qt/" ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-testnet-snap.desktop
-      sed -i "s/Exec\=${SHORTNAME}-qt/Exec\=${SNAPCRAFT_PROJECT_NAME}.qt/" ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-regtest-snap.desktop
-      sed -i "s/Name\=ION Core Daemon/Name\=Ion Core Daemon/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-snap.desktop
-      sed -i "s/Name\=ION Core Daemon/Name\=Ion Core Daemon/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-testnet-snap.desktop
-      sed -i "s/Name\=ION Core Daemon/Name\=Ion Core Daemon/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-regtest-snap.desktop
-      sed -i "s/Exec\=${SHORTNAME}d/Exec\=${SNAPCRAFT_PROJECT_NAME}.daemon/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-snap.desktop
-      sed -i "s/Exec\=${SHORTNAME}d/Exec\=${SNAPCRAFT_PROJECT_NAME}.daemon/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-testnet-snap.desktop
-      sed -i "s/Exec\=${SHORTNAME}d/Exec\=${SNAPCRAFT_PROJECT_NAME}.daemon/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-regtest-snap.desktop
-      sed -i "s/ --testnet/-testnet/" ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-testnet-snap.desktop
-      #sed -i "s/ --testnet/-testnet/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-testnet-snap.desktop
-      sed -i "s/${SNAPCRAFT_PROJECT_NAME}.daemon/${SNAPCRAFT_PROJECT_NAME}.daemon-testnet/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-testnet-snap.desktop
-      sed -i "s/ --regtest/-regtest/" ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-regtest-snap.desktop
-      #sed -i "s/ --regtest/-regtest/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-regtest-snap.desktop
-      sed -i "s/${SNAPCRAFT_PROJECT_NAME}.daemon/${SNAPCRAFT_PROJECT_NAME}.daemon-regtest/" ${SNAPCRAFT_PRIME}/${SHORTNAME}d-regtest-snap.desktop
-
-      sed -i "s/Icon\=${SHORTNAME}128/Icon\=$\{SNAP\}\/${SHORTNAME}qtsnap.ico/" {} ";"
-      sed -i "s/Icon\=${SHORTNAME}testnet128/Icon\=$\{SNAP\}\/${SHORTNAME}qttestnetsnap.ico/" {} ";"
-      sed -i "s/Icon\=${SHORTNAME}regtest128/Icon\=$\{SNAP\}\/${SHORTNAME}qtregtestsnap.ico/" {} ";"
-      sed -i "s/Icon\=${SHORTNAME}d128/Icon\=$\{SNAP\}\/${SHORTNAME}dsnap.ico/" {} ";"
-      sed -i "s/Icon\=${SHORTNAME}dtestnet128/Icon\=$\{SNAP\}\/${SHORTNAME}}d-testnet-snap.ico/" {} ";"
-      sed -i "s/Icon\=${SHORTNAME}dregtest128/Icon\=$\{SNAP\}\/${SHORTNAME}d-regtest-snap.ico/" {} ";"
-      sed -i "s/deb;launchpad;/snap;launchpad;/" {} ";"
-      # add version info
-      echo "Version=${SNAPCRAFT_PROJECT_VERSION}" >> ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-snap.desktop
-      echo "Version=${SNAPCRAFT_PROJECT_VERSION}" >> ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-testnet-snap.desktop
-      echo "Version=${SNAPCRAFT_PROJECT_VERSION}" >> ${SNAPCRAFT_PRIME}/${SHORTNAME}-qt-regtest-snap.desktop
-      echo "Version=${SNAPCRAFT_PROJECT_VERSION}" >> ${SNAPCRAFT_PRIME}/${SHORTNAME}d-snap.desktop
-      echo "Version=${SNAPCRAFT_PROJECT_VERSION}" >> ${SNAPCRAFT_PRIME}/${SHORTNAME}d-testnet-snap.desktop
-      echo "Version=${SNAPCRAFT_PROJECT_VERSION}" >> ${SNAPCRAFT_PRIME}/${SHORTNAME}d-regtest-snap.desktop
-      # create .ioncoin folder and copy example config
-      mkdir -p ${SNAP_USER_COMMON}/.ioncoin
-      cd ${SNAPCRAFT_PART_BUILD}/debian/manpages/ioncoin.conf.5 ${SNAP_USER_COMMON}/.ioncoin/ioncoin-example.conf
-      # List installed files
-      echo "Installed files:"
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "CONFIG FILE" # create .ioncoin folder and copy example config - !!!warning!!!: do not copy as ioncoin.conf
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      mkdir -p ${SNAP_USER_COMMON}/.${DATADIR}
+      cp ${SNAPCRAFT_PART_BUILD}/debian/manpages/${CONF}.conf.5 ${SNAP_USER_COMMON}/.${DATADIR}/${CONF}-example.conf
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "INSTALATION OF ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}-snap has finished" # List installed files and vars when installation is finished
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       find ${SNAPCRAFT_PART_INSTALL} -type f
+      env
+      echo "-----------------------------------------------+"
     build-packages:
       - curl
       - wget
@@ -223,6 +252,12 @@ parts:
       - binutils
       - python3
       - help2man
+      - doxygen
+    stage-packages: [ca-certificates]
+    after:
+      - desktop-qt5
+      - patches
+  desktop-qt5:
     stage-packages:
       - libxkbcommon0
       - ttf-ubuntu-font-family
@@ -235,3 +270,11 @@ parts:
       - locales-all
       - qtwayland5
       - ca-certificates
+  patches:
+    source: snap/patches
+    plugin: dump
+    prime:
+      - -*
+  desktop:
+    source: snap/usr/share/applications
+    plugin: dump
