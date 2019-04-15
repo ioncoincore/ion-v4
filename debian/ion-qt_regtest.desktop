@@ -2,13 +2,13 @@
 
 [Desktop Entry]
 Encoding=UTF-8
-Name=ION Core
+Name=Ion Core
 Comment=regtest
 GenericName=Ion Digital Currency QT regression test network
 Exec=ion-qt --regtest %u
 Terminal=false
 Type=Application
-Icon=ionregtest128
+Icon=ion_regtest128
 MimeType=x-scheme-handler/ion;
 Categories=X-Finance;X-Games;
 Keywords=internet;ion;xion;core;wallet;qt;regtest;deb;launchpad;crypto;digital;currency;coin;token;zerocoin;

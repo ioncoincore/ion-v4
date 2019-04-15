@@ -36,7 +36,9 @@ Build-Depends: debhelper,
  libprotobuf-dev, protobuf-compiler,
  libevent-dev,
  libzmq3-dev,
- locales-all
+ locales-all,
+ help2man,
+ doxygen
 Standards-Version: 4.3.0
 Homepage: http://www.ionomy.com
 Vcs-Git: git://github.com/ioncoincore/ion.git
@@ -63,8 +65,7 @@ Description: gaming related peer-to-peer network based digital currency daemon
  - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
  - Technical documentation: https://techdoc.ioncoin.org
  - Whitepaper: https://ionomy.com/en/whitepaper
- - Technical whitepaper: 
- https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+ - Technical whitepaper: https://tinyurl.com/y3st8jfb
  .
  Get source code from Github: https://github.com/ioncoincore/ion.git
  Get CE source code from Github: https://github.com/cevap/ion.git
@@ -104,8 +105,7 @@ Description: gaming related peer-to-peer network based digital currency CLI
  - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
  - Technical documentation: https://techdoc.ioncoin.org
  - Whitepaper: https://ionomy.com/en/whitepaper
- - Technical whitepaper: 
- https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+ - Technical whitepaper: https://tinyurl.com/y3st8jfb
  .
  Get source code from Github: https://github.com/ioncoincore/ion.git
  Get CE source code from Github: https://github.com/cevap/ion.git
@@ -145,8 +145,7 @@ Description: gaming related peer-to-peer network based digital currency ION GUI
  - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
  - Technical documentation: https://techdoc.ioncoin.org
  - Whitepaper: https://ionomy.com/en/whitepaper
- - Technical whitepaper: 
- https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+ - Technical whitepaper: https://tinyurl.com/y3st8jfb
  .
  Get source code from Github: https://github.com/ioncoincore/ion.git
  Get CE source code from Github: https://github.com/cevap/ion.git
@@ -186,8 +185,7 @@ Description: gaming related peer-to-peer network based digital currency tx tool
  - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
  - Technical documentation: https://techdoc.ioncoin.org
  - Whitepaper: https://ionomy.com/en/whitepaper
- - Technical whitepaper: 
- https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+ - Technical whitepaper: https://tinyurl.com/y3st8jfb
  .
  Get source code from Github: https://github.com/ioncoincore/ion.git
  Get CE source code from Github: https://github.com/cevap/ion.git
@@ -228,8 +226,7 @@ Description: gaming related peer-to-peer network based digital currency full sui
  - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
  - Technical documentation: https://techdoc.ioncoin.org
  - Whitepaper: https://ionomy.com/en/whitepaper
- - Technical whitepaper: 
- https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+ - Technical whitepaper: https://tinyurl.com/y3st8jfb
  .
  Get source code from Github: https://github.com/ioncoincore/ion.git
  Get CE source code from Github: https://github.com/cevap/ion.git
@@ -270,8 +267,7 @@ Description: gaming related peer-to-peer network based digital currency dev pack
  - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
  - Technical documentation: https://techdoc.ioncoin.org
  - Whitepaper: https://ionomy.com/en/whitepaper
- - Technical whitepaper: 
- https://github.com/ionomy/ion/wiki/ION-Technical-Whitepaper
+ - Technical whitepaper: https://tinyurl.com/y3st8jfb
  .
  Get source code from Github: https://github.com/ioncoincore/ion.git
  Get CE source code from Github: https://github.com/cevap/ion.git
