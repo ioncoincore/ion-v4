@@ -12,15 +12,23 @@
    version="1.1"
    x="0px"
    y="0px"
-   viewBox="0 0 1852.2 597.1"
-   style="enable-background:new 0 0 1852.2 597.1;"
+   viewBox="0 0 2335.7836 412.91667"
    xml:space="preserve"
    id="svg44"
-   sodipodi:docname="ion_logo_horizontal.svg"
-   inkscape:version="0.92.3 (2405546, 2018-03-11)"><metadata
+   sodipodi:docname="ionomy_banner_logo_horizontal.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   width="2335.7834"
+   height="412.91666"
+   inkscape:export-filename="/media/dev/M2SSD/go/github.com/cevap/ion/src/qt/res/images/ion_logo_horizontal.png"
+   inkscape:export-xdpi="13.973898"
+   inkscape:export-ydpi="13.973898"><title
+   id="title30">Ion Core horizontal banner logo black</title><metadata
    id="metadata50"><rdf:RDF><cc:Work
        rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
-         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title>Ion Core horizontal banner logo black</dc:title><dc:date>GMT: Monday, 15. April 2019 18:47:35</dc:date><dc:creator><cc:Agent><dc:title>Ionomy limited</dc:title></cc:Agent></dc:creator><dc:rights><cc:Agent><dc:title>https://raw.githubusercontent.com/ioncoincore/ion/master/COPYING</dc:title></cc:Agent></dc:rights><dc:publisher><cc:Agent><dc:title>Ionomy limited</dc:title></cc:Agent></dc:publisher><dc:identifier>ion_logo_horizontal</dc:identifier><dc:source>https://raw.githubusercontent.com/ioncoincore/ion/master/src/qt/res/src/ion_logo_horizontal.svg</dc:source><dc:relation>https://raw.githubusercontent.com/ioncoincore/ion/master/src/qt/res/src/ion_logo_horizontal.svg</dc:relation><dc:language>English</dc:language><dc:subject><rdf:Bag><rdf:li>ion</rdf:li><rdf:li>core</rdf:li><rdf:li>banner</rdf:li><rdf:li>logo</rdf:li><rdf:li>black</rdf:li></rdf:Bag></dc:subject><dc:coverage>Ion core horizontal banner logo</dc:coverage><dc:description>Ion Core Digital Currency (by Ionomy limited) - https://ionomy.com</dc:description><dc:contributor><cc:Agent><dc:title>ionomy ltd
+CEVAP
+ioncoincore</dc:title></cc:Agent></dc:contributor><cc:license
+         rdf:resource="https://raw.githubusercontent.com/ioncoincore/ion/master/COPYING" /></cc:Work></rdf:RDF></metadata><defs
    id="defs48" /><sodipodi:namedview
    pagecolor="#ffffff"
    bordercolor="#666666"
@@ -35,12 +43,16 @@
    id="namedview46"
    showgrid="false"
    inkscape:zoom="0.23863514"
-   inkscape:cx="926.09998"
-   inkscape:cy="298.54999"
-   inkscape:window-x="67"
-   inkscape:window-y="27"
+   inkscape:cx="882.87839"
+   inkscape:cy="209.82951"
+   inkscape:window-x="695"
+   inkscape:window-y="195"
    inkscape:window-maximized="0"
-   inkscape:current-layer="svg44" />
+   inkscape:current-layer="svg44"
+   fit-margin-top="0"
+   fit-margin-left="0"
+   fit-margin-right="0"
+   fit-margin-bottom="0" />
 <style
    type="text/css"
    id="style2">
@@ -56,7 +68,7 @@
 </style>
 <g
    id="Layer_1"
-   transform="translate(148,-8)">
+   transform="translate(733.87887,-103.46283)">
 	<text
    transform="translate(465.7966,427.6227)"
    class="st0 st1"
@@ -64,6 +76,7 @@
    style="font-size:400px;font-family:FuturaLT-Book"><tspan
      style="font-size:560px"
      id="tspan52" /></text>
+
 
 	<text
    transform="translate(-26.0872,427.6295)"
@@ -73,6 +86,7 @@
    dx="0 0 0 0.029999999">i  <tspan
    style="letter-spacing:-0.11px"
    id="tspan54">nomy</tspan></text>
+
 
 	<circle
    class="st2"
@@ -126,7 +140,7 @@
 </g>
 <g
    id="Layer_2"
-   transform="translate(96,10)">
+   transform="translate(681.87887,-85.462833)">
 	<g
    id="g41">
 		<circle
