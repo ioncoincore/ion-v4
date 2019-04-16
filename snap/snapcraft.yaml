@@ -10,15 +10,15 @@ description: |
   cryptography proofs for industry-leading transaction anonymity.
   
   This package includes following binaries:
-
+  
     iond, ion-cli, ion-tx, ion-qt, test_ion, test_ion-qt
   
   Default homefolder:
-
+  
     ~/snap/ioncore/common/.ioncoin
   
   How to launch snap binaries in terminal?:
-
+  
     ioncore.qt     - launches Ion Core QT (ion-qt)
     ioncore.daemon - launches Ion Core daemon (iond)
     ioncore.cli    - launches Ion Core RPC (ion-cli)
@@ -27,7 +27,7 @@ description: |
     testqt         - launches test_ion-qt
   
   Additional launchers for tegtest and testnet:
-
+  
     ioncore.qt-testnet     - launches Ion Core QT with testnet=1
     ioncore.daemon-testnet - launches Ion Core daemon with testnet=1
     ioncore.cli-testnet    - launches Ion Core RPC with testnet=1
@@ -37,7 +37,7 @@ description: |
     ioncore.cli-regtest    - launches Ion Core RPC with regtest=1
   
   Documentation and wiki:
-
+  
   - Wiki (Ion Core):    https://github.com/ioncoincore/ion/wiki
   - Wiki (Ionomy):      https://github.com/ionomy/ion/wiki
   - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
