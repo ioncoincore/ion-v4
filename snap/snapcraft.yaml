@@ -10,10 +10,15 @@ description: |
   cryptography proofs for industry-leading transaction anonymity.
   
   This package includes following binaries:
+
     iond, ion-cli, ion-tx, ion-qt, test_ion, test_ion-qt
   
-  Default homefolder: ~/snap/ioncore/common/.ioncoin
+  Default homefolder:
+
+    ~/snap/ioncore/common/.ioncoin
+  
   How to launch snap binaries in terminal?:
+
     ioncore.qt     - launches Ion Core QT (ion-qt)
     ioncore.daemon - launches Ion Core daemon (iond)
     ioncore.cli    - launches Ion Core RPC (ion-cli)
@@ -22,6 +27,7 @@ description: |
     testqt         - launches test_ion-qt
   
   Additional launchers for tegtest and testnet:
+
     ioncore.qt-testnet     - launches Ion Core QT with testnet=1
     ioncore.daemon-testnet - launches Ion Core daemon with testnet=1
     ioncore.cli-testnet    - launches Ion Core RPC with testnet=1
@@ -29,7 +35,9 @@ description: |
     ioncore.qt-regtest     - launches Ion Core QT with regtest=1
     ioncore.daemon-regtest - launches Ion Core daemon with regtest=1
     ioncore.cli-regtest    - launches Ion Core RPC with regtest=1
+  
   Documentation and wiki:
+
   - Wiki (Ion Core):    https://github.com/ioncoincore/ion/wiki
   - Wiki (Ionomy):      https://github.com/ionomy/ion/wiki
   - Wiki (Ion Core CE): https://github.com/cevap/ion/wiki
@@ -42,11 +50,12 @@ description: |
   
   Chat with Support on Discord: https://discord.gg/vuZn7gC
   
-  Contact us on social networks and forums
-    Instagram: https://t.me/ionomy
-    Twitter:   https://twitter.com/ionomics
-    Reddit:    https://www.reddit.com/r/ionomy/
-    Facebook:  https://facebook.com/ionomy
+  Contact us on social networks and forums:
+  
+  - Instagram: https://t.me/ionomy
+  - Twitter:   https://twitter.com/ionomics
+  - Reddit:    https://www.reddit.com/r/ionomy/
+  - Facebook:  https://facebook.com/ionomy
   
   - Feature request: https://tinyurl.com/y5ds7s3t
   - I need help/support: https://tinyurl.com/yy6xa3p4
@@ -217,13 +226,9 @@ parts:
         if [ -e $SNAPCRAFT_PART_BUILD/src/qt/${BINPREF}-qt ]; then
           echo "PPC64EL fix - ${BINPREF}-qt exists, fix unrequired"
         else
-          echo "PPC64EL fix - ${BINPREF}-qt does not exist, fix required, dummy as ${BINPREF}-qt"
           echo "echo ${BINPREF}-qt is not installed" > ${SNAPCRAFT_PART_INSTALL}/usr/bin/${BINPREF}-qt
           chmod +x ${SNAPCRAFT_PART_INSTALL}/usr/bin/${BINPREF}-qt
-          echo "echo test_${BINPREF} is not installed" > ${SNAPCRAFT_PART_INSTALL}/usr/bin/test_${BINPREF}
-          chmod +x ${SNAPCRAFT_PART_INSTALL}/usr/bin/test_${BINPREF}
-          echo "echo test_${BINPREF}-qt is not installed" > ${SNAPCRAFT_PART_INSTALL}/usr/bin/test_${BINPREF}-qt
-          chmod +x ${SNAPCRAFT_PART_INSTALL}/usr/bin/test_${BINPREF}-qt
+          echo "PPC64EL fix - ${BINPREF}-qt does not exist, fix required, dummy as ${BINPREF}-qt"
         fi
       fi
       echo "-----------------------------------------------"
