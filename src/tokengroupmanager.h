@@ -42,7 +42,7 @@ public:
     uint256 documentHash;
     bool invalid;
 
-    CTokenGroupDescription() : invalid(true) { };
+    CTokenGroupDescription() : invalid(true) { Clear(); };
     CTokenGroupDescription(std::string strTicker, std::string strName, uint8_t decimalPosIn, std::string strDocumentUrl, uint256 documentHash) :
         strTicker(strTicker), strName(strName), strDocumentUrl(strDocumentUrl), documentHash(documentHash), invalid(false)
     {
