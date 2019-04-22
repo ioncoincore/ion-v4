@@ -372,8 +372,13 @@ UniValue CTokenGroupManager::TokenValueFromAmount(const CAmount& amount, const C
     int64_t n_abs = (sign ? -amount : amount);
     int64_t quotient = n_abs / tokenCOIN;
     int64_t remainder = n_abs % tokenCOIN;
-    return UniValue(UniValue::VNUM,
+    if (tgCreation.tokenGroupDescription.decimalPos == 0) {
+        return UniValue(UniValue::VNUM,
+            strprintf("%s%d", sign ? "-" : "", quotient));
+    } else {
+        return UniValue(UniValue::VNUM,
             strprintf("%s%d.%0*d", sign ? "-" : "", quotient, tgCreation.tokenGroupDescription.decimalPos, remainder));
+    }
 }
 
 bool CTokenGroupManager::GetXDMFee(const uint32_t& nXDMTransactions, CAmount& fee) {

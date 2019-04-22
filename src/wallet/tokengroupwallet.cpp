@@ -20,6 +20,7 @@
 #include "script/standard.h"
 #include "tokengroupmanager.h"
 #include "utilmoneystr.h"
+#include "utilstrencodings.h"
 #include "wallet.h"
 #include <algorithm>
 
@@ -683,12 +684,12 @@ std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &pa
         return ret;
     }
 
-    uint64_t lDecimalPosition = params[curparam].get_int64();
-    if (lDecimalPosition > 16) {
-        std::string strError = strprintf("Parameter %d is too large, maximum is 16", lDecimalPosition);
+    int32_t decimalPosition;
+    if (!ParseInt32(params[curparam].get_str(), &decimalPosition) || decimalPosition > 16 || decimalPosition < 0) {
+        std::string strError = strprintf("Parameter %d is invalid - valid values are between 0 and 16", decimalPosition);
         throw JSONRPCError(RPC_INVALID_PARAMS, strError);
     }
-    ret.push_back(std::vector<unsigned char>({(unsigned char)lDecimalPosition}));
+    ret.push_back(std::vector<unsigned char>({(unsigned char)decimalPosition}));
     curparam++;
 
     // we will accept just ticker, name and decimal position

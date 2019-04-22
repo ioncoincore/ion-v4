@@ -15,6 +15,7 @@
 #include "sync.h"
 #include "consensus/tokengroups.h"
 #include "wallet/tokengroupwallet.h"
+#include "tokengroupmanager.h"
 #include "txdb.h"
 #include "util.h"
 #include "utilmoneystr.h"
@@ -1994,7 +1995,7 @@ UniValue scantokens(const UniValue& params, bool fHelp)
             }
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey.begin(), txo.scriptPubKey.end()));
             unspent.pushKV("ION_Amount", ValueFromAmount(txo.nValue));
-            unspent.pushKV("token_Amount", tokenGroupInfo.quantity);
+            unspent.pushKV("token_Amount", tokenGroupManager->TokenValueFromAmount(tokenGroupInfo.quantity, needle));
             unspent.pushKV("height", (int32_t)coin.nHeight);
 
             unspents.push_back(unspent);
