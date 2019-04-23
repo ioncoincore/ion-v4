@@ -47,4 +47,6 @@ bool GetKernelStakeModifierPreDGW(uint256 hashBlockFrom, uint64_t& nStakeModifie
 // Get time weight using supplied timestamps
 int64_t GetWeight(int64_t nIntervalBeginning, int64_t nIntervalEnd);
 
+bool ContextualCheckZerocoinStake(int nPreviousBlockHeight, CStakeInput* stake);
+
 #endif // BITCOIN_KERNEL_H
