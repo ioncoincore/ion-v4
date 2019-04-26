@@ -367,7 +367,6 @@ static const CRPCCommand vRPCCommands[] =
         { "hidden",             "waitforblockheight",     &waitforblockheight,     true,  true,  false  },
 
         /* ION features */
-        {"ion", "masternode", &masternode, true, true, false},
         {"ion", "listmasternodes", &listmasternodes, true, true, false},
         {"ion", "getmasternodecount", &getmasternodecount, true, true, false},
         {"ion", "masternodeconnect", &masternodeconnect, true, true, false},
@@ -383,7 +382,6 @@ static const CRPCCommand vRPCCommands[] =
         {"ion", "getmasternodestatus", &getmasternodestatus, true, true, false},
         {"ion", "getmasternodewinners", &getmasternodewinners, true, true, false},
         {"ion", "getmasternodescores", &getmasternodescores, true, true, false},
-        {"ion", "mnbudget", &mnbudget, true, true, false},
         {"ion", "preparebudget", &preparebudget, true, true, false},
         {"ion", "submitbudget", &submitbudget, true, true, false},
         {"ion", "mnbudgetvote", &mnbudgetvote, true, true, false},
