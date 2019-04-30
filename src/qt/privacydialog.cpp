@@ -36,11 +36,11 @@ PrivacyDialog::PrivacyDialog(QWidget* parent) : QDialog(parent, Qt::WindowSystem
 
     // "Spending 999999 xION ought to be enough for anybody." - Bill Gates, 2017
     ui->xIONpayAmount->setValidator( new QDoubleValidator(0.0, 21000000.0, 20, this) );
-    ui->labelMintAmountValue->setValidator( new QIntValidator(0, 999999, this) );
+    //ui->labelMintAmountValue->setValidator( new QIntValidator(0, 999999, this) );     // disable MINT
 
     // Default texts for (mini-) coincontrol
-    ui->labelCoinControlQuantity->setText (tr("Coins automatically selected"));
-    ui->labelCoinControlAmount->setText (tr("Coins automatically selected"));
+    //ui->labelCoinControlQuantity->setText (tr("Coins automatically selected"));       // disable MINT
+    //ui->labelCoinControlAmount->setText (tr("Coins automatically selected"));         // disable MINT
     ui->labelxIONSyncStatus->setText("(" + tr("out of sync") + ")");
 
     // Sunken frame for minting messages
@@ -50,6 +50,7 @@ PrivacyDialog::PrivacyDialog(QWidget* parent) : QDialog(parent, Qt::WindowSystem
     ui->TEMintStatus->setPlainText(tr("Mint Status: Okay"));
 
     // Coin Control signals
+    /*                                                                            [disable MINT and coinControl]
     connect(ui->pushButtonCoinControl, SIGNAL(clicked()), this, SLOT(coinControlButtonClicked()));
 
     // Coin Control: clipboard actions
@@ -59,6 +60,7 @@ PrivacyDialog::PrivacyDialog(QWidget* parent) : QDialog(parent, Qt::WindowSystem
     connect(clipboardAmountAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardAmount()));
     ui->labelCoinControlQuantity->addAction(clipboardQuantityAction);
     ui->labelCoinControlAmount->addAction(clipboardAmountAction);
+    */
 
     // Denomination labels
     ui->labelzDenom1Text->setText(tr("Denom. with value <b>1</b>:"));
@@ -155,7 +157,8 @@ void PrivacyDialog::on_addressBookButton_clicked()
         ui->xIONpayAmount->setFocus();
     }
 }
-
+/* disable MINT
+ *
 void PrivacyDialog::on_pushButtonMintxION_clicked()
 {
     if (!walletModel || !walletModel->getOptionsModel())
@@ -236,7 +239,7 @@ void PrivacyDialog::on_pushButtonMintxION_clicked()
 
     return;
 }
-
+*/
 void PrivacyDialog::on_pushButtonMintReset_clicked()
 {
     ui->TEMintStatus->setPlainText(tr("Starting ResetMintZerocoin: rescanning complete blockchain, this will need up to 30 minutes depending on your hardware.\nPlease be patient..."));
@@ -522,6 +525,8 @@ void PrivacyDialog::on_payTo_textChanged(const QString& address)
     updateLabel(address);
 }
 
+/* DISABLE MINTs: no need for coinCointrol
+
 // Coin Control: copy label "Quantity" to clipboard
 void PrivacyDialog::coinControlClipboardQuantity()
 {
@@ -563,7 +568,7 @@ void PrivacyDialog::coinControlUpdateLabels()
         ui->labelCoinControlAmount->setText (tr("Coins automatically selected"));
     }
 }
-
+*/
 
 void PrivacyDialog::on_pushButtonShowDenoms_clicked()
 {
@@ -709,7 +714,6 @@ void PrivacyDialog::setBalance(const CAmount& balance, const CAmount& unconfirme
     ui->labelzAvailableAmount->setText(QString::number(zerocoinBalance/COIN) + QString(" xION "));
     ui->labelzAvailableAmount_2->setText(QString::number(matureZerocoinBalance/COIN) + QString(" xION "));
     ui->labelzAvailableAmount_4->setText(QString::number(zerocoinBalance/COIN) + QString(" xION "));
-    ui->labelxIONAmountValue->setText(BitcoinUnits::floorHtmlWithUnit(nDisplayUnit, balance - immatureBalance - nLockedBalance, false, BitcoinUnits::separatorAlways));
 
     // Display AutoMint status
     updateAutomintStatus();
@@ -801,20 +805,21 @@ void PrivacyDialog::updateAutomintStatus()
 void PrivacyDialog::updateSPORK16Status()
 {
     // Update/enable labels, buttons and tooltips depending on the current SPORK_16 status
-    bool fButtonsEnabled =  ui->pushButtonMintxION->isEnabled();
+    //bool fButtonsEnabled =  ui->pushButtonMintxION->isEnabled();
+    bool fButtonsEnabled = false;
     bool fMaintenanceMode = GetAdjustedTime() > GetSporkValue(SPORK_9_ZEROCOIN_MAINTENANCE_MODE);
     if (fMaintenanceMode && fButtonsEnabled) {
         // Mint xION
-        ui->pushButtonMintxION->setEnabled(false);
-        ui->pushButtonMintxION->setToolTip(tr("xION is currently disabled due to maintenance."));
+        //ui->pushButtonMintxION->setEnabled(false);
+        //ui->pushButtonMintxION->setToolTip(tr("xION is currently disabled due to maintenance."));
 
         // Spend xION
         ui->pushButtonSpendxION->setEnabled(false);
         ui->pushButtonSpendxION->setToolTip(tr("xION is currently disabled due to maintenance."));
     } else if (!fMaintenanceMode && !fButtonsEnabled) {
         // Mint xION
-        ui->pushButtonMintxION->setEnabled(true);
-        ui->pushButtonMintxION->setToolTip(tr("PrivacyDialog", "Enter an amount of ION to convert to xION", 0));
+        //ui->pushButtonMintxION->setEnabled(true);
+        //ui->pushButtonMintxION->setToolTip(tr("PrivacyDialog", "Enter an amount of ION to convert to xION", 0));
 
         // Spend xION
         ui->pushButtonSpendxION->setEnabled(true);
