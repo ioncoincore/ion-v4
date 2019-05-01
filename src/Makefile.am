@@ -191,6 +191,7 @@ BITCOIN_CORE_H = \
   xion/zerocoin.h \
   xion/xiontracker.h \
   xion/xionwallet.h \
+  xion/xionmodule.h \
   genwit.h \
   concurrentqueue.h \
   lightxionthread.h \
@@ -287,6 +288,7 @@ libbitcoin_wallet_a_SOURCES = \
   xion/xiontracker.cpp \
   stakeinput.cpp \
   genwit.cpp \
+  xion/xionmodule.cpp \
   lightxionthread.cpp \
   $(BITCOIN_CORE_H)
 
