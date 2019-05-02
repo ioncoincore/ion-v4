@@ -3624,11 +3624,15 @@ void static UpdateTip(CBlockIndex* pindexNew)
 {
     chainActive.SetTip(pindexNew);
 
+    /* Zerocoin minting is disabled
+     *
 #ifdef ENABLE_WALLET
     // If turned on AutoZeromint will automatically convert ION to xION
     if (pwalletMain && pwalletMain->isZeromintEnabled())
         pwalletMain->AutoZeromint();
 #endif // ENABLE_WALLET
+    *
+    */
 
     // New best block
     nTimeBestReceived = GetTime();
