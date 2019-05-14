@@ -287,7 +287,7 @@ std::string ReindexZerocoinDB()
                     //Record Serials
                     if (tx.HasZerocoinSpendInputs()) {
                         for (auto& in : tx.vin) {
-                            bool isPublicSpend = in.scriptSig.IsZerocoinPublicSpend();
+                            bool isPublicSpend = in.IsZerocoinPublicSpend();
                             if (!in.IsZerocoinSpend() && !isPublicSpend)
                                 continue;
                             if (isPublicSpend) {
@@ -388,7 +388,7 @@ std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock
             continue;
 
         for (const CTxIn& txin : tx.vin) {
-            bool isPublicSpend = txin.scriptSig.IsZerocoinPublicSpend();
+            bool isPublicSpend = txin.IsZerocoinPublicSpend();
             if (!txin.IsZerocoinSpend() && !isPublicSpend)
                 continue;
 
