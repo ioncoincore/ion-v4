@@ -133,16 +133,7 @@
        <item>
         <widget class="QWidget" name="verticalXionOptionsWidget" native="true">
          <layout class="QVBoxLayout" name="verticalXionOptionsLayout">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
+          <property name="margin">
            <number>0</number>
           </property>
           <item>
@@ -572,16 +563,7 @@ https://www.transifex.com/ioncoincore/ioncore</string>
        <item>
         <widget class="QWidget" name="verticalXionDisplayWidget" native="true">
          <layout class="QVBoxLayout" name="verticalXionDisplayLayout">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
+          <property name="margin">
            <number>0</number>
           </property>
           <item>
