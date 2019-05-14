@@ -145,6 +145,8 @@ public:
     int DGWStartHeight()   const { return nDGWStartHeight;     }
     int DGWStartTime()     const { return nDGWStartTime;       }
 
+    int Zerocoin_Block_Public_Spend_Enabled() const { return nPublicZCSpends; }
+
 protected:
     CChainParams() {}
 
@@ -212,6 +214,7 @@ protected:
     int nBlockLastGoodCheckpoint;
     int nBlockEnforceInvalidUTXO;
     int nBlockZerocoinV2;
+    int nPublicZCSpends;
 
     // fake serial attack
     int nFakeSerialBlockheightEnd = 0;
