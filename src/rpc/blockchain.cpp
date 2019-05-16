@@ -19,7 +19,9 @@
 #include "xion/accumulatormap.h"
 #include "xion/accumulators.h"
 #include "wallet/wallet.h"
+#include "xion/xionmodule.h"
 #include "xionchain.h"
+
 #include <stdint.h>
 #include <fstream>
 #include <iostream>
@@ -1502,14 +1504,31 @@ UniValue getserials(const UniValue& params, bool fHelp) {
             }
             // loop through each input
             for (const CTxIn& txin : tx.vin) {
-                // TODO: Add public coin spend parse here..
-                if (txin.IsZerocoinSpend()) {
-                    libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txin);
-                    std::string serial_str = spend.getCoinSerialNumber().ToString(16);
+                bool isPublicSpend =  txin.IsZerocoinPublicSpend();
+                if (txin.IsZerocoinSpend() || isPublicSpend) {
+                    std::string serial_str;
+                    int denom;
+                    if (isPublicSpend) {
+                        CTxOut prevOut;
+                        CValidationState state;
+                        if(!GetOutput(txin.prevout.hash, txin.prevout.n, state, prevOut)){
+                            throw JSONRPCError(RPC_INTERNAL_ERROR, "public zerocoin spend prev output not found");
+                        }
+                        libzerocoin::ZerocoinParams *params = Params().Zerocoin_Params(false);
+                        PublicCoinSpend publicSpend(params);
+                        if (!XIONModule::parseCoinSpend(txin, tx, prevOut, publicSpend)) {
+                            throw JSONRPCError(RPC_INTERNAL_ERROR, "public zerocoin spend parse failed");
+                        }
+                        serial_str = publicSpend.getCoinSerialNumber().ToString(16);
+                        denom = libzerocoin::ZerocoinDenominationToInt(publicSpend.getDenomination());
+                    } else {
+                        libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txin);
+                        serial_str = spend.getCoinSerialNumber().ToString(16);
+                        denom = libzerocoin::ZerocoinDenominationToInt(spend.getDenomination());
+                    }
                     if (!fVerbose) {
                         serialsArr.push_back(serial_str);
                     } else {
-                        int denom = libzerocoin::ZerocoinDenominationToInt(spend.getDenomination());
                         UniValue s(UniValue::VOBJ);
                         s.push_back(Pair("serial", serial_str));
                         s.push_back(Pair("denom", denom));
@@ -1520,7 +1539,6 @@ UniValue getserials(const UniValue& params, bool fHelp) {
                         s.push_back(Pair("blocktime", block.GetBlockTime()));
                         serialsArr.push_back(s);
                     }
-
                 }
 
             } // end for vin in tx
