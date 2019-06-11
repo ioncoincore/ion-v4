@@ -1395,10 +1395,13 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
     // Disallow any OP_GROUP txs from entering the mempool until OP_GROUP is enabled.
     // This ensures that someone won't create an invalid OP_GROUP tx that sits in the mempool until after activation,
     // potentially causing this node to create a bad block.
-    if ((int)chainActive.Tip()->nHeight < Params().OpGroup_StartHeight())
-    {
-        if (IsAnyTxOutputGrouped(tx))
+    if (IsAnyTxOutputGrouped(tx)) {
+        if ((int)chainActive.Tip()->nHeight < Params().OpGroup_StartHeight())
+        {
             return state.DoS(0, false, REJECT_NONSTANDARD, "premature-op_group-tx");
+        } else if (!IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN) && !tokenGroupManager->ManagementTokensCreated()){
+            return state.DoS(0, false, REJECT_NONSTANDARD, "op_group-before-mgt-tokens");
+        }
     }
 
     //Temporarily disable new token creation during management mode
@@ -2648,8 +2651,19 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 //Check that all token transactions paid their XDM fees
                 CAmount nXDMFees = 0;
                 if (!fVerifyingBlocks) {
-                    if (!tokenGroupManager->CheckXDMFees(tx, tgMintMeltBalance, state, pindexPrev, nXDMFees)) {
-                        return state.DoS(0, error("Token transaction does not pay enough XDM fees"), REJECT_MALFORMED, "token-group-imbalance");
+                    if (IsAnyTxOutputGrouped(tx)) {
+                        if (!tokenGroupManager->CheckXDMFees(tx, tgMintMeltBalance, state, pindexPrev, nXDMFees)) {
+                            return state.DoS(0, error("Token transaction does not pay enough XDM fees"), REJECT_MALFORMED, "token-group-imbalance");
+                        }
+                        if (!tokenGroupManager->ManagementTokensCreated()){
+                            for (const CTxOut &txout : tx.vout)
+                            {
+                                CTokenGroupInfo grp(txout.scriptPubKey);
+                                if ((grp.invalid || grp.associatedGroup != NoGroup) && !grp.associatedGroup.hasFlag(TokenGroupIdFlags::MGT_TOKEN)) {
+                                    return state.DoS(0, false, REJECT_NONSTANDARD, "op_group-before-mgt-tokens");
+                                }
+                            }
+                        }
                     }
                 } else {
                     LogPrint("token", "%s - XDM fee payment check skipped on sync\n", __func__);

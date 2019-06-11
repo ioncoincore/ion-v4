@@ -1069,16 +1069,18 @@ extern UniValue token(const UniValue &params, bool fHelp)
             tokenGroupManager->EnsureXDMFee(outputs, XDMFeeNeeded);
 
             // Add XDM inputs
-            CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
-            wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
-                CTokenGroupInfo tg(out->scriptPubKey);
-                if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
-                {
-                    totalXDMAvailable += tg.quantity;
-                    return true;
-                }
-                return false;
-            });
+            if (XDMFeeNeeded > 0) {
+                CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
+                wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
+                    CTokenGroupInfo tg(out->scriptPubKey);
+                    if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
+                    {
+                        totalXDMAvailable += tg.quantity;
+                        return true;
+                    }
+                    return false;
+                });
+            }
 
             if (totalXDMAvailable < XDMFeeNeeded)
             {
@@ -1098,7 +1100,6 @@ extern UniValue token(const UniValue &params, bool fHelp)
         ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
         return ret;
     }
-
 
     else if (operation == "mint")
     {
@@ -1189,16 +1190,18 @@ extern UniValue token(const UniValue &params, bool fHelp)
             tokenGroupManager->EnsureXDMFee(outputs, XDMFeeNeeded);
 
             // Add XDM inputs
-            CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
-            wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
-                CTokenGroupInfo tg(out->scriptPubKey);
-                if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
-                {
-                    totalXDMAvailable += tg.quantity;
-                    return true;
-                }
-                return false;
-            });
+            if (XDMFeeNeeded > 0) {
+                CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
+                wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
+                    CTokenGroupInfo tg(out->scriptPubKey);
+                    if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
+                    {
+                        totalXDMAvailable += tg.quantity;
+                        return true;
+                    }
+                    return false;
+                });
+            }
 
             if (totalXDMAvailable < XDMFeeNeeded)
             {
