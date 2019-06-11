@@ -26,7 +26,7 @@ public:
     CScriptID(const uint160& in) : uint160(in) {}
 };
 
-static const unsigned int MAX_OP_RETURN_RELAY = 83;      //!< bytes (+1 for OP_RETURN, +2 for the pushdata opcodes)
+static const unsigned int MAX_OP_RETURN_RELAY = 163;      //!< bytes (+1 for OP_RETURN, +5 for the OpRetGroupId, +157 for GroupDescData)
 extern unsigned nMaxDatacarrierBytes;
 
 /**
