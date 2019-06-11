@@ -1100,7 +1100,154 @@ extern UniValue token(const UniValue &params, bool fHelp)
         ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
         return ret;
     }
+    else if (operation == "checknew")
+    {
+        LOCK2(cs_main, wallet->cs_wallet);
 
+        unsigned int curparam = 1;
+
+        // CCoinControl coinControl;
+        // coinControl.fAllowOtherInputs = true; // Allow a normal bitcoin input for change
+        COutput coin(nullptr, 0, 0, false);
+
+        {
+            std::vector<COutput> coins;
+            CAmount lowest = Params().MaxMoneyOut();
+            wallet->FilterCoins(coins, [&lowest](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                // although its possible to spend a grouped input to produce
+                // a single mint group, I won't allow it to make the tx construction easier.
+                if ((tg.associatedGroup == NoGroup) && (out->nValue < lowest))
+                {
+                    lowest = out->nValue;
+                    return true;
+                }
+                return false;
+            });
+
+            if (0 == coins.size())
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "No coins available in the wallet");
+            }
+            coin = coins[coins.size() - 1];
+        }
+
+        uint64_t grpNonce = 0;
+
+        std::vector<COutput> chosenCoins;
+        chosenCoins.push_back(coin);
+
+        std::vector<CRecipient> outputs;
+
+        CReserveKey authKeyReservation(wallet);
+        CTxDestination authDest;
+        CScript opretScript;
+        if (curparam >= params.size())
+        {
+            CPubKey authKey;
+            authKeyReservation.GetReservedKey(authKey);
+            authDest = authKey.GetID();
+        }
+        else
+        {
+            authDest = DecodeDestination(params[curparam].get_str(), Params());
+            if (authDest == CTxDestination(CNoDestination()))
+            {
+                auto desc = ParseGroupDescParams(params, curparam);
+                if (desc.size()) // Add an op_return if there's a token desc doc
+                {
+                    opretScript = BuildTokenDescScript(desc);
+                    outputs.push_back(CRecipient{opretScript, 0, false});
+                }
+                CPubKey authKey;
+                authKeyReservation.GetReservedKey(authKey);
+                authDest = authKey.GetID();
+            }
+        }
+        curparam++;
+
+        CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), opretScript, TokenGroupIdFlags::NONE, grpNonce);
+
+        CScript script = GetScriptForDestination(authDest, grpID, (CAmount)GroupAuthorityFlags::ALL | grpNonce);
+        CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+        outputs.push_back(recipient);
+
+        std::string strError;
+        std::vector<COutput> coins;
+
+        // When minting a regular (non-management) token, an XDM fee is needed
+        // Note that XDM itself is also a management token
+        // Add XDM output to fee address and to change address
+        CAmount XDMFeeNeeded = 0;
+        CAmount totalXDMAvailable = 0;
+        if (!grpID.hasFlag(TokenGroupIdFlags::MGT_TOKEN))
+        {
+            tokenGroupManager->GetXDMFee(chainActive.Tip(), XDMFeeNeeded);
+            XDMFeeNeeded *= 5;
+
+            // Ensure enough XDM fees are paid
+            tokenGroupManager->EnsureXDMFee(outputs, XDMFeeNeeded);
+
+            // Add XDM inputs
+            if (XDMFeeNeeded > 0) {
+                CTokenGroupID XDMGrpID = tokenGroupManager->GetDarkMatterID();
+                wallet->FilterCoins(coins, [XDMGrpID, &totalXDMAvailable](const CWalletTx *tx, const CTxOut *out) {
+                    CTokenGroupInfo tg(out->scriptPubKey);
+                    if ((XDMGrpID == tg.associatedGroup) && !tg.isAuthority())
+                    {
+                        totalXDMAvailable += tg.quantity;
+                        return true;
+                    }
+                    return false;
+                });
+            }
+
+            if (totalXDMAvailable < XDMFeeNeeded)
+            {
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", XDMFeeNeeded - totalXDMAvailable);
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
+            }
+
+            // Get a near but greater quantity
+            totalXDMAvailable = GroupCoinSelection(coins, XDMFeeNeeded, chosenCoins);
+        }
+
+        UniValue ret(UniValue::VOBJ);
+
+        UniValue retChosenCoins(UniValue::VARR);
+        for (auto coin : chosenCoins) {
+            retChosenCoins.push_back(coin.ToString());
+        }
+        ret.push_back(Pair("chosen_coins", retChosenCoins));
+        UniValue retOutputs(UniValue::VOBJ);
+        for (auto output : outputs) {
+            retOutputs.push_back(Pair(output.scriptPubKey.ToString(), output.nAmount));
+        }
+        ret.push_back(Pair("outputs", retOutputs));
+
+        if (tokenGroupManager->ManagementTokensCreated()) {
+            ret.push_back(Pair("xdm_available", tokenGroupManager->TokenValueFromAmount(totalXDMAvailable, tokenGroupManager->GetDarkMatterID())));
+            ret.push_back(Pair("xdm_needed", tokenGroupManager->TokenValueFromAmount(XDMFeeNeeded, tokenGroupManager->GetDarkMatterID())));
+        }
+        ret.push_back(Pair("group_identifier", EncodeTokenGroup(grpID)));
+
+        CTokenGroupInfo tokenGroupInfo(opretScript);
+        CTokenGroupDescription tokenGroupDescription;
+        tokenGroupDescription.Clear();
+        if (opretScript.size()) {
+            std::vector<std::vector<unsigned char> > desc;
+            if (tokenGroupManager->BuildGroupDescData(opretScript, desc)) {
+                tokenGroupManager->ParseGroupDescData(tokenGroupInfo, desc, tokenGroupDescription);
+            }
+        }
+        ret.push_back(Pair("token_group_description_ticker", tokenGroupDescription.strTicker));
+        ret.push_back(Pair("token_group_description_name", tokenGroupDescription.strName));
+        ret.push_back(Pair("token_group_description_decimalpos", tokenGroupDescription.decimalPos));
+        ret.push_back(Pair("token_group_description_documenturl", tokenGroupDescription.strDocumentUrl));
+        ret.push_back(Pair("token_group_description_documenthash", tokenGroupDescription.documentHash.ToString()));
+
+        return ret;
+    }
     else if (operation == "mint")
     {
         LOCK(cs_main); // to maintain locking order
