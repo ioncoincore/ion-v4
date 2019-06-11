@@ -25,12 +25,12 @@ bool CTokenGroupManager::ValidateTokenDescription(const CTokenGroupInfo &tgInfo,
 
     smatch matchResult;
 
-    if (!std::regex_match(tgDesc.strName, matchResult, regexAlpha)) {
-        LogPrint("token", "Token name can only contain letters.\n");
-        return false;
-    }
     if (!std::regex_match(tgDesc.strTicker, matchResult, regexAlpha)) {
         LogPrint("token", "Token ticker can only contain letters.\n");
+        return false;
+    }
+    if (!std::regex_match(tgDesc.strName, matchResult, regexAlpha)) {
+        LogPrint("token", "Token name can only contain letters.\n");
         return false;
     }
     if (!std::regex_match(tgDesc.strDocumentUrl, matchResult, regexUrl)) {
@@ -76,12 +76,15 @@ bool CTokenGroupManager::BuildGroupDescData(CScript script, std::vector<std::vec
     std::vector<unsigned char> data;
     opcodetype opcode;
 
+    // 1 byte
     if (!script.GetOp(pc, opcode, data)) return false;
     if (opcode != OP_RETURN) return false;
 
+    // 1+4 bytes
     if (!script.GetOp(pc, opcode, data)) return false;
     uint32_t OpRetGroupId;
     if (data.size()!=4) return false;
+    // Little Endian
     OpRetGroupId = (uint32_t)data[3] << 24 | (uint32_t)data[2] << 16 | (uint32_t)data[1] << 8 | (uint32_t)data[0];
     if (OpRetGroupId != 88888888) return false;
 
@@ -100,13 +103,25 @@ bool CTokenGroupManager::ParseGroupDescData(const CTokenGroupInfo &tgInfo, const
     uint8_t decimalPos;
     uint256 docHash;
 
+    if (descriptionData.size() != 5 ||
+            descriptionData[0].size() > 8 || 
+            descriptionData[1].size() > 32 ||
+            descriptionData[2].size() > 1 ||
+            descriptionData[3].size() > 79 ||
+            descriptionData[4].size() > 32) {
+        tokenGroupDescription = CTokenGroupDescription();
+        LogPrint("token", "Invalid token description data - ignoring token description.\n");
+        return false;
+    }
+
     try {
-        tickerStr = std::string(descriptionData[0].begin(), descriptionData[0].end());
-        name = std::string(descriptionData[1].begin(), descriptionData[1].end());
-        decimalPos = (uint8_t)descriptionData[2][0];
-        url = std::string(descriptionData[3].begin(), descriptionData[3].end());
-        docHash = uint256(descriptionData[4]);
+        tickerStr = std::string(descriptionData[0].begin(), descriptionData[0].end());  // Max 9 bytes (1+8)
+        name = std::string(descriptionData[1].begin(), descriptionData[1].end());       // Max 33 bytes (1+32)
+        decimalPos = (uint8_t)descriptionData[2][0];                                    // Max 1 byte
+        url = std::string(descriptionData[3].begin(), descriptionData[3].end());        // Max 81 bytes (2+79)
+        docHash = uint256(descriptionData[4]);                                          // Max 33 bytes (1+32)
     } catch (const std::exception& e) {
+        tokenGroupDescription = CTokenGroupDescription();
         return false;
     }
     tokenGroupDescription = CTokenGroupDescription(tickerStr, name, decimalPos, url, docHash);

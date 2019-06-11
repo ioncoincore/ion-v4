@@ -52,7 +52,7 @@ public:
     void Clear() {
         strTicker = "";
         strName = "";
-        decimalPos = 0; // Tokens with no fractional quantities have decimalPos=0
+        decimalPos = 8; // Tokens with no fractional quantities have decimalPos=8
         strDocumentUrl = "";
         documentHash = uint256();
         invalid = true;
