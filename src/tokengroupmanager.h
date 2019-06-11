@@ -150,6 +150,10 @@ public:
     CTokenGroupID GetDarkMatterID() { return tgDarkMatterCreation->tokenGroupInfo.associatedGroup; };
     CTokenGroupID GetAtomID() { return tgAtomCreation->tokenGroupInfo.associatedGroup; };
 
+    bool ManagementTokensCreated() {
+        return tgMagicCreation && tgDarkMatterCreation && tgAtomCreation;
+    }
+
     unsigned int GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount);
     bool IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& inputs);
 
