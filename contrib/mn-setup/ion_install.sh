@@ -6,8 +6,8 @@ CONFIGFOLDER='/root/.ioncoin'
 COIN_DAEMON='iond'
 COIN_CLI='ion-cli'
 COIN_PATH='/usr/local/bin/'
-COIN_REPO='https://github.com/cevap/ion.git'
-COIN_TGZ='https://github.com/cevap/ion/releases/download/3.0.5/ion-3.0.5-x86_64-linux-gnu.tar.gz'
+COIN_REPO='https://github.com/ioncoincore/ion.git'
+COIN_TGZ='https://github.com/ioncoincore/ion/releases/download/v4.0.00/ion-4.0.0-x86_64-linux-gnu.tar.xz'
 COIN_ZIP=$(echo $COIN_TGZ | awk -F'/' '{print $NF}')
 COIN_NAME='Ion Core'
 COIN_PORT=12700
@@ -26,8 +26,8 @@ function download_node() {
   rm $COIN_ZIP >/dev/null 2>&1
   wget -q $COIN_TGZ
   compile_error
-  tar xvzf $COIN_ZIP >/dev/null 2>&1
-  cd slate-0.1.03/bin
+  tar xf $COIN_ZIP >/dev/null 2>&1
+  cd ion-3.1.01/bin
   chmod +x $COIN_DAEMON $COIN_CLI
   compile_error
   cp $COIN_DAEMON $COIN_CLI $COIN_PATH
@@ -98,12 +98,12 @@ function create_key() {
    echo -e "${RED}$COIN_NAME server couldn not start. Check /var/log/syslog for errors.{$NC}"
    exit 1
   fi
-  COINKEY=$($COIN_CLI masternode genkey)
+  COINKEY=$($COIN_CLI createmasternodekey)
   if [ "$?" -gt "0" ];
     then
     echo -e "${RED}Wallet not fully loaded. Let us wait and try again to generate the Private Key${NC}"
     sleep 30
-    COINKEY=$($COIN_CLI masternode genkey)
+    COINKEY=$($COIN_CLI createmasternodekey)
   fi
   $COIN_CLI stop
 fi
