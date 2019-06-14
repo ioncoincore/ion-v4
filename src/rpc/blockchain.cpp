@@ -1636,7 +1636,7 @@ bool FindTokenGroupID(std::atomic<int>& scan_progress, const std::atomic<bool>& 
                     scan_progress = (int)(high * 100.0 / 65536.0 + 0.5);
                 }
                 CTokenGroupInfo tokenGrp(out.scriptPubKey);
-                if ((tokenGrp.associatedGroup != NoGroup) && !tokenGrp.isAuthority() && tokenGrp.associatedGroup == needle) // must be sitting in any group address
+                if ((tokenGrp.associatedGroup != NoGroup) && tokenGrp.associatedGroup == needle) // must be sitting in any group address
                 {
                     out_results.emplace(COutPoint(key, i), Coin(coins, i));
                 }
@@ -1947,6 +1947,7 @@ UniValue scantokens(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan already in progress, use action \"abort\" or \"status\"");
         }
         CAmount total_in = 0;
+        GroupAuthorityFlags total_authorities = GroupAuthorityFlags::NONE;
 
         if (!params[1].isStr()){
             throw JSONRPCError(RPC_INVALID_PARAMETER, "No token group ID specified");
@@ -1985,7 +1986,8 @@ UniValue scantokens(const UniValue& params, bool fHelp)
             ExtractDestination(txo.scriptPubKey, dest);
 
             input_txos.push_back(txo);
-            total_in += tokenGroupInfo.quantity;
+            total_in += tokenGroupInfo.getAmount();
+            total_authorities |= tokenGroupInfo.controllingGroupFlags();
 
             UniValue unspent(UniValue::VOBJ);
             unspent.pushKV("txid", outpoint.hash.GetHex());
@@ -1994,15 +1996,20 @@ UniValue scantokens(const UniValue& params, bool fHelp)
                 unspent.push_back(Pair("address", EncodeDestination(dest)));
             }
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey.begin(), txo.scriptPubKey.end()));
-            unspent.pushKV("ION_Amount", ValueFromAmount(txo.nValue));
-            unspent.pushKV("token_Amount", tokenGroupManager->TokenValueFromAmount(tokenGroupInfo.quantity, needle));
+            unspent.pushKV("ION_amount", ValueFromAmount(txo.nValue));
+            if (tokenGroupInfo.isAuthority()){
+                unspent.pushKV("token_authorities", EncodeGroupAuthority(tokenGroupInfo.controllingGroupFlags()));
+            } else {
+                unspent.pushKV("token_amount", tokenGroupManager->TokenValueFromAmount(tokenGroupInfo.getAmount(), needle));
+            }
             unspent.pushKV("height", (int32_t)coin.nHeight);
 
             unspents.push_back(unspent);
         }
 
         result.pushKV("unspents", unspents);
-        result.pushKV("total_amount", total_in);
+        result.pushKV("total_amount", tokenGroupManager->TokenValueFromAmount(total_in, needle));
+        result.pushKV("token_authorities", EncodeGroupAuthority(total_authorities));
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid command");
     }

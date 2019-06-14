@@ -25,6 +25,36 @@
 
 CTokenGroupID NoGroup; // No group specified.
 
+std::string EncodeGroupAuthority(const GroupAuthorityFlags flags) {
+    std::string sflags = "none";
+    if (hasCapability(flags, GroupAuthorityFlags::CTRL)) {
+        sflags = "";
+        if (hasCapability(flags, GroupAuthorityFlags::MINT)) {
+            sflags += "mint";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::MELT)) {
+            if (sflags != "") sflags += " ";
+            sflags += "melt";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::CCHILD)) {
+            if (sflags != "") sflags += " ";
+            sflags += "child";
+        } else {
+            if (sflags != "") sflags += " ";
+            sflags += "nochild";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::RESCRIPT)) {
+            if (sflags != "") sflags += " ";
+            sflags += "rescript";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::SUBGROUP)) {
+            if (sflags != "") sflags += " ";
+            sflags += "subgroup";
+        }
+    }
+    return sflags;
+}
+
 bool IsAnyTxOutputGrouped(const CTransaction &tx)
 {
     for (const CTxOut &txout : tx.vout)
