@@ -189,6 +189,8 @@ inline bool hasCapability(GroupAuthorityFlags object, const GroupAuthorityFlags 
 
 inline CAmount toAmount(GroupAuthorityFlags f) { return (CAmount)f; }
 
+std::string EncodeGroupAuthority(const GroupAuthorityFlags flags);
+
 // class that just track of the amounts of each group coming into and going out of a transaction
 class CTokenGroupBalance
 {
@@ -243,6 +245,11 @@ public:
     GroupAuthorityFlags controllingGroupFlags() const {
         if (quantity < 0) return (GroupAuthorityFlags)quantity;
         return GroupAuthorityFlags::NONE;
+    }
+
+    // if the amount is negative, it's a token authority
+    CAmount getAmount() const {
+        return quantity < 0 ? 0 : quantity;
     }
 
     // return true if this object is a token authority.

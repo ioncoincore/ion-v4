@@ -8,6 +8,7 @@
 #include "coins.h"
 #include "consensus/tokengroups.h"
 #include "consensus/validation.h"
+#include "core_io.h"
 #include "dstencode.h"
 #include "init.h"
 #include "main.h" // for BlockMap
@@ -189,6 +190,28 @@ void GetAllGroupBalancesAndAuthorities(const CWallet *wallet, std::unordered_map
     });
 }
 
+void ListAllGroupAuthorities(const CWallet *wallet, std::vector<COutput> &coins) {
+    wallet->FilterCoins(coins, [](const CWalletTx *tx, const CTxOut *out) {
+        CTokenGroupInfo tg(out->scriptPubKey);
+        if (tg.isAuthority()) {
+            return true;
+        } else {
+            return false;
+        }
+    });
+}
+
+void ListGroupAuthorities(const CWallet *wallet, std::vector<COutput> &coins, const CTokenGroupID &grpID) {
+    wallet->FilterCoins(coins, [grpID](const CWalletTx *tx, const CTxOut *out) {
+        CTokenGroupInfo tg(out->scriptPubKey);
+        if (tg.isAuthority() && tg.associatedGroup == grpID) {
+            return true;
+        } else {
+            return false;
+        }
+    });
+}
+
 CAmount GetGroupBalance(const CTokenGroupID &grpID, const CTxDestination &dest, const CWallet *wallet)
 {
     std::vector<COutput> coins;
@@ -293,35 +316,6 @@ static GroupAuthorityFlags ParseAuthorityParams(const UniValue &params, unsigned
             break;
     }
     return flags;
-}
-
-static std::string EncodeAuthorityParams(const GroupAuthorityFlags flags)
-{
-    std::string sflags = "none";
-    if (hasCapability(flags, GroupAuthorityFlags::CTRL)) {
-        sflags = "ctrl";
-        if (hasCapability(flags, GroupAuthorityFlags::MINT)) {
-            sflags += " | mint";
-        }
-        if (hasCapability(flags, GroupAuthorityFlags::MELT)) {
-            sflags += " | melt";
-        }
-        if (hasCapability(flags, GroupAuthorityFlags::MELT)) {
-            sflags += " | melt";
-        }
-        if (hasCapability(flags, GroupAuthorityFlags::CCHILD)) {
-            sflags += " | child";
-        } else {
-            sflags += " | nochild";
-        }
-        if (hasCapability(flags, GroupAuthorityFlags::RESCRIPT)) {
-            sflags += " | rescript";
-        }
-        if (hasCapability(flags, GroupAuthorityFlags::SUBGROUP)) {
-            sflags += " | subgroup";
-        }
-    }
-    return sflags;
 }
 
 // extracts a common RPC call parameter pattern.  Returns curparam.
@@ -992,7 +986,6 @@ extern UniValue token(const UniValue &params, bool fHelp)
         }
 
         // Get what authority permissions the user wants from the command line
-        curparam++; // Skip dummy
         curparam++;
         if (curparam < params.size()) // If flags are not specified, we assign all authorities
         {
@@ -1065,6 +1058,132 @@ extern UniValue token(const UniValue &params, bool fHelp)
         ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, 0, 0, grpID, wallet);
         renewAuthorityKey.KeepKey();
         return wtx.GetHash().GetHex();
+    }
+    else if (operation == "dropauthorities")
+    {
+        // Parameters:
+        // - tokenGroupID
+        // - tx ID of UTXU that needs to drop authorities
+        // - vout value of UTXU that needs to drop authorities
+        // - authority to remove
+        // This function removes authority for a tokengroupID at a specific UTXO
+        LOCK2(cs_main, wallet->cs_wallet);
+        CAmount totalBchNeeded = 0;
+        CAmount totalBchAvailable = 0;
+        unsigned int curparam = 1;
+        std::vector<COutput> availableCoins;
+        std::vector<COutput> chosenCoins;
+        std::vector<CRecipient> outputs;
+        if (curparam >= params.size())
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameters");
+        }
+
+        CTokenGroupID grpID;
+        // Get the group id from the command line
+        grpID = GetTokenGroup(params[curparam].get_str());
+        if (!grpID.isUserGroup())
+        {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
+        }
+
+        // Get the txid/voutnr from the command line
+        curparam++;
+        uint256 txid;
+        txid.SetHex(params[curparam].get_str());
+        // Note: IsHex("") is false
+        if (txid == 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: wrong txid");
+        }
+
+        curparam++;
+        int32_t voutN;
+        if (!ParseInt32(params[curparam].get_str(), &voutN) || voutN < 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: wrong vout nr");
+        }
+
+        wallet->AvailableCoins(availableCoins, true, NULL, false);
+        if (availableCoins.empty()) {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: provided output is not available");
+        }
+
+        for (auto coin : availableCoins) {
+            if (coin.tx->GetHash() == txid && coin.i == voutN) {
+                chosenCoins.push_back(coin);
+            }
+        }
+        if (chosenCoins.size() == 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: provided output is not available");
+        }
+
+        // Get what authority permissions the user wants from the command line
+        curparam++;
+        GroupAuthorityFlags authoritiesToDrop = GroupAuthorityFlags::NONE;
+        if (curparam < params.size()) // If flags are not specified, we assign all authorities
+        {
+            while (1)
+            {
+                std::string sflag;
+                std::string p = params[curparam].get_str();
+                std::transform(p.begin(), p.end(), std::back_inserter(sflag), ::tolower);
+                if (sflag == "mint")
+                    authoritiesToDrop |= GroupAuthorityFlags::MINT;
+                else if (sflag == "melt")
+                    authoritiesToDrop |= GroupAuthorityFlags::MELT;
+                else if (sflag == "child")
+                    authoritiesToDrop |= GroupAuthorityFlags::CCHILD;
+                else if (sflag == "rescript")
+                    authoritiesToDrop |= GroupAuthorityFlags::RESCRIPT;
+                else if (sflag == "subgroup")
+                    authoritiesToDrop |= GroupAuthorityFlags::SUBGROUP;
+                else if (sflag == "all")
+                    authoritiesToDrop |= GroupAuthorityFlags::ALL;
+                else
+                    break; // If param didn't match, then return because we've left the list of flags
+                curparam++;
+                if (curparam >= params.size())
+                    break;
+            }
+            if (curparam < params.size())
+            {
+                std::string strError;
+                strError = strprintf("Invalid parameter: flag %s", params[curparam].get_str());
+                throw JSONRPCError(RPC_INVALID_PARAMS, strError);
+            }
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: need to specify which capabilities to drop");
+        }
+
+        CScript script = chosenCoins.at(0).GetScriptPubKey();
+        CTokenGroupInfo tgInfo(script);
+        CTxDestination dest;
+        ExtractDestination(script, dest);
+        string strAuthorities = EncodeGroupAuthority(tgInfo.controllingGroupFlags());
+
+        GroupAuthorityFlags authoritiesToKeep = tgInfo.controllingGroupFlags() & ~authoritiesToDrop;
+
+        UniValue ret(UniValue::VOBJ);
+        ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgInfo.associatedGroup)));
+        ret.push_back(Pair("transaction", txid.GetHex()));
+        ret.push_back(Pair("vout", voutN));
+        ret.push_back(Pair("coin", chosenCoins.at(0).ToString()));
+        ret.push_back(Pair("script", script.ToString()));
+        ret.push_back(Pair("destination", EncodeDestination(dest)));
+        ret.push_back(Pair("authorities_former", strAuthorities));
+        ret.push_back(Pair("authorities_new", EncodeGroupAuthority(authoritiesToKeep)));
+
+        if ((authoritiesToKeep == GroupAuthorityFlags::CTRL) || (authoritiesToKeep == GroupAuthorityFlags::NONE) || !hasCapability(authoritiesToKeep, GroupAuthorityFlags::CTRL)) {
+            ret.push_back(Pair("status", "Dropping all authorities"));
+        } else {
+            // Construct the new authority
+            CScript script = GetScriptForDestination(dest, grpID, (CAmount)authoritiesToKeep);
+            CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+            outputs.push_back(recipient);
+            totalBchNeeded += GROUPED_SATOSHI_AMT;
+        }
+        CWalletTx wtx;
+        ConstructTx(wtx, chosenCoins, outputs, totalBchAvailable, totalBchNeeded, 0, 0, 0, 0, grpID, wallet);
+        return ret;
     }
     else if (operation == "new")
     {
@@ -1457,7 +1576,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
     {
         if (params.size() > 3)
         {
-            throw std::runtime_error("Invalid number of argument to token listauthorities");
+            throw std::runtime_error("Invalid number of argument to token balance");
         }
         if (params.size() == 1) // no group specified, show them all
         {
@@ -1471,7 +1590,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
                 retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(item.first)));
                 retobj.push_back(Pair("balance", tokenGroupManager->TokenValueFromAmount(item.second, item.first)));
                 if (hasCapability(authorities[item.first], GroupAuthorityFlags::CTRL))
-                    retobj.push_back(Pair("authorities", EncodeAuthorityParams(authorities[item.first])));
+                    retobj.push_back(Pair("authorities", EncodeGroupAuthority(authorities[item.first])));
 
                 ret.push_back(retobj);
             }
@@ -1494,8 +1613,43 @@ extern UniValue token(const UniValue &params, bool fHelp)
         retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
         retobj.push_back(Pair("balance", tokenGroupManager->TokenValueFromAmount(balance, grpID)));
         if (hasCapability(authorities, GroupAuthorityFlags::CTRL))
-            retobj.push_back(Pair("authorities", EncodeAuthorityParams(authorities)));
+            retobj.push_back(Pair("authorities", EncodeGroupAuthority(authorities)));
         return retobj;
+    }
+    else if (operation == "listauthorities")
+    {
+        if (params.size() > 2)
+        {
+            throw std::runtime_error("Invalid number of argument to token authorities");
+        }
+        std::vector<COutput> coins;
+        if (params.size() == 1) // no group specified, show them all
+        {
+            ListAllGroupAuthorities(wallet, coins);
+        } else {
+            CTokenGroupID grpID = GetTokenGroup(params[1].get_str());
+            if (!grpID.isUserGroup())
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter 1: No group specified");
+            }
+            ListGroupAuthorities(wallet, coins, grpID);
+        }
+        UniValue ret(UniValue::VARR);
+        for (const COutput &coin : coins)
+        {
+            CTokenGroupInfo tgInfo(coin.GetScriptPubKey());
+            CTxDestination dest;
+            ExtractDestination(coin.GetScriptPubKey(), dest);
+
+            UniValue retobj(UniValue::VOBJ);
+            retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgInfo.associatedGroup)));
+            retobj.push_back(Pair("txid", coin.tx->GetHash().ToString()));
+            retobj.push_back(Pair("vout", coin.i));
+            retobj.push_back(Pair("address", EncodeDestination(dest)));
+            retobj.push_back(Pair("token_authorities", EncodeGroupAuthority(tgInfo.controllingGroupFlags())));
+            ret.push_back(retobj);
+        }
+        return ret;
     }
     else if (operation == "send")
     {
@@ -1712,9 +1866,8 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
 
     UniValue ret(UniValue::VARR);
 
-    if (operation == "list") {
+    if (operation == "all") {
         unsigned int curparam = 1;
-
         if (curparam < params.size()) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Too many parameters");
         }
