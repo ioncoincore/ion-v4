@@ -169,6 +169,26 @@ void GetAllGroupBalances(const CWallet *wallet, std::unordered_map<CTokenGroupID
     });
 }
 
+void GetAllGroupBalancesAndAuthorities(const CWallet *wallet, std::unordered_map<CTokenGroupID, CAmount> &balances, std::unordered_map<CTokenGroupID, GroupAuthorityFlags> &authorities)
+{
+    std::vector<COutput> coins;
+    wallet->FilterCoins(coins, [&balances, &authorities](const CWalletTx *tx, const CTxOut *out) {
+        CTokenGroupInfo tg(out->scriptPubKey);
+        if ((tg.associatedGroup != NoGroup)) {
+            authorities[tg.associatedGroup] |= tg.controllingGroupFlags();
+            if (!tg.isAuthority()) {
+                if (tg.quantity > std::numeric_limits<CAmount>::max() - balances[tg.associatedGroup])
+                    balances[tg.associatedGroup] = std::numeric_limits<CAmount>::max();
+                else
+                    balances[tg.associatedGroup] += tg.quantity;
+            } else {
+                balances[tg.associatedGroup] += 0;
+            }
+        }
+        return false; // I don't want to actually filter anything
+    });
+}
+
 CAmount GetGroupBalance(const CTokenGroupID &grpID, const CTxDestination &dest, const CWallet *wallet)
 {
     std::vector<COutput> coins;
@@ -199,6 +219,43 @@ CAmount GetGroupBalance(const CTokenGroupID &grpID, const CTxDestination &dest, 
         return false;
     });
     return balance;
+}
+
+void GetGroupBalanceAndAuthorities(CAmount &balance, GroupAuthorityFlags &authorities, const CTokenGroupID &grpID, const CTxDestination &dest, const CWallet *wallet)
+{
+    std::vector<COutput> coins;
+    balance = 0;
+    authorities = GroupAuthorityFlags::NONE;
+    wallet->FilterCoins(coins, [grpID, dest, &balance, &authorities](const CWalletTx *tx, const CTxOut *out) {
+        CTokenGroupInfo tg(out->scriptPubKey);
+        if ((grpID == tg.associatedGroup)) // must be sitting in group address
+        {
+            bool useit = dest == CTxDestination(CNoDestination());
+            if (!useit)
+            {
+                CTxDestination address;
+                txnouttype whichType;
+                if (ExtractDestinationAndType(out->scriptPubKey, address, whichType))
+                {
+                    if (address == dest)
+                        useit = true;
+                }
+            }
+            if (useit)
+            {
+                authorities |= tg.controllingGroupFlags();
+                if (!tg.isAuthority()) {
+                    if (tg.quantity > std::numeric_limits<CAmount>::max() - balance)
+                        balance = std::numeric_limits<CAmount>::max();
+                    else
+                        balance += tg.quantity;
+                } else {
+                    balance += 0;
+                }
+            }
+        }
+        return false;
+    });
 }
 
 CScript GetScriptForDestination(const CTxDestination &dest, const CTokenGroupID &group, const CAmount &amount)
@@ -236,6 +293,35 @@ static GroupAuthorityFlags ParseAuthorityParams(const UniValue &params, unsigned
             break;
     }
     return flags;
+}
+
+static std::string EncodeAuthorityParams(const GroupAuthorityFlags flags)
+{
+    std::string sflags = "none";
+    if (hasCapability(flags, GroupAuthorityFlags::CTRL)) {
+        sflags = "ctrl";
+        if (hasCapability(flags, GroupAuthorityFlags::MINT)) {
+            sflags += " | mint";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::MELT)) {
+            sflags += " | melt";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::MELT)) {
+            sflags += " | melt";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::CCHILD)) {
+            sflags += " | child";
+        } else {
+            sflags += " | nochild";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::RESCRIPT)) {
+            sflags += " | rescript";
+        }
+        if (hasCapability(flags, GroupAuthorityFlags::SUBGROUP)) {
+            sflags += " | subgroup";
+        }
+    }
+    return sflags;
 }
 
 // extracts a common RPC call parameter pattern.  Returns curparam.
@@ -1371,16 +1457,23 @@ extern UniValue token(const UniValue &params, bool fHelp)
     {
         if (params.size() > 3)
         {
-            throw std::runtime_error("Invalid number of argument to token balance");
+            throw std::runtime_error("Invalid number of argument to token listauthorities");
         }
         if (params.size() == 1) // no group specified, show them all
         {
             std::unordered_map<CTokenGroupID, CAmount> balances;
-            GetAllGroupBalances(wallet, balances);
-            UniValue ret(UniValue::VOBJ);
+            std::unordered_map<CTokenGroupID, GroupAuthorityFlags> authorities;
+            GetAllGroupBalancesAndAuthorities(wallet, balances, authorities);
+            UniValue ret(UniValue::VARR);
             for (const auto &item : balances)
             {
-                ret.push_back(Pair(EncodeTokenGroup(item.first), tokenGroupManager->TokenValueFromAmount(item.second, item.first)));
+                UniValue retobj(UniValue::VOBJ);
+                retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(item.first)));
+                retobj.push_back(Pair("balance", tokenGroupManager->TokenValueFromAmount(item.second, item.first)));
+                if (hasCapability(authorities[item.first], GroupAuthorityFlags::CTRL)) 
+                    retobj.push_back(Pair("authorities", EncodeAuthorityParams(authorities[item.first])));
+
+                ret.push_back(retobj);
             }
             return ret;
         }
@@ -1394,7 +1487,15 @@ extern UniValue token(const UniValue &params, bool fHelp)
         {
             dst = DecodeDestination(params[2].get_str(), Params());
         }
-        return UniValue(GetGroupBalance(grpID, dst, wallet));
+        CAmount balance;
+        GroupAuthorityFlags authorities;
+        GetGroupBalanceAndAuthorities(balance, authorities, grpID, dst, wallet);
+        UniValue retobj(UniValue::VOBJ);
+        retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
+        retobj.push_back(Pair("balance", tokenGroupManager->TokenValueFromAmount(balance, grpID)));
+        if (hasCapability(authorities, GroupAuthorityFlags::CTRL)) 
+            retobj.push_back(Pair("authorities", EncodeAuthorityParams(authorities)));
+        return retobj;
     }
     else if (operation == "send")
     {
