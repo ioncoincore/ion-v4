@@ -1087,7 +1087,11 @@ UniValue getfeeinfo(const UniValue& params, bool fHelp)
             HelpExampleCli("getfeeinfo", "5") + HelpExampleRpc("getfeeinfo", "5"));
 
     int nBlocks = params[0].get_int();
-    int nBestHeight = chainActive.Height();
+    int nBestHeight;
+    {
+        LOCK(cs_main);
+        nBestHeight = chainActive.Height();
+    }
     int nStartHeight = nBestHeight - nBlocks;
     if (nBlocks < 0 || nStartHeight <= 0)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid start height");
@@ -1332,7 +1336,11 @@ void validaterange(const UniValue& params, int& heightStart, int& heightEnd, int
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Not enough parameters in validaterange");
     }
 
-    const int nBestHeight = chainActive.Height();
+    int nBestHeight;
+    {
+        LOCK(cs_main);
+        nBestHeight = chainActive.Height();
+    }
 
     heightStart = params[0].get_int();
     if (heightStart > nBestHeight) {
@@ -1378,8 +1386,6 @@ UniValue getmintsinblocks(const UniValue& params, bool fHelp) {
                 HelpExampleCli("getmintsinblocks", "1200000 1000 5") +
                 HelpExampleRpc("getmintsinblocks", "1200000, 1000, 5"));
 
-    LOCK(cs_main);
-
     int heightStart, heightEnd;
     validaterange(params, heightStart, heightEnd, Params().Zerocoin_StartHeight());
 
@@ -1389,19 +1395,23 @@ UniValue getmintsinblocks(const UniValue& params, bool fHelp) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid denomination. Must be in {1, 5, 10, 50, 100, 500, 1000, 5000}");
 
     int num_of_mints = 0;
-    CBlockIndex* pindex = chainActive[heightStart];
+    {
+        LOCK(cs_main);
+        CBlockIndex* pindex = chainActive[heightStart];
 
-    while (true) {
-        num_of_mints += count(pindex->vMintDenominationsInBlock.begin(), pindex->vMintDenominationsInBlock.end(), denom);
-        if (pindex->nHeight < heightEnd)
-            pindex = chainActive.Next(pindex);
-        else
-            break;
+        while (true) {
+            num_of_mints += count(pindex->vMintDenominationsInBlock.begin(), pindex->vMintDenominationsInBlock.end(), denom);
+            if (pindex->nHeight < heightEnd) {
+                pindex = chainActive.Next(pindex);
+            } else {
+                break;
+            }
+        }
     }
 
     UniValue obj(UniValue::VOBJ);
     obj.push_back(Pair("Starting block", heightStart));
-    obj.push_back(Pair("Ending block", pindex->nHeight));
+    obj.push_back(Pair("Ending block", heightEnd-1));
     obj.push_back(Pair("Number of "+ std::to_string(d) +"-denom mints", num_of_mints));
 
     return obj;
@@ -1423,8 +1433,6 @@ UniValue getserials(const UniValue& params, bool fHelp) {
             HelpExampleCli("getserials", "1254000 1000") +
             HelpExampleRpc("getserials", "1254000, 1000"));
 
-    LOCK(cs_main);
-
     int heightStart, heightEnd;
     validaterange(params, heightStart, heightEnd, Params().Zerocoin_StartHeight());
 
@@ -1433,7 +1441,14 @@ UniValue getserials(const UniValue& params, bool fHelp) {
         fVerbose = params[2].get_bool();
     }
 
-    CBlockIndex* pblockindex = chainActive[heightStart];
+    CBlockIndex* pblockindex = nullptr;
+    {
+        LOCK(cs_main);
+        pblockindex = chainActive[heightStart];
+    }
+
+    if (!pblockindex)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid block height");
 
     UniValue serialsObj(UniValue::VOBJ);    // for fVerbose
     UniValue serialsArr(UniValue::VARR);
@@ -1506,8 +1521,12 @@ UniValue getserials(const UniValue& params, bool fHelp) {
             } // end for vin in tx
         } // end for tx in block
 
-        if (pblockindex->nHeight < heightEnd) pblockindex = chainActive.Next(pblockindex);
-        else break;
+        if (pblockindex->nHeight < heightEnd) {
+            LOCK(cs_main);
+            pblockindex = chainActive.Next(pblockindex);
+        } else {
+            break;
+        }
 
     } // end for blocks
 
@@ -1873,8 +1892,6 @@ UniValue getblockindexstats(const UniValue& params, bool fHelp) {
                 HelpExampleCli("getblockindexstats", "1200000 1000") +
                 HelpExampleRpc("getblockindexstats", "1200000, 1000"));
 
-    LOCK(cs_main);
-
     int heightStart, heightEnd;
     validaterange(params, heightStart, heightEnd);
     // return object
@@ -1902,7 +1919,14 @@ UniValue getblockindexstats(const UniValue& params, bool fHelp) {
         mapPublicSpendCount.insert(make_pair(denom, 0));
     }
 
-    CBlockIndex* pindex = chainActive[heightStart];
+    CBlockIndex* pindex = nullptr;
+    {
+        LOCK(cs_main);
+        pindex = chainActive[heightStart];
+    }
+
+    if (!pindex)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "invalid block height");
 
     while (true) {
         CBlock block;
@@ -1967,6 +1991,7 @@ UniValue getblockindexstats(const UniValue& params, bool fHelp) {
         }
 
         if (pindex->nHeight < heightEnd) {
+            LOCK(cs_main);
             pindex = chainActive.Next(pindex);
         } else {
             break;
