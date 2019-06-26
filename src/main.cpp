@@ -1400,7 +1400,13 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
         {
             return state.DoS(0, false, REJECT_NONSTANDARD, "premature-op_group-tx");
         } else if (!IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN) && !tokenGroupManager->ManagementTokensCreated()){
-            return state.DoS(0, false, REJECT_NONSTANDARD, "op_group-before-mgt-tokens");
+            for (const CTxOut &txout : tx.vout)
+            {
+                CTokenGroupInfo grp(txout.scriptPubKey);
+                if ((grp.invalid || grp.associatedGroup != NoGroup) && !grp.associatedGroup.hasFlag(TokenGroupIdFlags::MGT_TOKEN)) {
+                    return state.DoS(0, false, REJECT_NONSTANDARD, "op_group-before-mgt-tokens");
+                }
+            }
         }
     }
 
