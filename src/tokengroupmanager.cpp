@@ -281,12 +281,17 @@ std::string CTokenGroupManager::GetTokenGroupNameByID(CTokenGroupID tokenGroupId
 }
 
 bool CTokenGroupManager::GetTokenGroupIdByTicker(std::string strTicker, CTokenGroupID &tokenGroupID) {
+    std::string strNeedleTicker;
+    std::transform(strTicker.begin(), strTicker.end(), std::back_inserter(strNeedleTicker), ::tolower);
     auto result = std::find_if(
-          mapTokenGroups.begin(),
-          mapTokenGroups.end(),
-          [strTicker](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
-                return tokenGroup.second.tokenGroupDescription.strTicker == strTicker;
-            });
+        mapTokenGroups.begin(), mapTokenGroups.end(),
+        [strNeedleTicker](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
+            std::string strHeapTicker;
+            std::transform(tokenGroup.second.tokenGroupDescription.strTicker.begin(),
+                tokenGroup.second.tokenGroupDescription.strTicker.end(),
+                std::back_inserter(strHeapTicker), ::tolower);
+            return strHeapTicker == strNeedleTicker;
+        });
     if (result != mapTokenGroups.end()) {
         tokenGroupID = result->first;
         return true;
@@ -295,12 +300,17 @@ bool CTokenGroupManager::GetTokenGroupIdByTicker(std::string strTicker, CTokenGr
 }
 
 bool CTokenGroupManager::GetTokenGroupIdByName(std::string strName, CTokenGroupID &tokenGroupID) {
+    std::string strNeedleName;
+    std::transform(strName.begin(), strName.end(), std::back_inserter(strNeedleName), ::tolower);
     auto result = std::find_if(
-          mapTokenGroups.begin(),
-          mapTokenGroups.end(),
-          [strName](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
-                return tokenGroup.second.tokenGroupDescription.strName == strName;
-            });
+        mapTokenGroups.begin(), mapTokenGroups.end(),
+        [strNeedleName](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
+            std::string strHeapName;
+            std::transform(tokenGroup.second.tokenGroupDescription.strName.begin(),
+                tokenGroup.second.tokenGroupDescription.strName.end(),
+                std::back_inserter(strHeapName), ::tolower);
+            return strHeapName == strNeedleName;
+        });
     if (result != mapTokenGroups.end()) {
         tokenGroupID = result->first;
         return true;
