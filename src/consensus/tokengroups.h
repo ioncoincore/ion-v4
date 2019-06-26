@@ -101,6 +101,8 @@ public:
     bool isSubgroup(void) const;
     //* returns the parent group if this is a subgroup or itself.
     CTokenGroupID parentGroup(void) const;
+    //* returns the data field of a subgroup
+    std::vector<unsigned char> GetSubGroupData();
 
     const std::vector<unsigned char> &bytes(void) const { return data; }
     //* Convert this token group ID into a mint/melt address
