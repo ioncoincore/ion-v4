@@ -461,7 +461,7 @@ bool CTokenGroupManager::CheckXDMFees(const CTransaction &tx, const std::unorder
         if (grp.isGroupCreation() && !grp.associatedGroup.hasFlag(TokenGroupIdFlags::MGT_TOKEN)) {
             // Creation tx of regular token
             nXDMFees = 5 * curXDMFee;
-            nXDMFreeOutputs = nXDMFreeOutputs < 2 ? 2 : nXDMFreeOutputs; // Fe free outputs for fee and change
+            nXDMFreeOutputs = nXDMFreeOutputs < 2 ? 2 : nXDMFreeOutputs; // Free outputs for fee and change
         }
         if (MatchesDarkMatter(grp.associatedGroup) && !grp.isAuthority()) {
             // XDM output (send or mint)
@@ -495,7 +495,9 @@ bool CTokenGroupManager::CheckXDMFees(const CTransaction &tx, const std::unorder
         } else if (tgBalance.output - tgBalance.input < 0) {
             // Melt
             if (tgID == tgDarkMatterCreation->tokenGroupInfo.associatedGroup) {
+                // XDM melt
                 XDMMelted += tgBalance.output - tgBalance.input;
+                nXDMFreeOutputs = nXDMFreeOutputs < 1 ? 1 : nXDMFreeOutputs; // Fee free output for XDM melt
             }
         }
     }
