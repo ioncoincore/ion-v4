@@ -29,12 +29,20 @@ bool IsAnyTxOutputGrouped(const CTransaction &tx)
 {
     for (const CTxOut &txout : tx.vout)
     {
-        CTokenGroupInfo grp(txout.scriptPubKey);
-        if (grp.invalid)
-            return true; // Its still grouped even if invalid
-        if (grp.associatedGroup != NoGroup)
+        if (IsTxOutputGrouped(txout)) {
             return true;
+        }
     }
+
+    return false;
+}
+
+bool IsTxOutputGrouped(const CTxOut &txout) {
+    CTokenGroupInfo grp(txout.scriptPubKey);
+    if (grp.invalid)
+        return true; // Its still grouped even if invalid
+    if (grp.associatedGroup != NoGroup)
+        return true;
 
     return false;
 }

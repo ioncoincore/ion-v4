@@ -303,6 +303,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
 
 // Return true if any output in this transaction is part of a group
 bool IsAnyTxOutputGrouped(const CTransaction &tx);
+bool IsTxOutputGrouped(const CTxOut &txout);
 
 bool IsAnyTxOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
 
