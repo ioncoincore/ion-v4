@@ -1819,7 +1819,7 @@ extern UniValue managementtoken(const UniValue &paramsIn, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMS, "Management Group Token key is not available");
 
         uint64_t grpNonce = 0;
-        CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), opretScript, (TokenGroupIdFlags)TokenGroupIdFlags::STICKY_MELT | TokenGroupIdFlags::MGT_TOKEN, grpNonce);
+        CTokenGroupID grpID = findGroupId(coin.GetOutPoint(), opretScript, TokenGroupIdFlags::MGT_TOKEN, grpNonce);
 
         std::vector<COutput> chosenCoins;
         chosenCoins.push_back(coin);
