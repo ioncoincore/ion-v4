@@ -875,7 +875,6 @@ extern UniValue token(const UniValue &params, bool fHelp)
     std::string operation;
     std::string p0 = params[0].get_str();
     std::transform(p0.begin(), p0.end(), std::back_inserter(operation), ::tolower);
-    EnsureWalletIsUnlocked();
 
     if (operation == "listsinceblock")
     {
@@ -887,6 +886,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
     }
     if (operation == "subgroup")
     {
+        EnsureWalletIsUnlocked();
+
         unsigned int curparam = 1;
         if (curparam >= params.size())
         {
@@ -957,6 +958,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
     }
     else if (operation == "createauthority")
     {
+        EnsureWalletIsUnlocked();
+
         LOCK2(cs_main, wallet->cs_wallet);
         CAmount totalBchNeeded = 0;
         CAmount totalBchAvailable = 0;
@@ -1067,6 +1070,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
         // - vout value of UTXU that needs to drop authorities
         // - authority to remove
         // This function removes authority for a tokengroupID at a specific UTXO
+        EnsureWalletIsUnlocked();
+
         LOCK2(cs_main, wallet->cs_wallet);
         CAmount totalBchNeeded = 0;
         CAmount totalBchAvailable = 0;
@@ -1187,6 +1192,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
     }
     else if (operation == "new")
     {
+        EnsureWalletIsUnlocked();
+
         LOCK2(cs_main, wallet->cs_wallet);
 
         unsigned int curparam = 1;
@@ -1455,6 +1462,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
     }
     else if (operation == "mint")
     {
+        EnsureWalletIsUnlocked();
+
         LOCK(cs_main); // to maintain locking order
         LOCK(wallet->cs_wallet); // because I am reserving UTXOs for use in a tx
         CTokenGroupID grpID;
@@ -1653,6 +1662,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
     }
     else if (operation == "send")
     {
+        EnsureWalletIsUnlocked();
+
         CTokenGroupID grpID;
         CAmount totalTokensNeeded = 0;
         unsigned int curparam = 1;
@@ -1683,6 +1694,8 @@ extern UniValue token(const UniValue &params, bool fHelp)
     }
     else if (operation == "melt")
     {
+        EnsureWalletIsUnlocked();
+
         CTokenGroupID grpID;
         std::vector<CRecipient> outputs;
 
