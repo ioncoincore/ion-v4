@@ -316,7 +316,7 @@ public:
         nPublicZCSpends = 9999999;
 
         // Token groups
-        nOpGroupStartHeight = 1;
+        nOpGroupStartHeight = 3100;
         strTokenManagementKey = "gBi3gDLnGfw8HA2rN4HmNxHk9hMC4GLFbh";
 
         // Fake Serial Attack
