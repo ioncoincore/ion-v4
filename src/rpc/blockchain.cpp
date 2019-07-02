@@ -1636,8 +1636,9 @@ bool FindTokenGroupID(std::atomic<int>& scan_progress, const std::atomic<bool>& 
                     scan_progress = (int)(high * 100.0 / 65536.0 + 0.5);
                 }
                 CTokenGroupInfo tokenGrp(out.scriptPubKey);
-                if ((tokenGrp.associatedGroup != NoGroup) && tokenGrp.associatedGroup == needle) // must be sitting in any group address
-                {
+                if (tokenGrp.associatedGroup != NoGroup && // must be sitting in any group address
+                        tokenGrp.associatedGroup == needle &&
+                        coins.nHeight >= Params().OpGroup_StartHeight()) {
                     out_results.emplace(COutPoint(key, i), Coin(coins, i));
                 }
 

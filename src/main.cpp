@@ -3438,6 +3438,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                 }
             }
             if (IsAnyTxOutputGroupedCreation(tx)) {
+                if (pindex->nHeight < Params().OpGroup_StartHeight()) {
+                    return state.DoS(0, false, REJECT_NONSTANDARD, "premature-op_group-tx");
+                }
                 //Disable new token creation during management mode
                 if (block.nTime > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && !IsInitialBlockDownload()) {
                     if (IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
