@@ -237,7 +237,7 @@ void CTokenGroupManager::ResetTokenGroups() {
 
 }
 
-bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID) {
+bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &toRemoveTokenGroupID) {
     CScript firstOpReturn;
     CTokenGroupInfo tokenGroupInfo;
 
@@ -254,12 +254,21 @@ bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTok
         if (tokenGrp.associatedGroup != NoGroup && tokenGrp.isGroupCreation() && !hasNewTokenGroup) {
             hasNewTokenGroup = true;
             tokenGroupInfo = tokenGrp;
+
+            if (MatchesMagic(tokenGrp.associatedGroup)) {
+                tgMagicCreation.reset();
+            } else if (MatchesDarkMatter(tokenGrp.associatedGroup)) {
+                tgDarkMatterCreation.reset();
+            } else if (MatchesAtom(tokenGrp.associatedGroup)) {
+                tgAtomCreation.reset();
+            }
         }
     }
     if (hasNewTokenGroup) {
         std::map<CTokenGroupID, CTokenGroupCreation>::iterator iter = mapTokenGroups.find(tokenGroupInfo.associatedGroup);
         if (iter != mapTokenGroups.end()) {
             mapTokenGroups.erase(iter);
+            toRemoveTokenGroupID = iter->first;
             return true;
         }
     }
