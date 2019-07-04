@@ -166,6 +166,18 @@ bool CTokenGroupManager::MatchesAtom(CTokenGroupID tgID) {
     return tgID == tgAtomCreation->tokenGroupInfo.associatedGroup;
 }
 
+bool CTokenGroupManager::MagicTokensCreated() {
+    return tgMagicCreation ? true : false;
+};
+
+bool CTokenGroupManager::DarkMatterTokensCreated() {
+    return tgDarkMatterCreation ? true : false;
+};
+
+bool CTokenGroupManager::AtomTokensCreated() {
+    return tgAtomCreation ? true : false;
+};
+
 bool CTokenGroupManager::IsManagementTokenInput(CScript script) {
     // Initially, the TokenManagementKey enables management token operations
     // When the MagicToken is created, the MagicToken enables management token operations
