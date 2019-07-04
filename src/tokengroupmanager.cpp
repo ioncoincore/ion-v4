@@ -166,6 +166,19 @@ bool CTokenGroupManager::MatchesAtom(CTokenGroupID tgID) {
     return tgID == tgAtomCreation->tokenGroupInfo.associatedGroup;
 }
 
+bool CTokenGroupManager::IsManagementTokenInput(CScript script) {
+    // Initially, the TokenManagementKey enables management token operations
+    // When the MagicToken is created, the MagicToken enables management token operations
+    if (!tgMagicCreation) {
+        CTxDestination payeeDest;
+        ExtractDestination(script, payeeDest);
+        return EncodeDestination(payeeDest) == Params().TokenManagementKey();
+    } else {
+        CTokenGroupInfo grp(script);
+        return MatchesMagic(grp.associatedGroup);
+    }
+}
+
 bool CTokenGroupManager::AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups) {
     for (auto tokenGroupCreation : newTokenGroups) {
         if (!FilterTokenDescription(tokenGroupCreation.tokenGroupInfo, tokenGroupCreation.tokenGroupDescription)) {
