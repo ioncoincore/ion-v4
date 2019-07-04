@@ -2735,7 +2735,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 
 bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, bool* pfClean)
 {
-    std::vector<CTokenGroupID> newTokenGroupIDs;
+    std::vector<CTokenGroupID> toRemoveTokenGroupIDs;
 
     if (pindex->GetBlockHash() != view.GetBestBlock())
         LogPrintf("%s : pindex=%s view=%s\n", __func__, pindex->GetBlockHash().GetHex(), view.GetBestBlock().GetHex());
@@ -2867,14 +2867,14 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
                 coins->vout[out.n] = undo.txout;
             }
             if (IsAnyTxOutputGroupedCreation(tx)) {
-                CTokenGroupID newTokenGroupID;
-                if (tokenGroupManager->RemoveTokenGroup(tx, newTokenGroupID))
-                    newTokenGroupIDs.push_back(newTokenGroupID);
+                CTokenGroupID toRemoveTokenGroupID;
+                if (tokenGroupManager->RemoveTokenGroup(tx, toRemoveTokenGroupID))
+                    toRemoveTokenGroupIDs.push_back(toRemoveTokenGroupID);
             }
         }
     }
 
-    if (!pTokenDB->EraseTokenGroupBatch(newTokenGroupIDs))
+    if (!pTokenDB->EraseTokenGroupBatch(toRemoveTokenGroupIDs))
         return error("failed to erase token group creations");
 
     // move best block pointer to prevout block
