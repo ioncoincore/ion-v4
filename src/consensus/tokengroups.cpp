@@ -16,6 +16,7 @@
 #include "ionaddrenc.h"
 #include "random.h"
 #include "rpc/server.h"
+#include "tokengroupmanager.h"
 #include "utilmoneystr.h"
 #include "wallet/wallet.h"
 #include "wallet/tokengroupwallet.h"
@@ -338,10 +339,7 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
         if (coin.nHeight < Params().OpGroup_StartHeight())
             continue;
         const CScript &script = coin.out.scriptPubKey;
-
-        CTxDestination payeeDest;
-        ExtractDestination(script, payeeDest);
-        if (EncodeDestination(payeeDest) == Params().TokenManagementKey())
+        if (tokenGroupManager->IsManagementTokenInput(script))
             anyInputsGroupManagement = true;
 
         CTokenGroupInfo tokenGrp(script);
