@@ -233,7 +233,6 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
                 pindexNew->nNonce = diskindex.nNonce;
                 pindexNew->nStatus = diskindex.nStatus;
                 pindexNew->nTx = diskindex.nTx;
-                pindexNew->nXDMTransactions = diskindex.nXDMTransactions;
 
                 //zerocoin
                 pindexNew->nAccumulatorCheckpoint = diskindex.nAccumulatorCheckpoint;
@@ -248,6 +247,12 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
                 pindexNew->prevoutStake = diskindex.prevoutStake;
                 pindexNew->nStakeTime = diskindex.nStakeTime;
                 pindexNew->hashProofOfStake = diskindex.hashProofOfStake;
+
+                //Tokens
+                pindexNew->nMagicSupply = diskindex.nMagicSupply;
+                pindexNew->nMagicTransactions = diskindex.nMagicTransactions;
+                pindexNew->nXDMSupply = diskindex.nXDMSupply;
+                pindexNew->nXDMTransactions = diskindex.nXDMTransactions;
 
                 if (pindexNew->nHeight <= Params().LAST_POW_BLOCK() && pindexNew->IsProofOfWork()) {
                     if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits))

@@ -3340,6 +3340,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     vector<uint256> vSpendsInBlock;
     uint256 hashBlock = block.GetHash();
     unsigned int nXDMCountInBlock = 0;
+    unsigned int nMagicCountInBlock = 0;
+    CAmount nXDMMint = 0;
+    CAmount nMagicMint = 0;
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
         const CTransaction& tx = block.vtx[i];
 
@@ -3496,8 +3499,13 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             control.Add(vChecks);
         }
         nValueOut += tx.GetValueOut();
-        if (tokenGroupManager->IsXDMTx(tx, view))
-            nXDMCountInBlock++;
+
+        if (tokenGroupManager->DarkMatterTokensCreated()) {
+            tokenGroupManager->GetTokenTxStats(tx, view, tokenGroupManager->GetDarkMatterID(), nXDMCountInBlock, nXDMMint);
+        }
+        if (tokenGroupManager->MagicTokensCreated()) {
+            tokenGroupManager->GetTokenTxStats(tx, view, tokenGroupManager->GetMagicID(), nMagicCountInBlock, nMagicMint);
+        }
 
         CTxUndo undoDummy;
         if (i > 0) {
@@ -3523,6 +3531,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     // Track XDM money supply in the block index
     pindex->nXDMTransactions = nXDMCountInBlock;
+    // Track Magic token supply in the block index
+    pindex->nMagicTransactions = nMagicCountInBlock;
 
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
@@ -3530,6 +3540,13 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     pindex->nMint = pindex->nMoneySupply - nMoneySupplyPrev + nFees;
     CAmount nXDMTransactionsPrev = pindex->pprev ? pindex->pprev->nChainXDMTransactions : 0;
     pindex->nChainXDMTransactions = nXDMTransactionsPrev + pindex->nXDMTransactions;
+    CAmount nMagicTransactionsPrev = pindex->pprev ? pindex->pprev->nChainMagicTransactions : 0;
+    pindex->nChainMagicTransactions = nMagicTransactionsPrev + pindex->nMagicTransactions;
+
+    CAmount nXDMSupplyPrev = pindex->pprev ? pindex->pprev->nXDMSupply : 0;
+    pindex->nXDMSupply = nXDMSupplyPrev + nXDMMint;
+    CAmount nMagicSupplyPrev = pindex->pprev ? pindex->pprev->nMagicSupply : 0;
+    pindex->nMagicSupply = nMagicSupplyPrev + nMagicMint;
 
 //    LogPrintf("XX69----------> ConnectBlock(): nValueOut: %s, nValueIn: %s, nFees: %s, nMint: %s xIonSpent: %s\n",
 //              FormatMoney(nValueOut), FormatMoney(nValueIn),
@@ -5426,14 +5443,17 @@ bool static LoadBlockIndexDB(string& strError)
                 if (pindex->pprev->nChainTx) {
                     pindex->nChainTx = pindex->pprev->nChainTx + pindex->nTx;
                     pindex->nChainXDMTransactions = pindex->pprev->nChainXDMTransactions + pindex->nXDMTransactions;
+                    pindex->nChainMagicTransactions = pindex->pprev->nChainMagicTransactions + pindex->nMagicTransactions;
                 } else {
                     pindex->nChainTx = 0;
                     pindex->nChainXDMTransactions = 0;
+                    pindex->nChainMagicTransactions = 0;
                     mapBlocksUnlinked.insert(std::make_pair(pindex->pprev, pindex));
                 }
             } else {
                 pindex->nChainTx = pindex->nTx;
                 pindex->nChainXDMTransactions = pindex->nXDMTransactions;
+                pindex->nChainMagicTransactions = pindex->nMagicTransactions;
             }
         }
         if (pindex->IsValid(BLOCK_VALID_TRANSACTIONS) && (pindex->nChainTx || pindex->pprev == NULL))

@@ -352,57 +352,44 @@ bool CTokenGroupManager::GetTokenGroupIdByName(std::string strName, CTokenGroupI
     return false;
 }
 
-unsigned int CTokenGroupManager::GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount) {
-    int nXDMCountInBlock = 0;
-    for (auto tx : block.vtx) {
-        if (!tx.IsCoinBase() && !tx.ContainsZerocoins()) {
-            if (IsXDMTx(tx, view)) {
-                nXDMCountInBlock++;
-            }
-        }
-    }
-    nXDMCount += nXDMCountInBlock;
-    return nXDMCountInBlock;
-}
+unsigned int CTokenGroupManager::GetTokenTxStats(const CTransaction &tx, const CCoinsViewCache& view, const CTokenGroupID &tgId,
+                unsigned int &nTokenCount, CAmount &nTokenMint) {
 
-bool CTokenGroupManager::IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& view) {
-    if (!tgDarkMatterCreation) return false;
+    CAmount nTxValueOut = 0;
+    CAmount nTxValueIn = 0;
 
-    bool anyInputsXDM = false;
-    if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.HasZerocoinSpendInputs()) {
-
-        if (!view.HaveInputs(transaction))
-            return false;
-
-        if (((int)chainActive.Tip()->nHeight >= Params().OpGroup_StartHeight())) {
-            // Now iterate through the inputs to match to DarkMatter inputs
-            for (const auto &inp : transaction.vin)
+    if (!tx.IsCoinBase() && !tx.IsCoinStake() && !tx.HasZerocoinSpendInputs()) {
+        for (const auto &outp : tx.vout)
+        {
+            const CScript &scriptPubKey = outp.scriptPubKey;
+            CTokenGroupInfo tokenGrp(scriptPubKey);
+            if (!tokenGrp.invalid && tokenGrp.associatedGroup == tgId && !tokenGrp.isAuthority())
             {
-                const COutPoint &prevout = inp.prevout;
-                const Coin &coin = view.AccessCoin(prevout);
-                if (coin.IsSpent()) {
-                    LogPrint("token", "%s - Checking token group for spent coin\n", __func__);
-                    return false;
-                }
-                // no prior coins can be grouped.
-                if (coin.nHeight < Params().OpGroup_StartHeight())
-                    continue;
-                const CScript &script = coin.out.scriptPubKey;
-
-                CTokenGroupInfo tokenGrp(script);
-                // The prevout should never be invalid because that would mean that this node accepted a block with an
-                // invalid OP_GROUP tx in it.
-                if (tokenGrp.invalid)
-                    continue;
-                if (tokenGrp.associatedGroup == tgDarkMatterCreation->tokenGroupInfo.associatedGroup) {
-                    LogPrint("token", "%s - Found a XDM input: [%s] at height [%d]\n", __func__, coin.out.ToString(), coin.nHeight);
-                    anyInputsXDM = true;
-                }
+                nTxValueOut += tokenGrp.quantity;
             }
+        }
+        for (const auto &inp : tx.vin)
+        {
+            const COutPoint &prevout = inp.prevout;
+            const Coin &coin = view.AccessCoin(prevout);
+
+            if (coin.nHeight < Params().OpGroup_StartHeight())
+                continue;
+            const CScript &script = coin.out.scriptPubKey;
+
+            CTokenGroupInfo tokenGrp(script);
+            if (!tokenGrp.invalid && tokenGrp.associatedGroup == tgId && !tokenGrp.isAuthority())
+            {
+                nTxValueIn += tokenGrp.quantity;
+            }
+        }
+        nTokenMint += nTxValueOut - nTxValueIn;
+        if (nTxValueIn > 0 || nTxValueOut > 0) {
+            nTokenCount++;
         }
     }
 
-    return anyInputsXDM;
+    return nTokenCount;
 }
 
 bool CTokenGroupManager::TokenMoneyRange(CAmount nValueOut) {
