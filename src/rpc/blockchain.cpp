@@ -145,7 +145,11 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("modifier", strprintf("%016x", blockindex->nStakeModifier)));
 
     result.push_back(Pair("moneysupply",ValueFromAmount(blockindex->nMoneySupply)));
-    result.push_back(Pair("XDM_transactions", (uint64_t)blockindex->nXDMTransactions));
+
+    if (tokenGroupManager->DarkMatterTokensCreated()) {
+        result.push_back(Pair("XDM_supply", tokenGroupManager->TokenValueFromAmount(blockindex->nXDMSupply, tokenGroupManager->GetDarkMatterID())));
+        result.push_back(Pair("XDM_transactions", (uint64_t)blockindex->nXDMTransactions));
+    }
 
     UniValue xionObj(UniValue::VOBJ);
     for (auto denom : libzerocoin::zerocoinDenomList) {
