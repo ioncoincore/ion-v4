@@ -1107,7 +1107,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: wrong vout nr");
         }
 
-        wallet->AvailableCoins(availableCoins, true, NULL, false);
+        wallet->AvailableCoins(availableCoins, true, NULL, false, ALL_COINS, false, 1, true);
         if (availableCoins.empty()) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: provided output is not available");
         }
@@ -1794,8 +1794,49 @@ extern UniValue managementtoken(const UniValue &paramsIn, bool fHelp)
         curparam++;
 
         COutput coin(nullptr, 0, 0, false);
-        CTxDestination dest = DecodeDestination(Params().TokenManagementKey());
-        {
+        // If the MagicToken exists: spend a magic token output
+        // Otherwise: spend an ION output from the token management address
+        if (tokenGroupManager->MagicTokensCreated()){
+            CTokenGroupID magicID = tokenGroupManager->GetMagicID();
+
+            std::vector<COutput> coins;
+            CAmount lowest = Params().MaxMoneyOut();
+            wallet->FilterCoins(coins, [&lowest, magicID](const CWalletTx *tx, const CTxOut *out) {
+                CTokenGroupInfo tg(out->scriptPubKey);
+                // although its possible to spend a grouped input to produce
+                // a single mint group, I won't allow it to make the tx construction easier.
+
+                if (tg.associatedGroup == magicID && !tg.isAuthority())
+                {
+                    CTxDestination address;
+                    if (ExtractDestination(out->scriptPubKey, address)) {
+                        if ((tg.quantity < lowest))
+                        {
+                            lowest = tg.quantity;
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
+
+            if (0 == coins.size())
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Input tx is not available for spending");
+            }
+
+            coin = coins[coins.size() - 1];
+
+            // Add magic change
+            CTxDestination address;
+            ExtractDestination(coin.GetScriptPubKey(), address);
+            CTokenGroupInfo tgMagicInfo(coin.GetScriptPubKey());
+            CScript script = GetScriptForDestination(address, magicID, tgMagicInfo.getAmount());
+            CRecipient recipient = {script, GROUPED_SATOSHI_AMT, false};
+            outputs.push_back(recipient);
+        } else {
+            CTxDestination dest = DecodeDestination(Params().TokenManagementKey());
+
             std::vector<COutput> coins;
             CAmount lowest = Params().MaxMoneyOut();
             wallet->FilterCoins(coins, [&lowest, dest](const CWalletTx *tx, const CTxOut *out) {
