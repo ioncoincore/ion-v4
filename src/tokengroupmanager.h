@@ -153,6 +153,7 @@ public:
     bool ManagementTokensCreated() {
         return tgMagicCreation && tgDarkMatterCreation && tgAtomCreation;
     }
+    bool IsManagementTokenInput(CScript script);
 
     unsigned int GetXDMTxCount(const CBlock &block, const CCoinsViewCache& view, unsigned int &nXDMCount);
     bool IsXDMTx(const CTransaction &transaction, const CCoinsViewCache& inputs);
