@@ -89,6 +89,44 @@ bool IsAnyTxOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlag
     return false;
 }
 
+bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID) {
+    bool anyInputsGrouped = false;
+    if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.HasZerocoinSpendInputs()) {
+
+        if (!view.HaveInputs(transaction))
+            return false;
+
+        if (((int)chainActive.Tip()->nHeight >= Params().OpGroup_StartHeight())) {
+            // Now iterate through the inputs to match to DarkMatter inputs
+            for (const auto &inp : transaction.vin)
+            {
+                const COutPoint &prevout = inp.prevout;
+                const Coin &coin = view.AccessCoin(prevout);
+                if (coin.IsSpent()) {
+                    LogPrint("token", "%s - Checking token group for spent coin\n", __func__);
+                    return false;
+                }
+                // no prior coins can be grouped.
+                if (coin.nHeight < Params().OpGroup_StartHeight())
+                    continue;
+                const CScript &script = coin.out.scriptPubKey;
+
+                CTokenGroupInfo tokenGrp(script);
+                // The prevout should never be invalid because that would mean that this node accepted a block with an
+                // invalid OP_GROUP tx in it.
+                if (tokenGrp.invalid)
+                    continue;
+                if (tokenGrp.associatedGroup == tgID) {
+                    LogPrint("token", "%s - Matched a TokenGroup input: [%s] at height [%d]\n", __func__, coin.out.ToString(), coin.nHeight);
+                    anyInputsGrouped = true;
+                }
+            }
+        }
+    }
+
+    return anyInputsGrouped;
+}
+
 std::vector<unsigned char> SerializeAmount(CAmount num)
 {
     CDataStream strm(SER_NETWORK, CLIENT_VERSION);

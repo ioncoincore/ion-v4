@@ -316,6 +316,8 @@ bool IsTxOutputGrouped(const CTxOut &txout);
 
 bool IsAnyTxOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
 
+bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID);
+
 // Serialize a CAmount into an array of bytes.
 // This serialization does not store the length of the serialized data within the serialized data.
 // It is therefore useful only within a system that already identifies the length of this field (such as a CScript).
