@@ -127,7 +127,7 @@ public:
 
     bool AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups);
     bool CreateTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation);
-    bool RemoveTokenGroup(CTransaction tx, CTokenGroupID &newTokenGroupID);
+    bool RemoveTokenGroup(CTransaction tx, CTokenGroupID &toRemoveTokenGroupID);
     void ResetTokenGroups();
 
     bool GetTokenGroupCreation(const CTokenGroupID& tgID, CTokenGroupCreation& tgCreation);
