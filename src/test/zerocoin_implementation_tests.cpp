@@ -509,15 +509,7 @@ BOOST_AUTO_TEST_CASE(test_checkpoints)
     BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::LoadCheckpoints("main"), "failed to load checkpoints");
     BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::mapCheckpoints.at(1100020)
                                 .at(libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND)
-<<<<<<< HEAD
                                 .GetHex() == "8db0b3495edb380ef7dda75a0ce2c53427b7a5ca70e0f6e93596a23e77d1c2e3244b581506ced3492ffb6ed53b42ce9eec293fc8f44bc59dcc5dd449ab6e93f087cf37f11aecf84386328e50fe14251fecfef7dbf5d33d07068f68a7466921c0267f38ca0b79ff30876d3e6c06a878b30d4bd17e35e53c3fcfc886200ee216401ee1dc90ba7c4345c01fc00aa4cf4540d51158f76da334226d076de56f9b5f8d32791cff7ed51af5054e9beb05237c330f24430ac7c2ffe5cf1a6b4fed14600e18e635d848476b826a12e2a9429170e7cc6dbdb44e04dfe00f3b7660bb083a1942aaee19d30a848cdb1228efd9ec3e7a8af611c8822d930f62cf73d4c0f1597c", "does not match");
-=======
-                                .GetHex() == "5e33c35654a34b971acd068760eda578a3e512e78b333cecaf7ae8cf3e665b19d091faa819f2a98063be4992b8beed47885e58fd5344d43fcdff14afb38da59fe3c4b22ff81c6730de6c6ddf8ea5c9f25305b5dbab276db410bfe3d59dfdb7bb3e664998696b00d25e1caf9f1d298b7276c9690c5fc2b2e3e77e89b57bb46a646b9955cf3d175a45b9337189ae4275898d10ecddc66955862ca42fcf18b44d43a0b89b13298e951f4ce5933beca41b4f1924d688415d255dab54ecb54e37bcc1174464be979cf79cb366387d9bd10afc4f20ba1494d87b680b15af2b492da18f375fac6eeccda47ea0eda6d8e22fa1d413a73a14febc23a867b5edfc263f6455", "does not match");
-    */
-<<<<<<< HEAD
-=======
->>>>>>> master-ioncoincore
->>>>>>> ff27e683e1acdbabdc8df3c8c40f7d4254ccb614
 }
 */
 
