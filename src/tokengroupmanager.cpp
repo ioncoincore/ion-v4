@@ -211,7 +211,7 @@ bool CTokenGroupManager::IsXDMTx(const CTransaction &transaction, const CCoinsVi
     if (!tgDarkMatterCreation) return false;
 
     bool anyInputsXDM = false;
-    if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.IsZerocoinSpend()) {
+    if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.HasZerocoinSpendInputs()) {
 
         if (!view.HaveInputs(transaction))
             return false;
