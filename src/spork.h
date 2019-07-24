@@ -25,7 +25,7 @@ using namespace boost;
     - This would result in old clients getting confused about which spork is for what
 */
 #define SPORK_START 10001
-#define SPORK_END 10009
+#define SPORK_END 10010
 
 #define SPORK_1_SWIFTTX 10001
 #define SPORK_2_SWIFTTX_BLOCK_FILTERING 10002
