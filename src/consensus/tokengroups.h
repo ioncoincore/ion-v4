@@ -311,10 +311,10 @@ public:
 bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCoinsViewCache &view, std::unordered_map<CTokenGroupID, CTokenGroupBalance>& gBalance);
 
 // Return true if any output in this transaction is part of a group
-bool IsAnyTxOutputGrouped(const CTransaction &tx);
-bool IsTxOutputGrouped(const CTxOut &txout);
+bool IsAnyOutputGrouped(const CTransaction &tx);
+bool IsOutputGrouped(const CTxOut &txout);
 
-bool IsAnyTxOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
+bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
 
 bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID);
 

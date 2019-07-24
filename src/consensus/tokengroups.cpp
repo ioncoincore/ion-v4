@@ -56,11 +56,11 @@ std::string EncodeGroupAuthority(const GroupAuthorityFlags flags) {
     return sflags;
 }
 
-bool IsAnyTxOutputGrouped(const CTransaction &tx)
+bool IsAnyOutputGrouped(const CTransaction &tx)
 {
     for (const CTxOut &txout : tx.vout)
     {
-        if (IsTxOutputGrouped(txout)) {
+        if (IsOutputGrouped(txout)) {
             return true;
         }
     }
@@ -68,7 +68,7 @@ bool IsAnyTxOutputGrouped(const CTransaction &tx)
     return false;
 }
 
-bool IsTxOutputGrouped(const CTxOut &txout) {
+bool IsOutputGrouped(const CTxOut &txout) {
     CTokenGroupInfo grp(txout.scriptPubKey);
     if (grp.invalid)
         return true; // Its still grouped even if invalid
@@ -78,7 +78,7 @@ bool IsTxOutputGrouped(const CTxOut &txout) {
     return false;
 }
 
-bool IsAnyTxOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags)
+bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags)
 {
     for (const CTxOut& txout : tx.vout) {
         CTokenGroupInfo grp(txout.scriptPubKey);
