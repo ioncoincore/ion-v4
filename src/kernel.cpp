@@ -414,7 +414,7 @@ bool CheckProofOfStake(const CBlock block, uint256& hashProofOfStake, std::uniqu
         if (!VerifyScript(txin.scriptSig, txPrev.vout[txin.prevout.n].scriptPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MAX_OPS_PER_SCRIPT, TransactionSignatureChecker(&tx, 0)))
             return error("CheckProofOfStake() : VerifySignature failed on coinstake %s", tx.GetHash().ToString().c_str()); 
 
-        if (IsTxOutputGrouped(txPrev.vout[txin.prevout.n])) {
+        if (IsOutputGrouped(txPrev.vout[txin.prevout.n])) {
             return error("CheckProofOfStake() : Grouped input not allowed in coinstake (%s)", tx.GetHash().ToString().c_str());
         }
 

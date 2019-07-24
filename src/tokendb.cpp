@@ -92,7 +92,7 @@ bool ReindexTokenDB(std::string &strError) {
         }
 
         for (const CTransaction& tx : block.vtx) {
-            if (!tx.IsCoinBase() && !tx.HasZerocoinSpendInputs() && IsAnyTxOutputGroupedCreation(tx)) {
+            if (!tx.IsCoinBase() && !tx.HasZerocoinSpendInputs() && IsAnyOutputGroupedCreation(tx)) {
                 LogPrint("token", "%s - tx with token create: [%s]\n", __func__, tx.HexStr());
                 CTokenGroupCreation tokenGroupCreation;
                 if (tokenGroupManager->CreateTokenGroup(tx, tokenGroupCreation)) {

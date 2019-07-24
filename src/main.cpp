@@ -1276,7 +1276,7 @@ bool CheckTransaction(const CTransaction& tx, bool fZerocoinActive, bool fReject
 
     if (tx.IsCoinBase() || tx.IsCoinStake() || (fZerocoinActive && tx.HasZerocoinSpendInputs())) {
         // These tx's can't have group outputs because it has no group inputs or mintable outputs
-        if (IsAnyTxOutputGrouped(tx))
+        if (IsAnyOutputGrouped(tx))
             return state.DoS(100, false, REJECT_INVALID, "wrong-inputs-for-group-outputs");
     } else {
         // Only allow new groups when not in management mode or when not creating management group tokens
@@ -1395,11 +1395,11 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
     // Disallow any OP_GROUP txs from entering the mempool until OP_GROUP is enabled.
     // This ensures that someone won't create an invalid OP_GROUP tx that sits in the mempool until after activation,
     // potentially causing this node to create a bad block.
-    if (IsAnyTxOutputGrouped(tx)) {
+    if (IsAnyOutputGrouped(tx)) {
         if ((int)chainActive.Tip()->nHeight < Params().OpGroup_StartHeight())
         {
             return state.DoS(0, false, REJECT_NONSTANDARD, "premature-op_group-tx");
-        } else if (!IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN) && !tokenGroupManager->ManagementTokensCreated()){
+        } else if (!IsAnyOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN) && !tokenGroupManager->ManagementTokensCreated()){
             for (const CTxOut &txout : tx.vout)
             {
                 CTokenGroupInfo grp(txout.scriptPubKey);
@@ -1411,8 +1411,8 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
     }
 
     //Temporarily disable new token creation during management mode
-    if (GetAdjustedTime() > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && IsAnyTxOutputGroupedCreation(tx)) {
-        if (IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
+    if (GetAdjustedTime() > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && IsAnyOutputGroupedCreation(tx)) {
+        if (IsAnyOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
             LogPrintf("%s: Management token creation during token group management mode\n", __func__);
         } else {
             return state.DoS(0, error("%s : new token creation is not possible during token group management mode",
@@ -2657,7 +2657,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 //Check that all token transactions paid their XDM fees
                 CAmount nXDMFees = 0;
                 if (!fVerifyingBlocks) {
-                    if (IsAnyTxOutputGrouped(tx)) {
+                    if (IsAnyOutputGrouped(tx)) {
                         if (!tokenGroupManager->CheckXDMFees(tx, tgMintMeltBalance, state, pindexPrev, nXDMFees)) {
                             return state.DoS(0, error("Token transaction does not pay enough XDM fees"), REJECT_MALFORMED, "token-group-imbalance");
                         }
@@ -2866,7 +2866,7 @@ bool DisconnectBlock(CBlock& block, CValidationState& state, CBlockIndex* pindex
                     coins->vout.resize(out.n + 1);
                 coins->vout[out.n] = undo.txout;
             }
-            if (IsAnyTxOutputGroupedCreation(tx)) {
+            if (IsAnyOutputGroupedCreation(tx)) {
                 CTokenGroupID toRemoveTokenGroupID;
                 if (tokenGroupManager->RemoveTokenGroup(tx, toRemoveTokenGroupID))
                     toRemoveTokenGroupIDs.push_back(toRemoveTokenGroupID);
@@ -3403,8 +3403,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                 // Set flag if input is a group token management address
             }
             //Temporarily disable new token creation during management mode
-            if (block.nTime > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && !IsInitialBlockDownload() && IsAnyTxOutputGroupedCreation(tx)) {
-                if (IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
+            if (block.nTime > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && !IsInitialBlockDownload() && IsAnyOutputGroupedCreation(tx)) {
+                if (IsAnyOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
                     LogPrintf("%s: Management token creation during token group management mode\n", __func__);
                 } else {
                     return state.DoS(0, error("%s : new token creation is not possible during token group management mode",
@@ -3440,13 +3440,13 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                                   tx.GetHash().GetHex()), REJECT_INVALID, "bad-txns-invalid-inputs");
                 }
             }
-            if (IsAnyTxOutputGroupedCreation(tx)) {
+            if (IsAnyOutputGroupedCreation(tx)) {
                 if (pindex->nHeight < Params().OpGroup_StartHeight()) {
                     return state.DoS(0, false, REJECT_NONSTANDARD, "premature-op_group-tx");
                 }
                 //Disable new token creation during management mode
                 if (block.nTime > GetSporkValue(SPORK_10_TOKENGROUP_MAINTENANCE_MODE) && !IsInitialBlockDownload()) {
-                    if (IsAnyTxOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
+                    if (IsAnyOutputGroupedCreation(tx, TokenGroupIdFlags::MGT_TOKEN)) {
                         LogPrintf("%s: Management token creation during token group management mode\n", __func__);
                     } else {
                         return state.DoS(0, error("%s : new token creation is not possible during token group management mode",

@@ -1831,7 +1831,7 @@ void CWallet::AvailableCoins(
                 continue;
 
             for (unsigned int i = 0; i < pcoin->vout.size(); i++) {
-                if (!includeGrouped && IsTxOutputGrouped(pcoin->vout[i]))
+                if (!includeGrouped && IsOutputGrouped(pcoin->vout[i]))
                     continue;
 
                 bool found = false;
@@ -1853,7 +1853,7 @@ void CWallet::AvailableCoins(
                 if (nCoinType == STAKABLE_COINS) {
                     if (pcoin->vout[i].IsZerocoinMint())
                         continue;
-                    if (IsTxOutputGrouped(pcoin->vout[i]))
+                    if (IsOutputGrouped(pcoin->vout[i]))
                         continue;
                 }
 
