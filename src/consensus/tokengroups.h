@@ -316,6 +316,9 @@ bool IsOutputGrouped(const CTxOut &txout);
 
 bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
 
+bool IsAnyOutputGroupedAuthority(const CTransaction &tx);
+bool IsOutputGroupedAuthority(const CTxOut &txout);
+
 bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID);
 
 // Serialize a CAmount into an array of bytes.

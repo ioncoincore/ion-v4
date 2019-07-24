@@ -90,6 +90,27 @@ bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags 
     return false;
 }
 
+bool IsAnyOutputGroupedAuthority(const CTransaction &tx) {
+    for (const CTxOut &txout : tx.vout)
+    {
+        if (IsOutputGroupedAuthority(txout)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool IsOutputGroupedAuthority(const CTxOut &txout) {
+    CTokenGroupInfo grp(txout.scriptPubKey);
+    if (grp.invalid)
+        return true;
+    if (grp.associatedGroup != NoGroup && grp.isAuthority())
+        return true;
+
+    return false;
+}
+
 bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID) {
     bool anyInputsGrouped = false;
     if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.HasZerocoinSpendInputs()) {
