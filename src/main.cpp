@@ -2636,6 +2636,13 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                         error("CheckInputs() : tried to spend coinbase at depth %d, coinstake=%d", nSpendHeight - coins->nHeight, coins->IsCoinStake()),
                         REJECT_INVALID, "bad-txns-premature-spend-of-coinbase");
             }
+            if (IsOutputGroupedAuthority(coins->vout[prevout.n])) {
+                if (nSpendHeight - coins->nHeight < Params().OpGroup_NewRequiredConfirmations()) {
+                    return state.Invalid(
+                        error("CheckInputs() : tried to use a token authority before it reached maturity (%d confirmations)", Params().OpGroup_NewRequiredConfirmations()),
+                        REJECT_INVALID, "bad-txns-premature-use-of-token-authority");
+                }
+            }
 
             // Check for negative or overflow input values
             nValueIn += coins->vout[prevout.n].nValue;

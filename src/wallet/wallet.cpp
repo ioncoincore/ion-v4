@@ -3959,9 +3959,12 @@ int CMerkleTx::GetDepthInMainChain(const CBlockIndex*& pindexRet, bool enableIX)
 int CMerkleTx::GetBlocksToMaturity() const
 {
     LOCK(cs_main);
-    if (!(IsCoinBase() || IsCoinStake()))
+    if (!(IsCoinBase() || IsCoinStake() || IsAnyOutputGroupedAuthority((CTransaction(*this)))))
         return 0;
-    return max(0, (Params().COINBASE_MATURITY() + 1) - GetDepthInMainChain());
+    int depth = GetDepthInMainChain();
+    if (IsAnyOutputGroupedAuthority((CTransaction(*this))))
+        return max(0, (Params().OpGroup_NewRequiredConfirmations() + 1) - depth);
+    return max(0, (Params().COINBASE_MATURITY() + 1) - depth);
 }
 
 
