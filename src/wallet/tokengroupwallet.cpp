@@ -1595,8 +1595,23 @@ extern UniValue token(const UniValue &params, bool fHelp)
             UniValue ret(UniValue::VARR);
             for (const auto &item : balances)
             {
+                CTokenGroupID grpID = item.first;
                 UniValue retobj(UniValue::VOBJ);
-                retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(item.first)));
+                retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
+
+                CTokenGroupCreation tgCreation;
+                if (grpID.isSubgroup()) {
+                    CTokenGroupID parentgrp = grpID.parentGroup();
+                    std::vector<unsigned char> subgroupData = grpID.GetSubGroupData();
+                    tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
+                    retobj.push_back(Pair("parentGroupIdentifier", EncodeTokenGroup(parentgrp)));
+                    retobj.push_back(Pair("subgroup-data", std::string(subgroupData.begin(), subgroupData.end())));
+                } else {
+                    tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
+                }
+                retobj.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
+                retobj.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
+
                 retobj.push_back(Pair("balance", tokenGroupManager->TokenValueFromAmount(item.second, item.first)));
                 if (hasCapability(authorities[item.first], GroupAuthorityFlags::CTRL))
                     retobj.push_back(Pair("authorities", EncodeGroupAuthority(authorities[item.first])));
