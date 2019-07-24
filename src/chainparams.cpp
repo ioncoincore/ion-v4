@@ -424,6 +424,11 @@ public:
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
 
+        // Token groups
+        nOpGroupStartHeight = 1;
+        strTokenManagementKey = "gAQQQjA4DCT2EZDVK6Jae4mFfB217V43Nt";
+        nOpGroupNewRequiredConfirmations = 1;
+
         // Public coin spend enforcement
         nPublicZCSpends = 350;
 
