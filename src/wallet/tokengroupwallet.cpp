@@ -523,7 +523,7 @@ void ConstructTx(CWalletTx &wtxNew,
             COutput feeCoin(nullptr, 0, 0, false);
             if (!NearestGreaterCoin(bchcoins, fee, feeCoin))
             {
-                strError = strprintf("Not enough funds for fee of %d.", FormatMoney(fee));
+                strError = strprintf("Not enough funds for fee of %d ION.", FormatMoney(fee));
                 throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
             }
 
@@ -644,7 +644,7 @@ void GroupMelt(CWalletTx &wtxNew, const CTokenGroupID &grpID, CAmount totalNeede
     if (totalAvailable < totalNeeded)
     {
         std::string strError;
-        strError = strprintf("Not enough tokens in the wallet.  Need %d more.", totalNeeded - totalAvailable);
+        strError = strprintf("Not enough tokens in the wallet.  Need %d more.", tokenGroupManager->TokenValueFromAmount(totalNeeded - totalAvailable, grpID));
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
     }
 
@@ -692,7 +692,7 @@ void GroupSend(CWalletTx &wtxNew,
 
             if (totalXDMAvailable < totalXDMNeeded)
             {
-                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", totalXDMNeeded - totalXDMAvailable);
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", tokenGroupManager->TokenValueFromAmount(totalXDMNeeded - totalXDMAvailable, grpID));
                 throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
             }
 
@@ -714,7 +714,7 @@ void GroupSend(CWalletTx &wtxNew,
 
     if (totalAvailable < totalNeeded)
     {
-        strError = strprintf("Not enough tokens in the wallet.  Need %d more.", totalNeeded - totalAvailable);
+        strError = strprintf("Not enough tokens in the wallet.  Need %d more.", tokenGroupManager->TokenValueFromAmount(totalNeeded - totalAvailable, grpID));
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
     }
 
@@ -1296,7 +1296,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
             if (totalXDMAvailable < XDMFeeNeeded)
             {
-                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", XDMFeeNeeded - totalXDMAvailable);
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", tokenGroupManager->TokenValueFromAmount(XDMFeeNeeded - totalXDMAvailable, grpID));
                 throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
             }
 
@@ -1416,7 +1416,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
             if (totalXDMAvailable < XDMFeeNeeded)
             {
-                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", XDMFeeNeeded - totalXDMAvailable);
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", tokenGroupManager->TokenValueFromAmount(XDMFeeNeeded - totalXDMAvailable, grpID));
                 throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
             }
 
@@ -1565,7 +1565,7 @@ extern UniValue token(const UniValue &params, bool fHelp)
 
             if (totalXDMAvailable < XDMFeeNeeded)
             {
-                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", XDMFeeNeeded - totalXDMAvailable);
+                strError = strprintf("Not enough XDM in the wallet.  Need %d more.", tokenGroupManager->TokenValueFromAmount(XDMFeeNeeded - totalXDMAvailable, grpID));
                 throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strError);
             }
 
