@@ -8,130 +8,17 @@
 #include "dstencode.h"
 #include "rpc/protocol.h"
 #include "utilstrencodings.h"
-
-#include <univalue.h>
-#include <iostream>
-#include <regex>
-#include <string.h>
+#include "tokengroupconfiguration.h"
 
 std::shared_ptr<CTokenGroupManager> tokenGroupManager;
 
-// Checks that the token description data fulfills basic criteria
-// Such as: max ticker length, no special characters, and sane decimal positions.
-// Validation is performed before data is written to the database
-bool CTokenGroupManager::ValidateTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc) {
-    regex regexAlpha("^[a-zA-Z]+$");
-    regex regexUrl(R"((https?|ftp)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$)");
-
-    smatch matchResult;
-
-    if (!std::regex_match(tgDesc.strTicker, matchResult, regexAlpha)) {
-        LogPrint("token", "Token ticker can only contain letters.\n");
-        return false;
-    }
-    if (!std::regex_match(tgDesc.strName, matchResult, regexAlpha)) {
-        LogPrint("token", "Token name can only contain letters.\n");
-        return false;
-    }
-    if (!std::regex_match(tgDesc.strDocumentUrl, matchResult, regexUrl)) {
-        LogPrint("token", "Token description document URL cannot be parsed.\n");
-        return false;
-    }
-    if (tgDesc.decimalPos > 16) {
-        LogPrint("token", "Token decimal separation position is too large, maximum is 16.\n");
-        return false;
-    }
-
-    return true;
+CTokenGroupManager::CTokenGroupManager() {
+    vTokenGroupFilters.emplace_back(TGFilterCharacters);
+    vTokenGroupFilters.emplace_back(TGFilterUniqueness);
+    vTokenGroupFilters.emplace_back(TGFilterUpperCaseTicker);
 }
 
-// Checks that the token description data fulfils context dependent criteria
-// Such as: no reserved names, no double names
-// Validation is performed after data is written to the database and before it is written to the map
-// Returns true if the description can be displayed, false if the description should not be displayed
-bool CTokenGroupManager::FilterTokenDescription(const CTokenGroupInfo &tgInfo, const CTokenGroupDescription &tgDesc) {
-
-    // Iterate existing token groups and verify that the new group has an unique ticker and name
-    auto result = std::find_if(
-          mapTokenGroups.begin(),
-          mapTokenGroups.end(),
-          [tgInfo, tgDesc](const std::pair<CTokenGroupID, CTokenGroupCreation>& tokenGroup) {
-                if (tokenGroup.second.tokenGroupInfo.associatedGroup == tgInfo.associatedGroup) return false;
-                bool exists = tokenGroup.second.tokenGroupDescription.strTicker == tgDesc.strTicker ||
-                    tokenGroup.second.tokenGroupDescription.strName == tgDesc.strName;
-                return exists && !tokenGroup.second.tokenGroupDescription.invalid && !tgDesc.invalid;
-            });
-    if (result != mapTokenGroups.end()) {
-        LogPrint("token", "Token ticker and name must be unique.\n");
-        return false;
-    };
-
-    return true;
-}
-
-bool CTokenGroupManager::BuildGroupDescData(CScript script, std::vector<std::vector<unsigned char> > &descriptionData) {
-    std::vector<std::vector<unsigned char> > desc;
-
-    CScript::const_iterator pc = script.begin();
-    std::vector<unsigned char> data;
-    opcodetype opcode;
-
-    // 1 byte
-    if (!script.GetOp(pc, opcode, data)) return false;
-    if (opcode != OP_RETURN) return false;
-
-    // 1+4 bytes
-    if (!script.GetOp(pc, opcode, data)) return false;
-    uint32_t OpRetGroupId;
-    if (data.size()!=4) return false;
-    // Little Endian
-    OpRetGroupId = (uint32_t)data[3] << 24 | (uint32_t)data[2] << 16 | (uint32_t)data[1] << 8 | (uint32_t)data[0];
-    if (OpRetGroupId != 88888888) return false;
-
-    while (script.GetOp(pc, opcode, data)) {
-        LogPrint("token", "Token description data: opcode=[%d] data=[%s]\n", opcode, std::string(data.begin(), data.end()));
-        desc.emplace_back(data);
-    }
-    descriptionData = desc;
-    return true;
-}
-
-bool CTokenGroupManager::ParseGroupDescData(const CTokenGroupInfo &tgInfo, const std::vector<std::vector<unsigned char> > descriptionData, CTokenGroupDescription &tokenGroupDescription) {
-    std::string tickerStr;
-    std::string name;
-    std::string url;
-    uint8_t decimalPos;
-    uint256 docHash;
-
-    if (descriptionData.size() != 5 ||
-            descriptionData[0].size() > 8 ||
-            descriptionData[1].size() > 32 ||
-            descriptionData[2].size() > 1 ||
-            descriptionData[3].size() > 79 ||
-            descriptionData[4].size() > 32) {
-        tokenGroupDescription = CTokenGroupDescription();
-        LogPrint("token", "Invalid token description data - ignoring token description.\n");
-        return false;
-    }
-
-    try {
-        tickerStr = std::string(descriptionData[0].begin(), descriptionData[0].end());  // Max 9 bytes (1+8)
-        name = std::string(descriptionData[1].begin(), descriptionData[1].end());       // Max 33 bytes (1+32)
-        decimalPos = (uint8_t)descriptionData[2][0];                                    // Max 1 byte
-        url = std::string(descriptionData[3].begin(), descriptionData[3].end());        // Max 81 bytes (2+79)
-        docHash = uint256(descriptionData[4]);                                          // Max 33 bytes (1+32)
-    } catch (const std::exception& e) {
-        tokenGroupDescription = CTokenGroupDescription();
-        return false;
-    }
-    tokenGroupDescription = CTokenGroupDescription(tickerStr, name, decimalPos, url, docHash);
-    if (!ValidateTokenDescription(tgInfo, tokenGroupDescription)) {
-        tokenGroupDescription.Clear();
-    }
-    return !tokenGroupDescription.invalid;
-}
-
-bool CTokenGroupManager::ProcessManagementTokenGroups(CTokenGroupCreation tokenGroupCreation) {
+bool CTokenGroupManager::StoreManagementTokenGroups(CTokenGroupCreation tokenGroupCreation) {
     if (!tgMagicCreation && tokenGroupCreation.tokenGroupDescription.strTicker == "MAGIC") {
         this->tgMagicCreation = std::unique_ptr<CTokenGroupCreation>(new CTokenGroupCreation((tokenGroupCreation)));
         return true;
@@ -193,71 +80,31 @@ bool CTokenGroupManager::IsManagementTokenInput(CScript script) {
 
 bool CTokenGroupManager::AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups) {
     for (auto tokenGroupCreation : newTokenGroups) {
-        if (!FilterTokenDescription(tokenGroupCreation.tokenGroupInfo, tokenGroupCreation.tokenGroupDescription)) {
-            tokenGroupCreation.tokenGroupDescription.Clear();
+        if (!tokenGroupCreation.ValidateDescription()) {
+            LogPrint("token", "%s - Validation of token %s failed", __func__, EncodeTokenGroup(tokenGroupCreation.tokenGroupInfo.associatedGroup));
         }
-        ProcessManagementTokenGroups(tokenGroupCreation);
 
-        std::pair<std::map<CTokenGroupID, CTokenGroupCreation>::iterator, bool> ret;
-        ret = mapTokenGroups.insert(std::pair<CTokenGroupID, CTokenGroupCreation>(tokenGroupCreation.tokenGroupInfo.associatedGroup, tokenGroupCreation));
+        StoreManagementTokenGroups(tokenGroupCreation);
+
+        auto ret = mapTokenGroups.insert(std::pair<CTokenGroupID, CTokenGroupCreation>(tokenGroupCreation.tokenGroupInfo.associatedGroup, tokenGroupCreation));
 
         CTokenGroupCreation& tokenGroupCreationRet = (*ret.first).second;
         bool fInsertedNew = ret.second;
         if (!fInsertedNew) {
-            if (!(tokenGroupCreation == tokenGroupCreationRet)) {
-                mapTokenGroups[tokenGroupCreation.tokenGroupInfo.associatedGroup] = tokenGroupCreation;
-                // Token ID already exists. Since the hash is the same, the token specs are the same.
-                // However, until reorgs are handled  properly: log this to avoid 'misplaced' token group creation transactions.
-                LogPrint("token", "%s - Double token creation; updated.\n", __func__);
-            } else {
-                LogPrint("token", "%s - Double token creation; NOT updated.\n", __func__);
-            }
+            LogPrint("token", "%s - Double token creation with tokenGroupID %s.\n", __func__, EncodeTokenGroup(tokenGroupCreationRet.tokenGroupInfo.associatedGroup));
         }
     }
     return true;
-}
-bool CTokenGroupManager::CreateTokenGroup(CTransaction tx, CTokenGroupCreation &newTokenGroupCreation) {
-    CScript firstOpReturn;
-    CTokenGroupInfo tokenGroupInfo;
-
-    bool hasNewTokenGroup = false;
-
-    for (const auto &txout : tx.vout) {
-        const CScript &scriptPubKey = txout.scriptPubKey;
-        CTokenGroupInfo tokenGrp(scriptPubKey);
-        if ((txout.nValue == 0) && (firstOpReturn.size() == 0) && (txout.scriptPubKey[0] == OP_RETURN)) {
-            firstOpReturn = txout.scriptPubKey;
-        }
-        if (tokenGrp.invalid)
-            return false;
-        if (tokenGrp.associatedGroup != NoGroup && tokenGrp.isGroupCreation() && !hasNewTokenGroup) {
-            hasNewTokenGroup = true;
-            tokenGroupInfo = tokenGrp;
-        }
-    }
-    if (hasNewTokenGroup) {
-        CTokenGroupDescription tokenGroupDescription;
-        tokenGroupDescription.Clear();
-        if (firstOpReturn.size()) {
-            std::vector<std::vector<unsigned char> > desc;
-            if (BuildGroupDescData(firstOpReturn, desc)) {
-                ParseGroupDescData(tokenGroupInfo, desc, tokenGroupDescription);
-            }
-        }
-
-        newTokenGroupCreation = CTokenGroupCreation(tx, tokenGroupInfo, tokenGroupDescription);
-        return true;
-    }
-    return false;
 }
 
 void CTokenGroupManager::ResetTokenGroups() {
     mapTokenGroups.clear();
 
     CTokenGroupInfo tgInfoION(NoGroup, (CAmount)GroupAuthorityFlags::ALL);
-    CTransaction tgTxION = CTransaction();
+    CTransaction tgTxION;
     CTokenGroupDescription tgDescriptionION("ION", "Ion", 8, "https://www.ionomy.com", 0);
-    CTokenGroupCreation tgCreationION(tgTxION, tgInfoION, tgDescriptionION);
+    CTokenGroupStatus tokenGroupStatus;
+    CTokenGroupCreation tgCreationION(tgTxION, tgInfoION, tgDescriptionION, tokenGroupStatus);
     mapTokenGroups.insert(std::pair<CTokenGroupID, CTokenGroupCreation>(NoGroup, tgCreationION));
 
 }
@@ -266,30 +113,17 @@ bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &toRemo
     CScript firstOpReturn;
     CTokenGroupInfo tokenGroupInfo;
 
-    bool hasNewTokenGroup = false;
+    bool hasNewTokenGroup = GetTokenConfigurationParameters(tx, tokenGroupInfo, firstOpReturn);
 
-    for (const auto &txout : tx.vout) {
-        const CScript &scriptPubKey = txout.scriptPubKey;
-        CTokenGroupInfo tokenGrp(scriptPubKey);
-        if ((txout.nValue == 0) && (firstOpReturn.size() == 0) && (txout.scriptPubKey[0] == OP_RETURN)) {
-            firstOpReturn = txout.scriptPubKey;
-        }
-        if (tokenGrp.invalid)
-            return false;
-        if (tokenGrp.associatedGroup != NoGroup && tokenGrp.isGroupCreation() && !hasNewTokenGroup) {
-            hasNewTokenGroup = true;
-            tokenGroupInfo = tokenGrp;
-
-            if (MatchesMagic(tokenGrp.associatedGroup)) {
-                tgMagicCreation.reset();
-            } else if (MatchesDarkMatter(tokenGrp.associatedGroup)) {
-                tgDarkMatterCreation.reset();
-            } else if (MatchesAtom(tokenGrp.associatedGroup)) {
-                tgAtomCreation.reset();
-            }
-        }
-    }
     if (hasNewTokenGroup) {
+        if (MatchesMagic(tokenGroupInfo.associatedGroup)) {
+            tgMagicCreation.reset();
+        } else if (MatchesDarkMatter(tokenGroupInfo.associatedGroup)) {
+            tgDarkMatterCreation.reset();
+        } else if (MatchesAtom(tokenGroupInfo.associatedGroup)) {
+            tgAtomCreation.reset();
+        }
+
         std::map<CTokenGroupID, CTokenGroupCreation>::iterator iter = mapTokenGroups.find(tokenGroupInfo.associatedGroup);
         if (iter != mapTokenGroups.end()) {
             mapTokenGroups.erase(iter);
@@ -403,7 +237,7 @@ CAmount CTokenGroupManager::AmountFromTokenValue(const UniValue& value, const CT
     CAmount amount;
     CTokenGroupCreation tgCreation;
     GetTokenGroupCreation(tgID, tgCreation);
-    if (!ParseFixedPoint(value.getValStr(), tgCreation.tokenGroupDescription.decimalPos, &amount))
+    if (!ParseFixedPoint(value.getValStr(), tgCreation.tokenGroupDescription.nDecimalPos, &amount))
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
     if (!TokenMoneyRange(amount))
         throw JSONRPCError(RPC_TYPE_ERROR, "Amount out of range");
@@ -418,12 +252,12 @@ UniValue CTokenGroupManager::TokenValueFromAmount(const CAmount& amount, const C
     int64_t n_abs = (sign ? -amount : amount);
     int64_t quotient = n_abs / tokenCOIN;
     int64_t remainder = n_abs % tokenCOIN;
-    if (tgCreation.tokenGroupDescription.decimalPos == 0) {
+    if (tgCreation.tokenGroupDescription.nDecimalPos == 0) {
         return UniValue(UniValue::VNUM,
             strprintf("%s%d", sign ? "-" : "", quotient));
     } else {
         return UniValue(UniValue::VNUM,
-            strprintf("%s%d.%0*d", sign ? "-" : "", quotient, tgCreation.tokenGroupDescription.decimalPos, remainder));
+            strprintf("%s%d.%0*d", sign ? "-" : "", quotient, tgCreation.tokenGroupDescription.nDecimalPos, remainder));
     }
 }
 
