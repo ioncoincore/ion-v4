@@ -244,7 +244,7 @@ CAmount CTokenGroupManager::AmountFromTokenValue(const UniValue& value, const CT
     return amount;
 }
 
-UniValue CTokenGroupManager::TokenValueFromAmount(const CAmount& amount, const CTokenGroupID& tgID) {
+std::string CTokenGroupManager::TokenValueFromAmount(const CAmount& amount, const CTokenGroupID& tgID) {
     CTokenGroupCreation tgCreation;
     GetTokenGroupCreation(tgID, tgCreation);
     CAmount tokenCOIN = tgCreation.tokenGroupDescription.GetCoin();
@@ -253,11 +253,9 @@ UniValue CTokenGroupManager::TokenValueFromAmount(const CAmount& amount, const C
     int64_t quotient = n_abs / tokenCOIN;
     int64_t remainder = n_abs % tokenCOIN;
     if (tgCreation.tokenGroupDescription.nDecimalPos == 0) {
-        return UniValue(UniValue::VNUM,
-            strprintf("%s%d", sign ? "-" : "", quotient));
+        return strprintf("%s%d", sign ? "-" : "", quotient);
     } else {
-        return UniValue(UniValue::VNUM,
-            strprintf("%s%d.%0*d", sign ? "-" : "", quotient, tgCreation.tokenGroupDescription.nDecimalPos, remainder));
+        return strprintf("%s%d.%0*d", sign ? "-" : "", quotient, tgCreation.tokenGroupDescription.nDecimalPos, remainder);
     }
 }
 
