@@ -3461,7 +3461,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                     }
                 }
                 CTokenGroupCreation newTokenGroupCreation;
-                if (tokenGroupManager->CreateTokenGroup(tx, newTokenGroupCreation)) {
+                if (CreateTokenGroup(tx, newTokenGroupCreation)) {
                     newTokenGroups.push_back(newTokenGroupCreation);
                 } else {
                     return state.Invalid(false, REJECT_INVALID, "bad OP_GROUP");

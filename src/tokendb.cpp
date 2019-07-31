@@ -55,9 +55,7 @@ bool CTokenDB::LoadTokensFromDB(std::string &strError) {
         if (pcursor->GetKey(key) && key.first == 'c') {
             CTokenGroupCreation tokenGroupCreation;
             if (pcursor->GetValue(tokenGroupCreation)) {
-                if (tokenGroupManager->CreateTokenGroup(tokenGroupCreation.creationTransaction, tokenGroupCreation)) {
-                    vTokenGroups.push_back(tokenGroupCreation);
-                }
+                vTokenGroups.push_back(tokenGroupCreation);
             } else {
                 return error("LoadTokensFromDB() : failed to read value");
             }
@@ -95,7 +93,7 @@ bool ReindexTokenDB(std::string &strError) {
             if (!tx.IsCoinBase() && !tx.HasZerocoinSpendInputs() && IsAnyOutputGroupedCreation(tx)) {
                 LogPrint("token", "%s - tx with token create: [%s]\n", __func__, tx.HexStr());
                 CTokenGroupCreation tokenGroupCreation;
-                if (tokenGroupManager->CreateTokenGroup(tx, tokenGroupCreation)) {
+                if (CreateTokenGroup(tx, tokenGroupCreation)) {
                     vTokenGroups.push_back(tokenGroupCreation);
                 }
             }

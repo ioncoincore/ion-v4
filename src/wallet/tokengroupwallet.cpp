@@ -1444,19 +1444,18 @@ extern UniValue token(const UniValue &params, bool fHelp)
         ret.push_back(Pair("group_identifier", EncodeTokenGroup(grpID)));
 
         CTokenGroupInfo tokenGroupInfo(opretScript);
-        CTokenGroupDescription tokenGroupDescription;
-        tokenGroupDescription.Clear();
-        if (opretScript.size()) {
-            std::vector<std::vector<unsigned char> > desc;
-            if (tokenGroupManager->BuildGroupDescData(opretScript, desc)) {
-                tokenGroupManager->ParseGroupDescData(tokenGroupInfo, desc, tokenGroupDescription);
-            }
-        }
-        ret.push_back(Pair("token_group_description_ticker", tokenGroupDescription.strTicker));
-        ret.push_back(Pair("token_group_description_name", tokenGroupDescription.strName));
-        ret.push_back(Pair("token_group_description_decimalpos", tokenGroupDescription.decimalPos));
-        ret.push_back(Pair("token_group_description_documenturl", tokenGroupDescription.strDocumentUrl));
-        ret.push_back(Pair("token_group_description_documenthash", tokenGroupDescription.documentHash.ToString()));
+        CTokenGroupDescription tokenGroupDescription(opretScript);
+        CTokenGroupStatus tokenGroupStatus;
+        CTransaction dummyTransaction;
+        CTokenGroupCreation tokenGroupCreation(dummyTransaction, tokenGroupInfo, tokenGroupDescription, tokenGroupStatus);
+        tokenGroupCreation.ValidateDescription();
+
+        ret.push_back(Pair("token_group_description_ticker", tokenGroupCreation.tokenGroupDescription.strTicker));
+        ret.push_back(Pair("token_group_description_name", tokenGroupCreation.tokenGroupDescription.strName));
+        ret.push_back(Pair("token_group_description_decimalpos", tokenGroupCreation.tokenGroupDescription.nDecimalPos));
+        ret.push_back(Pair("token_group_description_documenturl", tokenGroupCreation.tokenGroupDescription.strDocumentUrl));
+        ret.push_back(Pair("token_group_description_documenthash", tokenGroupCreation.tokenGroupDescription.documentHash.ToString()));
+        ret.push_back(Pair("token_group_status", tokenGroupCreation.status.messages));
 
         return ret;
     }
@@ -1942,13 +1941,12 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         }
 
         for (auto tokenGroupMapping : tokenGroupManager->GetMapTokenGroups()) {
-            LogPrint("token", "%s - tokenGroupMapping has [%s] [%s]\n", __func__, tokenGroupMapping.second.tokenGroupDescription.strTicker, EncodeTokenGroup(tokenGroupMapping.second.tokenGroupInfo.associatedGroup));
             UniValue entry(UniValue::VOBJ);
             entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(tokenGroupMapping.second.tokenGroupInfo.associatedGroup)));
             entry.push_back(Pair("txid", tokenGroupMapping.second.creationTransaction.GetHash().GetHex()));
             entry.push_back(Pair("ticker", tokenGroupMapping.second.tokenGroupDescription.strTicker));
             entry.push_back(Pair("name", tokenGroupMapping.second.tokenGroupDescription.strName));
-            entry.push_back(Pair("decimalPos", tokenGroupMapping.second.tokenGroupDescription.decimalPos));
+            entry.push_back(Pair("decimalPos", tokenGroupMapping.second.tokenGroupDescription.nDecimalPos));
             entry.push_back(Pair("URL", tokenGroupMapping.second.tokenGroupDescription.strDocumentUrl));
             entry.push_back(Pair("documentHash", tokenGroupMapping.second.tokenGroupDescription.documentHash.ToString()));
             ret.push_back(entry);
@@ -2024,9 +2022,10 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         entry.push_back(Pair("txid", tgCreation.creationTransaction.GetHash().GetHex()));
         entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
         entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
-        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.decimalPos));
+        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.nDecimalPos));
         entry.push_back(Pair("URL", tgCreation.tokenGroupDescription.strDocumentUrl));
         entry.push_back(Pair("documentHash", tgCreation.tokenGroupDescription.documentHash.ToString()));
+        entry.push_back(Pair("status", tgCreation.status.messages));
         ret.push_back(entry);
     } else if (operation == "ticker") {
         unsigned int curparam = 1;
@@ -2051,9 +2050,10 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         entry.push_back(Pair("txid", tgCreation.creationTransaction.GetHash().GetHex()));
         entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
         entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
-        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.decimalPos));
+        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.nDecimalPos));
         entry.push_back(Pair("URL", tgCreation.tokenGroupDescription.strDocumentUrl));
         entry.push_back(Pair("documentHash", tgCreation.tokenGroupDescription.documentHash.ToString()));
+        entry.push_back(Pair("status", tgCreation.status.messages));
         ret.push_back(entry);
     } else if (operation == "name") {
         unsigned int curparam = 1;
@@ -2078,9 +2078,10 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         entry.push_back(Pair("txid", tgCreation.creationTransaction.GetHash().GetHex()));
         entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
         entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
-        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.decimalPos));
+        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.nDecimalPos));
         entry.push_back(Pair("URL", tgCreation.tokenGroupDescription.strDocumentUrl));
         entry.push_back(Pair("documentHash", tgCreation.tokenGroupDescription.documentHash.ToString()));
+        entry.push_back(Pair("status", tgCreation.status.messages));
         ret.push_back(entry);
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: unknown operation");
