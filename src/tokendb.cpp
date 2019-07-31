@@ -36,17 +36,21 @@ bool CTokenDB::EraseTokenGroup(const CTokenGroupID& tokenGroupID) {
     return Erase(std::make_pair('c', tokenGroupID));
 }
 
-bool CTokenDB::DropTokenGroups() {
+bool CTokenDB::DropTokenGroups(std::string& strError) {
+    std::vector<CTokenGroupCreation> vTokenGroups;
+    std::vector<CTokenGroupID> vTokenGroupIDs;
+    FindTokenGroups(vTokenGroups, strError);
+
+    for (auto tokenGroup : vTokenGroups) {
+        vTokenGroupIDs.emplace_back(tokenGroup.tokenGroupInfo.associatedGroup);
+        EraseTokenGroupBatch(vTokenGroupIDs);
+    }
+
     return true;
 }
 
-bool CTokenDB::LoadTokensFromDB(std::string &strError) {
-    tokenGroupManager->ResetTokenGroups();
-
+bool CTokenDB::FindTokenGroups(std::vector<CTokenGroupCreation>& vTokenGroups, std::string& strError) {
     boost::scoped_ptr<CLevelDBIterator> pcursor(NewIterator());
-
-    std::vector<CTokenGroupCreation> vTokenGroups;
-
     pcursor->SeekToFirst();
 
     while (pcursor->Valid()) {
@@ -57,17 +61,26 @@ bool CTokenDB::LoadTokensFromDB(std::string &strError) {
             if (pcursor->GetValue(tokenGroupCreation)) {
                 vTokenGroups.push_back(tokenGroupCreation);
             } else {
-                return error("LoadTokensFromDB() : failed to read value");
+                strError = "LoadTokensFromDB() : failed to read value";
+                return error(strError.c_str());
             }
         }
         pcursor->Next();
     }
+}
+
+bool CTokenDB::LoadTokensFromDB(std::string& strError) {
+    tokenGroupManager->ResetTokenGroups();
+
+    std::vector<CTokenGroupCreation> vTokenGroups;
+    FindTokenGroups(vTokenGroups, strError);
+
     tokenGroupManager->AddTokenGroups(vTokenGroups);
     return true;
 }
 
 bool ReindexTokenDB(std::string &strError) {
-    if (!pTokenDB->DropTokenGroups()) {
+    if (!pTokenDB->DropTokenGroups(strError)) {
         strError = "Failed to reset token database";
         return false;
     }

@@ -99,6 +99,7 @@ bool CTokenGroupManager::AddTokenGroups(const std::vector<CTokenGroupCreation>& 
 
 void CTokenGroupManager::ResetTokenGroups() {
     mapTokenGroups.clear();
+    ClearManagementTokenGroups();
 
     CTokenGroupInfo tgInfoION(NoGroup, (CAmount)GroupAuthorityFlags::ALL);
     CTransaction tgTxION;
