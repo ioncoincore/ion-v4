@@ -28,8 +28,9 @@ public:
     bool ReadTokenGroup(const CTokenGroupID& tokenGroupID, CTokenGroupCreation& tokenGroupCreation);
     bool EraseTokenGroupBatch(const std::vector<CTokenGroupID>& newTokenGroupIDs);
     bool EraseTokenGroup(const CTokenGroupID& tokenGroupID);
-    bool DropTokenGroups();
-    bool LoadTokensFromDB(std::string &strError); // populates mapTokenGroups
+    bool DropTokenGroups(std::string& strError);
+    bool FindTokenGroups(std::vector<CTokenGroupCreation>& vTokenGroups, std::string& strError);
+    bool LoadTokensFromDB(std::string& strError); // populates mapTokenGroups
 };
 
 bool ReindexTokenDB(std::string &strError); // Drops db, scans for token creations, but does not populate mapTokenGroups
