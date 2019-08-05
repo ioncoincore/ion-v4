@@ -82,12 +82,15 @@ static const Checkpoints::CCheckpointData data = {
 };
 
 static Checkpoints::MapCheckpoints mapCheckpointsTestnet =
-    boost::assign::map_list_of(0, uint256("0x001"));
+    boost::assign::map_list_of
+        (       0,  uint256("00000a5e695356de7ccae09478a4aa7053a402f7c2f57a40c44310d8fbe5d3c7") )  // Genesis block
+        (    1138,  uint256("7ffeeefe7b8de3f9b63bba7fdafd11aa4c7a03d6a3eeea4ebeaf17de3af01bd7") )  // ATP RC - 2019-08-05            1565007768   2082
+        (    5720,  uint256("26a1ee2dccbc467ebcfd2a17da56d3b343dccfd2a45b2b3c4fd46b26d04efde3") ); // 1st MGT token                  1565281278   11266
 static const Checkpoints::CCheckpointData dataTestnet = {
     &mapCheckpointsTestnet,
-    1491737471,
-    0,
-    250};
+    1565281278,
+    11266,
+    2900};
 
 static Checkpoints::MapCheckpoints mapCheckpointsRegtest =
     boost::assign::map_list_of(0, uint256("0x001"));
@@ -320,7 +323,7 @@ public:
         nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
         nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
         nBIP65Height = 1; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
-        nOpGroupStartHeight = 1150; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
+        nOpGroupStartHeight = 5540; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
 
         // Public coin spend enforcement
         nPublicZCSpends = 9999999;
