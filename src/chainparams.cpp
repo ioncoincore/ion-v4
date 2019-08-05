@@ -151,7 +151,7 @@ public:
         /** Height or Time Based Activations **/
         nLastPOWBlock = 1000;
         nModifierUpdateBlock = 615800;
-        nZerocoinStartHeight = 550001;
+        nZerocoinStartHeight = 550001;              // Start enforcing the Zerocoin protocol for blocks with version 8 and higher
         nZerocoinStartTime = 1521851265;            // GMT: Saturday, March 24, 2018 12:27:45 AM,
         nBlockEnforceSerialRange = 550137;          //Enforce serial range starting this block
         nBlockRecalculateAccumulators = 550137;     //Trigger a recalculation of accumulators
@@ -167,6 +167,10 @@ public:
         nMidasStartTime = 1497541280;               // Time when MIDAS started and old algorithm stopped
         nDGWStartHeight = 550000;                   // Startheight of DGW
         nDGWStartTime = 1521851265;                 // GMT: Saturday, March 24, 2018 12:27:45 AM - Exact time when DGW algorithm starts and old MIDAS stops
+
+        nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
+        nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
+        nBIP65Height = 751858; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
 
         // Public coin spend enforcement
         nPublicZCSpends = 9999999;
@@ -313,6 +317,10 @@ public:
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
 
+        nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
+        nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
+        nBIP65Height = 1; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
+
         // Public coin spend enforcement
         nPublicZCSpends = 9999999;
 
@@ -425,6 +433,10 @@ public:
         nMidasStartTime = 253402300799;
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
+
+        nBIP34Height = 100000000; // BIP34 has not activated on regtest (far in the future so block v1 are not rejected in tests)
+        nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher (Used in rpc activation tests)
+        nBIP65Height = 300; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher (Used in rpc activation tests)
 
         // Token groups
         nOpGroupStartHeight = 1;

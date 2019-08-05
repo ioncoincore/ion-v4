@@ -1642,7 +1642,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransa
                 nFees, ::minRelayTxFee.GetFee(nSize) * 10000);
 
 
-        bool fCLTVHasMajority = CBlockIndex::IsSuperMajority(9, chainActive.Tip(), Params().EnforceBlockUpgradeMajority());
+        bool fCLTVHasMajority = chainActive.Tip()->nHeight >= Params().BIP65Height();
 
         // Check against previous transactions
         // This is done last to help prevent CPU exhaustion denial-of-service attacks.
@@ -1850,7 +1850,7 @@ bool AcceptableInputs(CTxMemPool& pool, CValidationState& state, const CTransact
                 hash.ToString(),
                 nFees, ::minRelayTxFee.GetFee(nSize) * 10000);
 
-        bool fCLTVHasMajority = CBlockIndex::IsSuperMajority(9, chainActive.Tip(), Params().EnforceBlockUpgradeMajority());
+        bool fCLTVHasMajority = chainActive.Tip()->nHeight >= Params().BIP65Height();
 
         // Check against previous transactions
         // This is done last to help prevent CPU exhaustion denial-of-service attacks.
@@ -3300,7 +3300,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     // If scripts won't be checked anyways, don't bother seeing if CLTV is activated
     bool fCLTVHasMajority = false;
     if (fScriptChecks && pindex->pprev) {
-        fCLTVHasMajority = CBlockIndex::IsSuperMajority(9, pindex->pprev, Params().EnforceBlockUpgradeMajority());
+        fCLTVHasMajority = pindex->pprev->nHeight >= Params().BIP65Height();
     }
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
@@ -4739,24 +4739,14 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     if (pcheckpoint && nHeight < pcheckpoint->nHeight)
         return state.DoS(0, error("%s : forked chain older than last checkpoint (height %d)", __func__, nHeight));
 
-    // Reject block.nVersion=1 blocks when 95% (75% on testnet) of the network has upgraded:
-    if (block.nVersion < 2 &&
-        CBlockIndex::IsSuperMajority(2, pindexPrev, Params().RejectBlockOutdatedMajority())) {
-        return state.Invalid(error("%s : rejected nVersion=1 block", __func__),
-            REJECT_OBSOLETE, "bad-version");
-    }
-
-    // Reject block.nVersion=2 blocks when 95% (75% on testnet) of the network has upgraded:
-    if (block.nVersion < 7 && CBlockIndex::IsSuperMajority(7, pindexPrev, Params().RejectBlockOutdatedMajority())) {
-        return state.Invalid(error("%s : rejected nVersion=2 block", __func__),
-            REJECT_OBSOLETE, "bad-version");
-    }
-
-    // Reject block.nVersion=8 blocks when 95% (75% on testnet) of the network has upgraded:
-    if (block.nVersion < 9 && CBlockIndex::IsSuperMajority(9, pindexPrev, Params().RejectBlockOutdatedMajority())) {
-        return state.Invalid(error("%s : rejected nVersion=8 block", __func__),
-                             REJECT_OBSOLETE, "bad-version");
-    }
+    // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
+    // check for version 2, 7, 8 and 9 upgrades
+    if((block.nVersion < 2 && nHeight >= Params().BIP34Height()) ||
+       (block.nVersion < 7 && nHeight >= Params().BIP66Height()) ||
+       (block.nVersion < 8 && nHeight >= Params().BIP65Height()) ||
+       (block.nVersion < 9 && nHeight >= Params().Zerocoin_StartHeight()))
+            return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
+                                 strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
     return true;
 }
@@ -4798,9 +4788,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
         }
 
     // Enforce block.nVersion=2 rule that the coinbase starts with serialized block height
-    // if 750 of the last 1,000 blocks are version 2 or greater (51/100 if testnet):
-    if (block.nVersion >= 7 &&
-        CBlockIndex::IsSuperMajority(2, pindexPrev, Params().EnforceBlockUpgradeMajority())) {
+    if (nHeight >= Params().BIP34Height()) {
         CScript expect = CScript() << nHeight;
         if (block.vtx[0].vin[0].scriptSig.size() < expect.size() ||
             !std::equal(expect.begin(), expect.end(), block.vtx[0].vin[0].scriptSig.begin())) {
