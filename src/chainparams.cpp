@@ -171,12 +171,12 @@ public:
         nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
         nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
         nBIP65Height = 751858; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
+        nOpGroupStartHeight = 99999999; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
 
         // Public coin spend enforcement
         nPublicZCSpends = 9999999;
 
         // Token groups
-        nOpGroupStartHeight = 99999999;
         strTokenManagementKey = "inqaYuaES1cmRBXHodp25UceeVPbWQG5wY";
         nOpGroupNewRequiredConfirmations = 1;
 
@@ -320,12 +320,12 @@ public:
         nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
         nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
         nBIP65Height = 1; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
+        nOpGroupStartHeight = 1150; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
 
         // Public coin spend enforcement
         nPublicZCSpends = 9999999;
 
         // Token groups
-        nOpGroupStartHeight = 3100;
         strTokenManagementKey = "gBi3gDLnGfw8HA2rN4HmNxHk9hMC4GLFbh";
         nOpGroupNewRequiredConfirmations = 1;
 
@@ -437,9 +437,9 @@ public:
         nBIP34Height = 100000000; // BIP34 has not activated on regtest (far in the future so block v1 are not rejected in tests)
         nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher (Used in rpc activation tests)
         nBIP65Height = 300; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher (Used in rpc activation tests)
+        nOpGroupStartHeight = 300; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
 
         // Token groups
-        nOpGroupStartHeight = 1;
         strTokenManagementKey = "gAQQQjA4DCT2EZDVK6Jae4mFfB217V43Nt";
         nOpGroupNewRequiredConfirmations = 1;
 
