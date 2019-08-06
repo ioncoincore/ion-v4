@@ -56,18 +56,6 @@ std::string EncodeGroupAuthority(const GroupAuthorityFlags flags) {
     return sflags;
 }
 
-bool IsAnyOutputGrouped(const CTransaction &tx)
-{
-    for (const CTxOut &txout : tx.vout)
-    {
-        if (IsOutputGrouped(txout)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 bool IsOutputGrouped(const CTxOut &txout) {
     CTokenGroupInfo grp(txout.scriptPubKey);
     if (grp.invalid)
@@ -78,15 +66,25 @@ bool IsOutputGrouped(const CTxOut &txout) {
     return false;
 }
 
-bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags)
+bool IsOutputGroupedAuthority(const CTxOut &txout) {
+    CTokenGroupInfo grp(txout.scriptPubKey);
+    if (grp.invalid)
+        return true;
+    if (grp.associatedGroup != NoGroup && grp.isAuthority())
+        return true;
+
+    return false;
+}
+
+bool IsAnyOutputGrouped(const CTransaction &tx)
 {
-    for (const CTxOut& txout : tx.vout) {
-        CTokenGroupInfo grp(txout.scriptPubKey);
-        if (grp.invalid)
-            return false;
-        if (grp.isGroupCreation(tokenGroupIdFlags))
+    for (const CTxOut &txout : tx.vout)
+    {
+        if (IsOutputGrouped(txout)) {
             return true;
+        }
     }
+
     return false;
 }
 
@@ -101,13 +99,15 @@ bool IsAnyOutputGroupedAuthority(const CTransaction &tx) {
     return false;
 }
 
-bool IsOutputGroupedAuthority(const CTxOut &txout) {
-    CTokenGroupInfo grp(txout.scriptPubKey);
-    if (grp.invalid)
-        return true;
-    if (grp.associatedGroup != NoGroup && grp.isAuthority())
-        return true;
-
+bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags)
+{
+    for (const CTxOut& txout : tx.vout) {
+        CTokenGroupInfo grp(txout.scriptPubKey);
+        if (grp.invalid)
+            return false;
+        if (grp.isGroupCreation(tokenGroupIdFlags))
+            return true;
+    }
     return false;
 }
 
@@ -302,9 +302,6 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
 bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCoinsViewCache &view, std::unordered_map<CTokenGroupID, CTokenGroupBalance>& gBalance)
 {
     gBalance.clear();
-    // This is an optimization allowing us to skip single-mint hashes if there are no output groups
-    bool anyOutputGroups = false;
-    bool anyOutputControlGroups = false;
 
     // Tokens minted from the tokenGroupManagement address can create management tokens
     bool anyInputsGroupManagement = false;
@@ -331,7 +328,6 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
                 if (std::numeric_limits<CAmount>::max() - gBalance[tokenGrp.associatedGroup].output < tokenGrp.quantity)
                     return state.Invalid(false, REJECT_INVALID, "token overflow");
                 gBalance[tokenGrp.associatedGroup].output += tokenGrp.quantity;
-                anyOutputGroups = true;
             }
             else if (tokenGrp.quantity == 0)
             {
@@ -340,7 +336,6 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             else // this is an authority output
             {
                 gBalance[tokenGrp.associatedGroup].ctrlOutputPerms |= (GroupAuthorityFlags)tokenGrp.quantity;
-                anyOutputControlGroups = true;
             }
         }
     }

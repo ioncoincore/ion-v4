@@ -109,7 +109,6 @@ extern "C" int SignTx(unsigned char *txData,
     CScript priorScript(prevoutScript, prevoutScript + priorScriptLen);
     CKey key = LoadKey(keyData);
 
-    size_t nHashedOut = 0;
     uint256 sighash = SignatureHash(priorScript, tx, inputIdx, nHashType);
     std::vector<unsigned char> sig;
     if (!key.Sign(sighash, sig))

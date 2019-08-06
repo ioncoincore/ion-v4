@@ -105,10 +105,6 @@ public:
     std::vector<unsigned char> GetSubGroupData();
 
     const std::vector<unsigned char> &bytes(void) const { return data; }
-    //* Convert this token group ID into a mint/melt address
-    // CTxDestination ControllingAddress(txnouttype addrType) const;
-    //* Returns this groupID as a string in bech32 format
-    // std::string Encode(const CChainParams &params = Params()) const;
 
     ADD_SERIALIZE_METHODS;
 
@@ -310,14 +306,12 @@ public:
 // Verify that the token groups in this transaction properly balance
 bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCoinsViewCache &view, std::unordered_map<CTokenGroupID, CTokenGroupBalance>& gBalance);
 
-// Return true if any output in this transaction is part of a group
-bool IsAnyOutputGrouped(const CTransaction &tx);
+// Return true if an output or any output in this transaction is part of a group
 bool IsOutputGrouped(const CTxOut &txout);
-
-bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
-
-bool IsAnyOutputGroupedAuthority(const CTransaction &tx);
 bool IsOutputGroupedAuthority(const CTxOut &txout);
+bool IsAnyOutputGrouped(const CTransaction &tx);
+bool IsAnyOutputGroupedAuthority(const CTransaction &tx);
+bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
 
 bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID);
 
