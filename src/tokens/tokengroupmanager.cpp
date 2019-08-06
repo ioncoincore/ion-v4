@@ -2,13 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "tokengroupmanager.h"
-#include "wallet/tokengroupwallet.h"
+#include "tokens/tokengroupmanager.h"
+#include "tokens/tokengroupwallet.h"
 
 #include "dstencode.h"
 #include "rpc/protocol.h"
 #include "utilstrencodings.h"
-#include "tokengroupconfiguration.h"
+#include "tokens/tokengroupconfiguration.h"
 
 std::shared_ptr<CTokenGroupManager> tokenGroupManager;
 

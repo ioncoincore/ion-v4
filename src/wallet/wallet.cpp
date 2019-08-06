@@ -23,7 +23,7 @@
 #include "stakeinput.h"
 #include "swifttx.h"
 #include "timedata.h"
-#include "wallet/tokengroupwallet.h"
+#include "tokens/tokengroupwallet.h"
 #include "txdb.h"
 #include "util.h"
 #include "utilmoneystr.h"

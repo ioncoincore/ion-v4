@@ -2,8 +2,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "tokendb.h"
-#include "tokengroupmanager.h"
+#include "tokens/tokendb.h"
+#include "tokens/tokengroupmanager.h"
 
 CTokenDB::CTokenDB(size_t nCacheSize, bool fMemory, bool fWipe) : CLevelDBWrapper(GetDataDir() / "tokens", nCacheSize, fMemory, fWipe) {}
 

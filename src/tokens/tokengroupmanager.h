@@ -5,7 +5,7 @@
 #ifndef TOKEN_GROUP_MANAGER_H
 #define TOKEN_GROUP_MANAGER_H
 
-#include "tokengroupconfiguration.h"
+#include "tokens/tokengroupconfiguration.h"
 #include "wallet/wallet.h"
 
 #include <unordered_map>

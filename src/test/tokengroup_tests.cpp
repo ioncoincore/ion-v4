@@ -8,7 +8,7 @@
 #include "miner.h"
 //#include "parallel.h"
 #include "utilstrencodings.h"
-#include "wallet/tokengroupwallet.h"
+#include "tokens/tokengroupwallet.h"
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(tokengroup_tests, BasicTestingSetup)

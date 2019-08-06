@@ -169,9 +169,9 @@ BITCOIN_CORE_H = \
   threadsafety.h \
   timedata.h \
   tinyformat.h \
-  tokendb.h \
-  tokengroupconfiguration.h \
-  tokengroupmanager.h \
+  tokens/tokendb.h \
+  tokens/tokengroupconfiguration.h \
+  tokens/tokengroupmanager.h \
   torcontrol.h \
   txdb.h \
   txmempool.h \
@@ -188,7 +188,7 @@ BITCOIN_CORE_H = \
   wallet/wallet.h \
   wallet/wallet_ismine.h \
   wallet/walletdb.h \
-  wallet/tokengroupwallet.h \
+  tokens/tokengroupwallet.h \
   xionchain.h \
   xion/accumulators.h \
   xion/accumulatorcheckpoints.h \
@@ -225,7 +225,6 @@ libbitcoin_server_a_SOURCES = \
   blocksignature.cpp \
   chain.cpp \
   checkpoints.cpp \
-  consensus/tokengroups.h \
   consensus/tokengroups.cpp \
   httprpc.cpp \
   httpserver.cpp \
@@ -289,9 +288,9 @@ libbitcoin_wallet_a_SOURCES = \
   xion/zerocoin.cpp \
   wallet/rpcwallet.cpp \
   kernel.cpp \
-  tokendb.cpp \
-  tokengroupconfiguration.cpp \
-  tokengroupmanager.cpp \
+  tokens/tokendb.cpp \
+  tokens/tokengroupconfiguration.cpp \
+  tokens/tokengroupmanager.cpp \
   transactionrecord.cpp \
   wallet/wallet.cpp \
   wallet/wallet_ismine.cpp \

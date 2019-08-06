@@ -1,7 +1,7 @@
 // Copyright (c) 2015-2017 The Bitcoin Unlimited developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
-#include "wallet/tokengroupwallet.h"
+#include "tokens/tokengroupwallet.h"
 #include "base58.h"
 #include "ionaddrenc.h"
 #include "coincontrol.h"
@@ -19,7 +19,7 @@
 #include "rpc/server.h"
 #include "script/script.h"
 #include "script/standard.h"
-#include "tokengroupmanager.h"
+#include "tokens/tokengroupmanager.h"
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
 #include "wallet.h"

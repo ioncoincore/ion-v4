@@ -15,7 +15,7 @@
 #include "rpc/server.h"
 #include "spork.h"
 #include "timedata.h"
-#include "tokengroupmanager.h"
+#include "tokens/tokengroupmanager.h"
 #include "util.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
