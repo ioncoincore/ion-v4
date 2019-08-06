@@ -286,9 +286,6 @@ extern UniValue signrawtransaction(const UniValue& params, bool fHelp);
 extern UniValue sendrawtransaction(const UniValue& params, bool fHelp);
 extern UniValue createrawzerocoinstake(const UniValue& params, bool fHelp);
 extern UniValue createrawzerocoinpublicspend(const UniValue& params, bool fHelp);
-extern UniValue token(const UniValue& params, bool fHelp);
-extern UniValue managementtoken(const UniValue& params, bool fHelp);
-extern UniValue tokeninfo(const UniValue& params, bool fHelp);
 
 extern UniValue findserial(const UniValue& params, bool fHelp); // in rpc/blockchain.cpp
 extern UniValue getblockcount(const UniValue& params, bool fHelp);
@@ -357,6 +354,12 @@ extern UniValue createmultisig(const UniValue& params, bool fHelp);
 extern UniValue verifymessage(const UniValue& params, bool fHelp);
 extern UniValue setmocktime(const UniValue& params, bool fHelp);
 extern UniValue getstakingstatus(const UniValue& params, bool fHelp);
+
+extern UniValue token(const UniValue& params, bool fHelp); // in tokens/rpctokens.cpp
+extern UniValue managementtoken(const UniValue& params, bool fHelp);
+extern UniValue tokeninfo(const UniValue& params, bool fHelp);
+extern UniValue groupedlistsinceblock(const UniValue &params, bool fHelp);
+extern UniValue groupedlisttransactions(const UniValue &params, bool fHelp);
 
 bool StartRPC();
 void InterruptRPC();

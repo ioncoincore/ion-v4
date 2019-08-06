@@ -288,14 +288,15 @@ libbitcoin_wallet_a_SOURCES = \
   xion/zerocoin.cpp \
   wallet/rpcwallet.cpp \
   kernel.cpp \
+  tokens/rpctokens.cpp \
   tokens/tokendb.cpp \
   tokens/tokengroupconfiguration.cpp \
   tokens/tokengroupmanager.cpp \
+  tokens/tokengroupwallet.cpp \
   transactionrecord.cpp \
   wallet/wallet.cpp \
   wallet/wallet_ismine.cpp \
   wallet/walletdb.cpp \
-  wallet/tokengroupwallet.cpp \
   xion/accumulators.cpp \
   xion/mintpool.cpp \
   xion/witness.cpp \
