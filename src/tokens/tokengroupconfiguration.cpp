@@ -2,9 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "tokengroupconfiguration.h"
-#include "tokengroupmanager.h"
-#include "wallet/tokengroupwallet.h"
+#include "tokens/tokengroupconfiguration.h"
+#include "tokens/tokengroupmanager.h"
+#include "tokens/tokengroupwallet.h"
 
 #include <univalue.h>
 #include <iostream>

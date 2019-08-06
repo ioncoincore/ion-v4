@@ -16,10 +16,10 @@
 #include "ionaddrenc.h"
 #include "random.h"
 #include "rpc/server.h"
-#include "tokengroupmanager.h"
+#include "tokens/tokengroupmanager.h"
 #include "utilmoneystr.h"
 #include "wallet/wallet.h"
-#include "wallet/tokengroupwallet.h"
+#include "tokens/tokengroupwallet.h"
 
 #include <unordered_map>
 #include <univalue.h>
