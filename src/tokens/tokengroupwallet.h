@@ -35,9 +35,7 @@ void GetGroupBalanceAndAuthorities(CAmount &balance, GroupAuthorityFlags &author
 CTokenGroupID GetTokenGroup(const CTxDestination &id);
 //* Initialize a group ID from a string representation
 CTokenGroupID GetTokenGroup(const std::string &ionAddrGrpId, const CChainParams &params = Params());
-// Return the associated group (OP_GROUP) of a script
-CTokenGroupID GetTokenGroup(const CScript &script);
-CTxDestination ControllingAddress(const CTokenGroupID &grp, txnouttype addrType);
+
 std::string EncodeTokenGroup(const CTokenGroupID &grp, const CChainParams &params = Params());
 
 //* Calculate a group ID based on the provided inputs.  Pass and empty script to opRetTokDesc if there is not

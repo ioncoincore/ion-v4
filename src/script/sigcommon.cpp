@@ -20,9 +20,16 @@
 #include <string>
 #include <vector>
 
+#ifdef __GNUC__
+#define UNUSED __attribute__((unused))
+#else
+#define UNUSED
+#endif
 
 namespace
 {
+uint256 GetPrevoutHash(const CTransaction &txTo) UNUSED;
+
 uint256 GetPrevoutHash(const CTransaction &txTo)
 {
     CHashWriter ss(SER_GETHASH, 0);

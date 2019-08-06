@@ -67,6 +67,7 @@ bool CTokenDB::FindTokenGroups(std::vector<CTokenGroupCreation>& vTokenGroups, s
         }
         pcursor->Next();
     }
+    return true;
 }
 
 bool CTokenDB::LoadTokensFromDB(std::string& strError) {
