@@ -419,6 +419,7 @@ SOURCES += src/activemasternode.cpp \
            src/spork.cpp \
            src/sync.cpp \
            src/timedata.cpp \
+           src/tokens/rpctokens.cpp \
            src/txdb.cpp \
            src/txmempool.cpp \
            src/uint256.cpp \
