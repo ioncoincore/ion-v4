@@ -60,7 +60,7 @@ bool CTokenGroupDescription::SetGroupDescData(const std::vector<std::vector<unsi
     it++;
 
     if (it == descriptionData.end()) return false;
-    strDocumentUrl = GetStringFromChars(*it, 79); // Max 81 bytes (2+79)
+    strDocumentUrl = GetStringFromChars(*it, 100); // Max 102 bytes (2+100)
     it++;
 
     if (it == descriptionData.end()) return false;
