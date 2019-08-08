@@ -6,11 +6,7 @@
 #define TOKEN_GROUP_RPC_H
 
 #include "chainparams.h"
-#include "coins.h"
 #include "consensus/tokengroups.h"
-#include "consensus/validation.h"
-#include "pubkey.h"
-#include "script/standard.h"
 #include "wallet/wallet.h"
 #include <unordered_map>
 
