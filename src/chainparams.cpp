@@ -84,11 +84,12 @@ static const Checkpoints::CCheckpointData data = {
 static Checkpoints::MapCheckpoints mapCheckpointsTestnet =
     boost::assign::map_list_of
         (       0,  uint256("00000a5e695356de7ccae09478a4aa7053a402f7c2f57a40c44310d8fbe5d3c7") )  // Genesis block
-        (    1138,  uint256("7ffeeefe7b8de3f9b63bba7fdafd11aa4c7a03d6a3eeea4ebeaf17de3af01bd7") ); // ATP RC - 2019-08-05            1565007768   2082
+        (    1138,  uint256("7ffeeefe7b8de3f9b63bba7fdafd11aa4c7a03d6a3eeea4ebeaf17de3af01bd7") )  // ATP RC - 2019-08-05            1565007768   2082
+        (    5720,  uint256("26a1ee2dccbc467ebcfd2a17da56d3b343dccfd2a45b2b3c4fd46b26d04efde3") ); // 1st MGT token                  1565281278   11266
 static const Checkpoints::CCheckpointData dataTestnet = {
     &mapCheckpointsTestnet,
-    1565007768,
-    2082,
+    1565281278,
+    11266,
     2900};
 
 static Checkpoints::MapCheckpoints mapCheckpointsRegtest =
