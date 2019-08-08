@@ -355,11 +355,19 @@ extern UniValue verifymessage(const UniValue& params, bool fHelp);
 extern UniValue setmocktime(const UniValue& params, bool fHelp);
 extern UniValue getstakingstatus(const UniValue& params, bool fHelp);
 
-extern UniValue token(const UniValue& params, bool fHelp); // in tokens/rpctokens.cpp
-extern UniValue managementtoken(const UniValue& params, bool fHelp);
-extern UniValue tokeninfo(const UniValue& params, bool fHelp);
-extern UniValue groupedlistsinceblock(const UniValue &params, bool fHelp);
-extern UniValue groupedlisttransactions(const UniValue &params, bool fHelp);
+extern UniValue tokeninfo(const UniValue& params, bool fHelp); // in tokens/rpctokens.cpp
+extern UniValue gettokenbalance(const UniValue &params, bool fHelp);
+extern UniValue listtokentransactions(const UniValue &params, bool fHelp);
+extern UniValue listtokenssinceblock(const UniValue &params, bool fHelp);
+extern UniValue sendtoken(const UniValue &params, bool fHelp);
+extern UniValue configuretoken(const UniValue &params, bool fHelp);
+extern UniValue configuremanagementtoken(const UniValue &params, bool fHelp);
+extern UniValue getsubgroupid(const UniValue &params, bool fHelp);
+extern UniValue createtokenauthorities(const UniValue &params, bool fHelp);
+extern UniValue listtokenauthorities(const UniValue &params, bool fHelp);
+extern UniValue droptokenauthorities(const UniValue &params, bool fHelp);
+extern UniValue minttoken(const UniValue &params, bool fHelp);
+extern UniValue melttoken(const UniValue &params, bool fHelp);
 
 bool StartRPC();
 void InterruptRPC();
