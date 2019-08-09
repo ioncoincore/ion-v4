@@ -1,5 +1,5 @@
 ---
-name: "ion-osx-3.3"
+name: "ion-osx-4.0"
 enable_cache: true
 distro: "ubuntu"
 suites:
@@ -168,4 +168,3 @@ script: |
   mkdir -p $OUTDIR/src
   mv $SOURCEDIST $OUTDIR/src
   mv ${OUTDIR}/${DISTNAME}-x86_64-*.tar.xz ${OUTDIR}/${DISTNAME}-osx64.tar.xz
-
