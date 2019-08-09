@@ -26,6 +26,7 @@ BITCOIN_INCLUDES += $(UNIVALUE_CFLAGS)
 
 LIBBITCOIN_SERVER=libbitcoin_server.a
 LIBBITCOIN_COMMON=libbitcoin_common.a
+LIBBITCOIN_CONSENSUS=libbitcoin_consensus.a
 LIBBITCOIN_CLI=libbitcoin_cli.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
 LIBBITCOIN_CRYPTO=crypto/libbitcoin_crypto.a
@@ -38,6 +39,7 @@ LIBBITCOIN_ZMQ=libbitcoin_zmq.a
 endif
 if BUILD_BITCOIN_LIBS
 LIBBITCOINCONSENSUS=libbitcoinconsensus.la
+LIBIONCORE=libioncore.la
 endif
 if ENABLE_WALLET
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
@@ -52,13 +54,14 @@ EXTRA_LIBRARIES += \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_COMMON) \
+  $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_CLI) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_ZMQ)
 
-lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS)
+lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS) $(LIBIONCORE)
 
 bin_PROGRAMS =
 noinst_PROGRAMS =
@@ -100,6 +103,7 @@ BITCOIN_CORE_H = \
   compat/endian.h \
   compat/sanity.h \
   compressor.h \
+  consensus/tokengroups.h \
   consensus/validation.h \
   core_memusage.h \
   dstencode.h \
@@ -165,10 +169,14 @@ BITCOIN_CORE_H = \
   threadsafety.h \
   timedata.h \
   tinyformat.h \
+  tokens/tokendb.h \
+  tokens/tokengroupconfiguration.h \
+  tokens/tokengroupmanager.h \
   torcontrol.h \
   txdb.h \
   txmempool.h \
-  ui_interface.h \
+  transactionrecord.h \
+  guiinterface.h \
   uint256.h \
   undo.h \
   util.h \
@@ -180,6 +188,7 @@ BITCOIN_CORE_H = \
   wallet/wallet.h \
   wallet/wallet_ismine.h \
   wallet/walletdb.h \
+  tokens/tokengroupwallet.h \
   xionchain.h \
   xion/accumulators.h \
   xion/accumulatorcheckpoints.h \
@@ -191,6 +200,7 @@ BITCOIN_CORE_H = \
   xion/zerocoin.h \
   xion/xiontracker.h \
   xion/xionwallet.h \
+  xion/xionmodule.h \
   genwit.h \
   concurrentqueue.h \
   lightxionthread.h \
@@ -215,6 +225,7 @@ libbitcoin_server_a_SOURCES = \
   blocksignature.cpp \
   chain.cpp \
   checkpoints.cpp \
+  consensus/tokengroups.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -277,6 +288,12 @@ libbitcoin_wallet_a_SOURCES = \
   xion/zerocoin.cpp \
   wallet/rpcwallet.cpp \
   kernel.cpp \
+  tokens/rpctokens.cpp \
+  tokens/tokendb.cpp \
+  tokens/tokengroupconfiguration.cpp \
+  tokens/tokengroupmanager.cpp \
+  tokens/tokengroupwallet.cpp \
+  transactionrecord.cpp \
   wallet/wallet.cpp \
   wallet/wallet_ismine.cpp \
   wallet/walletdb.cpp \
@@ -287,8 +304,42 @@ libbitcoin_wallet_a_SOURCES = \
   xion/xiontracker.cpp \
   stakeinput.cpp \
   genwit.cpp \
+  xion/xionmodule.cpp \
   lightxionthread.cpp \
   $(BITCOIN_CORE_H)
+
+libioncore_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libioncore_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+
+# base58.cpp
+#  base58.h
+
+libioncore_a_SOURCES = \
+  ioncorelib/ioncorelib.cpp \
+  script/sigcommon.cpp \
+  hash.cpp \
+  hash.h \
+  key.cpp \
+  key.h \
+  primitives/transaction.cpp \
+  primitives/transaction.h \
+  pubkey.cpp \
+  pubkey.h \
+  random.cpp \
+  random.h \
+  script/interpreter.cpp \
+  script/interpreter.h \
+  script/script.cpp \
+  script/script.h \
+  support/cleanse.cpp \
+  support/cleanse.h \
+  uint256.cpp \
+  uint256.h \
+  utilstrencodings.cpp \
+  utilstrencodings.h \
+  utiltime.cpp \
+  utiltime.h
+
 
 # crypto primitives library
 crypto_libbitcoin_crypto_a_CPPFLAGS = $(AM_CPPFLAGS) $(PIC_FLAGS)
@@ -342,6 +393,7 @@ libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
   libzerocoin/SerialNumberSignatureOfKnowledge.h \
   libzerocoin/SpendType.h \
   libzerocoin/ZerocoinDefines.h \
+  libzerocoin/bignum.cpp \
   libzerocoin/Accumulator.cpp \
   libzerocoin/AccumulatorProofOfKnowledge.cpp \
   libzerocoin/Coin.cpp \
@@ -351,6 +403,33 @@ libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
   libzerocoin/ParamGeneration.cpp \
   libzerocoin/Params.cpp \
   libzerocoin/SerialNumberSignatureOfKnowledge.cpp
+if USE_NUM_GMP
+  libzerocoin_libbitcoin_zerocoin_a_SOURCES += libzerocoin/bignum_gmp.cpp
+endif
+if USE_NUM_OPENSSL
+  libzerocoin_libbitcoin_zerocoin_a_SOURCES += libzerocoin/bignum_openssl.cpp
+endif
+
+# consensus: shared between all executables that validate any consensus rules.
+libbitcoin_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libbitcoin_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoin_consensus_a_SOURCES = \
+  allocators.cpp \
+  primitives/transaction.cpp \
+  crypto/hmac_sha512.cpp \
+  crypto/scrypt.cpp \
+  crypto/sha1.cpp \
+  crypto/sha256.cpp \
+  crypto/sha512.cpp \
+  crypto/ripemd160.cpp \
+  hash.cpp \
+  pubkey.cpp \
+  script/sigcommon.cpp \
+  script/script.cpp \
+  script/interpreter.cpp \
+  script/bitcoinconsensus.cpp \
+  uint256.cpp \
+  utilstrencodings.cpp
 
 # common: shared between iond, and ion-qt and non-server tools
 libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
@@ -447,6 +526,7 @@ iond_LDADD = \
   $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_ZMQ) \
+  $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBLEVELDB) \
   $(LIBLEVELDB_SSE42) \
@@ -487,6 +567,7 @@ endif
 ion_tx_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBBITCOIN_COMMON) \
+  $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO) \
@@ -498,31 +579,23 @@ ion_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
 # bitcoinconsensus library #
 if BUILD_BITCOIN_LIBS
 include_HEADERS = script/bitcoinconsensus.h
-libbitcoinconsensus_la_SOURCES = \
-  allocators.cpp \
-  primitives/transaction.cpp \
-  crypto/hmac_sha512.cpp \
-  crypto/scrypt.cpp \
-  crypto/sha1.cpp \
-  crypto/sha256.cpp \
-  crypto/sha512.cpp \
-  crypto/ripemd160.cpp \
-  hash.cpp \
-  pubkey.cpp \
-  script/script.cpp \
-  script/interpreter.cpp \
-  script/bitcoinconsensus.cpp \
-  uint256.cpp \
-  utilstrencodings.cpp
+libbitcoinconsensus_la_SOURCES = $(libbitcoin_consensus_a_SOURCES)
+libioncore_la_SOURCES = $(libioncore_a_SOURCES) $(crypto_libbitcoin_crypto_a_SOURCES)
 
 if GLIBC_BACK_COMPAT
   libbitcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
+  libioncore_la_SOURCES += compat/glibc_compat.cpp
 endif
 
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1)
 libbitcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
 libbitcoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+
+libioncore_la_LDFLAGS = $(AM_LDFLAGS) $(SSL_LIBS) $(CRYPTO_LIBS) $(BOOST_LIBS) -no-undefined $(RELDFLAGS)
+libioncore_la_LIBADD = $(LIBSECP256K1)
+libioncore_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(BOOST_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
+libioncore_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif
 #
@@ -531,11 +604,18 @@ CLEANFILES = $(EXTRA_LIBRARIES)
 
 CLEANFILES += *.gcda *.gcno
 CLEANFILES += compat/*.gcda compat/*.gcno
+CLEANFILES += consensus/*.gcda consensus/*.gcno
 CLEANFILES += crypto/*.gcda crypto/*.gcno
+CLEANFILES += libzerocoin/*.gcda libzerocoin/*.gcno
 CLEANFILES += primitives/*.gcda primitives/*.gcno
+CLEANFILES += rpc/*.gcda rpc/*.gcno
 CLEANFILES += script/*.gcda script/*.gcno
+CLEANFILES += support/*.gcda support/*.gcno
 CLEANFILES += univalue/*.gcda univalue/*.gcno
+CLEANFILES += wallet/*.gcda wallet/*.gcno
+CLEANFILES += wallet/test/*.gcda wallet/test/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
+CLEANFILES += xion/*.gcda xion/*.gcno
 CLEANFILES += obj/build.h
 
 EXTRA_DIST =
@@ -563,13 +643,13 @@ clean-local:
 check-symbols: $(bin_PROGRAMS)
 if GLIBC_BACK_COMPAT
 	@echo "Checking glibc back compat..."
-	$(AM_V_at) READELF=$(READELF) CPPFILT=$(CPPFILT) $(top_srcdir)/contrib/devtools/symbol-check.py < $(bin_PROGRAMS)
+	$(AM_V_at) READELF=$(READELF) CPPFILT=$(CPPFILT) $(PYTHON) $(top_srcdir)/contrib/devtools/symbol-check.py < $(bin_PROGRAMS)
 endif
 
 check-security: $(bin_PROGRAMS)
 if HARDEN
 	@echo "Checking binary security..."
-	$(AM_V_at) READELF=$(READELF) OBJDUMP=$(OBJDUMP) $(top_srcdir)/contrib/devtools/security-check.py < $(bin_PROGRAMS)
+	$(AM_V_at) READELF=$(READELF) OBJDUMP=$(OBJDUMP) $(PYTHON) $(top_srcdir)/contrib/devtools/security-check.py < $(bin_PROGRAMS)
 endif
 
 %.pb.cc %.pb.h: %.proto

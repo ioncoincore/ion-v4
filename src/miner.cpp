@@ -120,15 +120,15 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
     // Make sure to create the correct block version after zerocoin is enabled
     bool fZerocoinActive = nHeight >= Params().Zerocoin_StartHeight();
-    pblock->nVersion = 9;   // Supports CLTV activation
+    pblock->nVersion = CBlockHeader::CURRENT_VERSION;   // Supports CLTV activation
 
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
     if (Params().MineBlocksOnDemand()) {
         if (fZerocoinActive)
-            pblock->nVersion = 5;
+            pblock->nVersion = CBlockHeader::CURRENT_VERSION;
         else
-            pblock->nVersion = 3;
+            pblock->nVersion = 7;
 
         pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
     }
@@ -222,11 +222,13 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             CAmount nTotalIn = 0;
             bool fMissingInputs = false;
             uint256 txid = tx.GetHash();
+            bool hasZerocoinSpends = tx.HasZerocoinSpendInputs();
+            if (hasZerocoinSpends)
+                nTotalIn = tx.GetZerocoinSpent();
+
             for (const CTxIn& txin : tx.vin) {
                 //zerocoinspend has special vin
-                if (tx.IsZerocoinSpend()) {
-                    nTotalIn = tx.GetZerocoinSpent();
-
+                if (hasZerocoinSpends) {
                     //Give a high priority to zerocoinspends to get into the next block
                     //Priority = (age^6+100000)*amount - gives higher priority to xions that have been in mempool long
                     //and higher priority to xions that are large in value
@@ -349,7 +351,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
             double dPriorityDelta = 0;
             CAmount nFeeDelta = 0;
             mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
-            if (!tx.IsZerocoinSpend() && fSortedByFee && (dPriorityDelta <= 0) && (nFeeDelta <= 0) && (feeRate < ::minRelayTxFee) && (nBlockSize + nTxSize >= nBlockMinSize))
+            if (!tx.HasZerocoinSpendInputs() && fSortedByFee && (dPriorityDelta <= 0) && (nFeeDelta <= 0) && (feeRate < ::minRelayTxFee) && (nBlockSize + nTxSize >= nBlockMinSize))
                 continue;
 
             // Prioritise by fee once past the priority size or we run out of high-priority
@@ -365,25 +367,39 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
                 continue;
 
             // double check that there are no double spent xION spends in this block or tx
-            if (tx.IsZerocoinSpend()) {
+            if (tx.HasZerocoinSpendInputs()) {
                 int nHeightTx = 0;
                 if (IsTransactionInChain(tx.GetHash(), nHeightTx))
                     continue;
 
                 bool fDoubleSerial = false;
                 for (const CTxIn& txIn : tx.vin) {
-                    if (txIn.scriptSig.IsZerocoinSpend()) {
-                        libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txIn);
-                        bool fUseV1Params = libzerocoin::ExtractVersionFromSerial(spend.getCoinSerialNumber()) < libzerocoin::PrivateCoin::PUBKEY_VERSION;
-                        if (!spend.HasValidSerial(Params().Zerocoin_Params(fUseV1Params)))
+                    bool isPublicSpend = txIn.IsZerocoinPublicSpend();
+                    if (txIn.IsZerocoinSpend() || isPublicSpend) {
+                        libzerocoin::CoinSpend* spend;
+                        if (isPublicSpend) {
+                            libzerocoin::ZerocoinParams* params = Params().Zerocoin_Params(false);
+                            PublicCoinSpend publicSpend(params);
+                            CValidationState state;
+                            if (!XIONModule::ParseZerocoinPublicSpend(txIn, tx, state, publicSpend)){
+                                throw std::runtime_error("Invalid public spend parse");
+                            }
+                            spend = &publicSpend;
+                        } else {
+                            libzerocoin::CoinSpend spendObj = TxInToZerocoinSpend(txIn);
+                            spend = &spendObj;
+                        }
+
+                        bool fUseV1Params = libzerocoin::ExtractVersionFromSerial(spend->getCoinSerialNumber()) < libzerocoin::PrivateCoin::PUBKEY_VERSION;
+                        if (!spend->HasValidSerial(Params().Zerocoin_Params(fUseV1Params)))
                             fDoubleSerial = true;
-                        if (count(vBlockSerials.begin(), vBlockSerials.end(), spend.getCoinSerialNumber()))
+                        if (count(vBlockSerials.begin(), vBlockSerials.end(), spend->getCoinSerialNumber()))
                             fDoubleSerial = true;
-                        if (count(vTxSerials.begin(), vTxSerials.end(), spend.getCoinSerialNumber()))
+                        if (count(vTxSerials.begin(), vTxSerials.end(), spend->getCoinSerialNumber()))
                             fDoubleSerial = true;
                         if (fDoubleSerial)
                             break;
-                        vTxSerials.emplace_back(spend.getCoinSerialNumber());
+                        vTxSerials.emplace_back(spend->getCoinSerialNumber());
                     }
                 }
                 //This xION serial has already been included in the block, do not add this tx.
@@ -427,7 +443,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
 
             // Add transactions that depend on this one to the priority queue
             if (mapDependers.count(hash)) {
-                BOOST_FOREACH (COrphan* porphan, mapDependers[hash]) {
+                for (COrphan* porphan : mapDependers[hash]) {
                     if (!porphan->setDependsOn.empty()) {
                         porphan->setDependsOn.erase(hash);
                         if (porphan->setDependsOn.empty()) {
@@ -474,7 +490,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn, CWallet* pwallet, 
         //Calculate the accumulator checkpoint only if the previous cached checkpoint need to be updated
         if (fZerocoinActive) {
             uint256 nCheckpoint;
-            uint256 hashBlockLastAccumulated = chainActive[nHeight - (nHeight % 10) - 10]->GetBlockHash();
+            uint256 hashBlockLastAccumulated = nHeight >= 20 ? chainActive[nHeight - (nHeight % 10) - 10]->GetBlockHash(): 0;
             if (nHeight >= pCheckpointCache.first || pCheckpointCache.second.first != hashBlockLastAccumulated) {
                 //For the period before v2 activation, xION will be disabled and previous block's checkpoint is all that will be needed
                 pCheckpointCache.second.second = pindexPrev->nAccumulatorCheckpoint;

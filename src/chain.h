@@ -17,7 +17,6 @@
 
 #include <vector>
 
-#include <boost/foreach.hpp>
 
 struct CDiskBlockPos {
     int nFile;
@@ -147,6 +146,14 @@ public:
     //! Change to 64-bit type when necessary; won't happen before 2030
     unsigned int nChainTx;
 
+    //! Number of XDM transactions in this block.
+    //! Note: in a potential headers-first mode, this number cannot be relied upon until after full block validation
+    unsigned int nXDMTransactions;
+    unsigned int nMagicTransactions;
+    //! (memory only) Number of XDM transactions in the chain up to and including this block.
+    unsigned int nChainXDMTransactions;
+    unsigned int nChainMagicTransactions;
+
     //! Verification status of this block. See enum BlockStatus
     unsigned int nStatus;
 
@@ -167,6 +174,9 @@ public:
     int64_t nMint;
     int64_t nMoneySupply;
 
+    int64_t nXDMSupply;
+    int64_t nMagicSupply;
+
     //! block header
     int nVersion;
     uint256 hashMerkleRoot;
@@ -177,11 +187,11 @@ public:
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     uint32_t nSequenceId;
-    
+
     //! zerocoin specific fields
     std::map<libzerocoin::CoinDenomination, int64_t> mapZerocoinSupply;
     std::vector<libzerocoin::CoinDenomination> vMintDenominationsInBlock;
-    
+
     void SetNull()
     {
         phashBlock = NULL;
@@ -194,11 +204,17 @@ public:
         nChainWork = 0;
         nTx = 0;
         nChainTx = 0;
+        nXDMTransactions = 0;
+        nChainXDMTransactions = 0;
+        nMagicTransactions = 0;
+        nChainMagicTransactions = 0;
         nStatus = 0;
         nSequenceId = 0;
 
         nMint = 0;
         nMoneySupply = 0;
+        nXDMSupply = 0;
+        nMagicSupply = 0;
         nFlags = 0;
         nStakeModifier = 0;
         nStakeModifierChecksum = 0;
@@ -239,6 +255,8 @@ public:
         bnChainTrust = uint256();
         nMint = 0;
         nMoneySupply = 0;
+        nXDMSupply = 0;
+        nMagicSupply = 0;
         nFlags = 0;
         nStakeModifier = 0;
         nStakeModifierChecksum = 0;
@@ -253,7 +271,7 @@ public:
             nStakeTime = 0;
         }
     }
-    
+
 
     CDiskBlockPos GetBlockPos() const
     {
@@ -395,7 +413,7 @@ public:
 
     /**
      * Returns true if there are nRequired or more blocks of minVersion or above
-     * in the last Params().ToCheckBlockUpgradeMajority() blocks, starting at pstart 
+     * in the last Params().ToCheckBlockUpgradeMajority() blocks, starting at pstart
      * and going backwards.
      */
     static bool IsSuperMajority(int minVersion, const CBlockIndex* pstart, unsigned int nRequired);
@@ -452,9 +470,9 @@ public:
         hashNext = uint256();
     }
 
-    explicit CDiskBlockIndex(CBlockIndex* pindex) : CBlockIndex(*pindex)
+    explicit CDiskBlockIndex(const CBlockIndex* pindex) : CBlockIndex(*pindex)
     {
-        hashPrev = (pprev ? pprev->GetBlockHash() : uint256());
+        hashPrev = (pprev ? pprev->GetBlockHash() : uint256(0));
     }
 
     ADD_SERIALIZE_METHODS;
@@ -501,6 +519,12 @@ public:
             READWRITE(nAccumulatorCheckpoint);
             READWRITE(mapZerocoinSupply);
             READWRITE(vMintDenominationsInBlock);
+        }
+        if(this->nVersion > 9) {
+            READWRITE(VARINT(nXDMTransactions));
+            READWRITE(VARINT(nXDMSupply));
+            READWRITE(VARINT(nMagicTransactions));
+            READWRITE(VARINT(nMagicSupply));
         }
 
     }

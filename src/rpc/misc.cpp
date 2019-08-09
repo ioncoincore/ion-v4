@@ -15,6 +15,7 @@
 #include "rpc/server.h"
 #include "spork.h"
 #include "timedata.h"
+#include "tokens/tokengroupmanager.h"
 #include "util.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
@@ -144,6 +145,11 @@ UniValue getinfo(const UniValue& params, bool fHelp)
     }
 
     obj.push_back(Pair("moneysupply",ValueFromAmount(chainActive.Tip()->nMoneySupply)));
+
+    if (tokenGroupManager->DarkMatterTokensCreated()) {
+        obj.push_back(Pair("XDM_supply", tokenGroupManager->TokenValueFromAmount(chainActive.Tip()->nXDMSupply, tokenGroupManager->GetDarkMatterID())));
+        obj.push_back(Pair("XDM_transactions", (uint64_t)chainActive.Tip()->nXDMTransactions));
+    }
     UniValue xionObj(UniValue::VOBJ);
     for (auto denom : libzerocoin::zerocoinDenomList) {
         xionObj.push_back(Pair(to_string(denom), ValueFromAmount(chainActive.Tip()->mapZerocoinSupply.at(denom) * (denom*COIN))));
@@ -277,7 +283,7 @@ public:
         obj.push_back(Pair("script", GetTxnOutputType(whichType)));
         obj.push_back(Pair("hex", HexStr(subscript.begin(), subscript.end())));
         UniValue a(UniValue::VARR);
-        BOOST_FOREACH (const CTxDestination& addr, addresses)
+        for (const CTxDestination& addr : addresses)
             a.push_back(CBitcoinAddress(addr).ToString());
         obj.push_back(Pair("addresses", a));
         if (whichType == TX_MULTISIG)

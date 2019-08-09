@@ -1,5 +1,6 @@
 ---
 name: "ion-dmg-signer"
+distro: "ubuntu"
 suites:
 - "bionic"
 architectures:
@@ -12,6 +13,8 @@ remotes:
 files:
 - "ion-osx-unsigned.tar.xz"
 script: |
+  set -e -o pipefail
+
   WRAP_DIR=$HOME/wrapped
   mkdir -p ${WRAP_DIR}
   export PATH=`pwd`:$PATH

@@ -15,6 +15,7 @@
 #include "script/script.h"
 #include "script/script_error.h"
 #include "core_io.h"
+#include "test_ion.h"
 
 #include <map>
 #include <string>
@@ -55,7 +56,7 @@ unsigned int ParseScriptFlags(string strFlags)
     vector<string> words;
     split(words, strFlags, is_any_of(","));
 
-    BOOST_FOREACH(string word, words)
+    for (string word : words)
     {
         if (!mapFlagNames.count(word))
             BOOST_ERROR("Bad test: unknown verification flag '" << word << "'");
@@ -81,7 +82,7 @@ string FormatScriptFlags(unsigned int flags)
     return ret.substr(0, ret.size() - 1);
 }
 
-BOOST_AUTO_TEST_SUITE(transaction_tests)
+BOOST_FIXTURE_TEST_SUITE(transaction_tests, TestingSetup)
 
 /* DISABLE AS NOT WORKING - **TODO** - fix it
 BOOST_AUTO_TEST_CASE(tx_valid)
@@ -151,7 +152,7 @@ BOOST_AUTO_TEST_CASE(tx_valid)
 
                 unsigned int verify_flags = ParseScriptFlags(test[2].get_str());
                 BOOST_CHECK_MESSAGE(VerifyScript(tx.vin[i].scriptSig, mapprevOutScriptPubKeys[tx.vin[i].prevout],
-                                                 verify_flags, TransactionSignatureChecker(&tx, i), &err),
+                                                 verify_flags, MAX_OPS_PER_SCRIPT, TransactionSignatureChecker(&tx, i), &err),
                                     strTest);
                 BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
             }
@@ -225,7 +226,7 @@ BOOST_AUTO_TEST_CASE(tx_invalid)
 
                 unsigned int verify_flags = ParseScriptFlags(test[2].get_str());
                 fValid = VerifyScript(tx.vin[i].scriptSig, mapprevOutScriptPubKeys[tx.vin[i].prevout],
-                                      verify_flags, TransactionSignatureChecker(&tx, i), &err);
+                                      verify_flags, MAX_OPS_PER_SCRIPT, TransactionSignatureChecker(&tx, i), &err);
             }
             BOOST_CHECK_MESSAGE(!fValid, strTest);
             BOOST_CHECK_MESSAGE(err != SCRIPT_ERR_OK, ScriptErrorString(err));

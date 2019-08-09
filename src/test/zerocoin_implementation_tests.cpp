@@ -17,12 +17,13 @@
 #include "wallet/wallet.h"
 #include "xion/xionwallet.h"
 #include "xionchain.h"
+#include "test_ion.h"
 
 using namespace libzerocoin;
 
 extern bool DecodeHexTx(CTransaction& tx, const std::string& strHexTx);
 
-BOOST_AUTO_TEST_SUITE(zerocoin_implementation_tests)
+BOOST_FIXTURE_TEST_SUITE(zerocoin_implementation_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(zcparams_test)
 {
@@ -47,46 +48,7 @@ std::string zerocoinModulus = "2519590847565789349402718324004839857142928212620
 "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
 "31438167899885040445364023527381951378636564391212010397122822120720357";
 
-std::string strHexModulus = "c7970ceedcc3b0754490201a7aa613cd73911081c790f5f1a8726f463550bb5b7ff0db8e1ea1189ec72f93d1650011bd721aeeacc2acde32a04107f0648c2813a31f5b0b7765ff8b44b4b6ffc93384b646eb09c7cf5e8592d40ea33c80039f35b4f14a04b51f7bfd781be4d1673164ba8eb991c2c4d730bbbe35f592bdef524af7e8daefd26c66fc02c479af89d64d373f442709439de66ceb955f3ea37d5159f6135809f85334b5cb1813addc80cd05609f10ac6a95ad65872c909525bdad32bc729592642920f24c61dc5b3c3b7923e56b16a4d9d373d8721f24a3fc0f1b3131f55615172866bccc30f95054c824e733a5eb6817f7bc16399d48c6361cc7e5";
 
-BOOST_AUTO_TEST_CASE(bignum_setdecimal)
-{
-    CBigNum bnDec;
-    bnDec.SetDec(zerocoinModulus);
-    CBigNum bnHex;
-    bnHex.SetHex(strHexModulus);
-    BOOST_CHECK_MESSAGE(bnDec == bnHex, "CBigNum.SetDec() does not work correctly");
-}
-
-std::string negstrHexModulus = "-c7970ceedcc3b0754490201a7aa613cd73911081c790f5f1a8726f463550bb5b7ff0db8e1ea1189ec72f93d1650011bd721aeeacc2acde32a04107f0648c2813a31f5b0b7765ff8b44b4b6ffc93384b646eb09c7cf5e8592d40ea33c80039f35b4f14a04b51f7bfd781be4d1673164ba8eb991c2c4d730bbbe35f592bdef524af7e8daefd26c66fc02c479af89d64d373f442709439de66ceb955f3ea37d5159f6135809f85334b5cb1813addc80cd05609f10ac6a95ad65872c909525bdad32bc729592642920f24c61dc5b3c3b7923e56b16a4d9d373d8721f24a3fc0f1b3131f55615172866bccc30f95054c824e733a5eb6817f7bc16399d48c6361cc7e5";
-std::string str_a = "775897c5463939bf29a02816aba7b1741162e1f6b052cd32fec36c44dfee7d4b5162de78bb0b448cb305b0a9bd7e006aec62d7c1e94a31003c2decbdc6fd7c9b261cb88801c51e7cee71a215ff113ccbd02069cf29671e6302944ca5780a2f626eb9046fa6872968addc93c74d09cf6b2872bc4c6bd08e89324cc7e9fb921488";
-std::string str_b = "-775897c5463939bf29a02816aba7b1741162e1f6b052cd32fec36c44dfee7d4b5162de78bb0b448cb305b0a9bd7e006aec62d7c1e94a31003c2decbdc6fd7c9b261cb88801c51e7cee71a215ff113ccbd02069cf29671e6302944ca5780a2f626eb9046fa6872968addc93c74d09cf6b2872bc4c6bd08e89324cc7e9fb921488";
-
-BOOST_AUTO_TEST_CASE(bignum_basic_tests)
-{
-    CBigNum bn, bn2;
-    std::vector<unsigned char> vch;
-
-    bn.SetHex(strHexModulus);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-
-    bn.SetHex(negstrHexModulus);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-
-    bn.SetHex(str_a);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-
-    bn.SetHex(str_b);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-}
 
 //ZQ_ONE mints
 std::string rawTx1 = "0100000001983d5fd91685bb726c0ebc3676f89101b16e663fd896fea53e19972b95054c49000000006a473044022010fbec3e78f9c46e58193d481caff715ceb984df44671d30a2c0bde95c54055f0220446a97d9340da690eaf2658e5b2bf6a0add06f1ae3f1b40f37614c7079ce450d012103cb666bd0f32b71cbf4f32e95fa58e05cd83869ac101435fcb8acee99123ccd1dffffffff0200e1f5050000000086c10280004c80c3a01f94e71662f2ae8bfcd88dfc5b5e717136facd6538829db0c7f01e5fd793cccae7aa1958564518e0223d6d9ce15b1e38e757583546e3b9a3f85bd14408120cd5192a901bb52152e8759fdd194df230d78477706d0e412a66398f330be38a23540d12ab147e9fb19224913f3fe552ae6a587fb30a68743e52577150ff73042c0f0d8f000000001976a914d6042025bd1fff4da5da5c432d85d82b3f26a01688ac00000000";
@@ -138,7 +100,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinmint_test)
     CValidationState state;
     bool fFoundMint = false;
     for(unsigned int i = 0; i < tx.vout.size(); i++){
-        if(!tx.vout[i].scriptPubKey.empty() && tx.vout[i].scriptPubKey.IsZerocoinMint()) {
+        if(tx.vout[i].IsZerocoinMint()) {
             BOOST_CHECK(CheckZerocoinMint(tx.GetHash(), tx.vout[i], state, true));
             fFoundMint = true;
         }
@@ -176,10 +138,10 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
     set<CBigNum> serials;
     list<CoinSpend> vSpends;
     CAmount nTotalRedeemed = 0;
-    BOOST_FOREACH(const CTxIn& txin, tx.vin) {
+    for (const CTxIn& txin : tx.vin) {
 
         //only check txin that is a zcspend
-        if (!txin.scriptSig.IsZerocoinSpend())
+        if (!txin.IsZerocoinSpend())
             continue;
 
         // extract the CoinSpend from the txin
@@ -274,7 +236,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
         BOOST_CHECK_MESSAGE(DecodeHexTx(tx, raw.first), "Failed to deserialize hex transaction");
 
         for(const CTxOut& out : tx.vout){
-            if(!out.scriptPubKey.empty() && out.scriptPubKey.IsZerocoinMint()) {
+            if(out.IsZerocoinMint()) {
                 PublicCoin publicCoin(Params().Zerocoin_Params(true));
                 BOOST_CHECK_MESSAGE(TxOutToPublicCoin(out, publicCoin, state), "Failed to convert CTxOut " << out.ToString() << " to PublicCoin");
 
@@ -401,7 +363,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     //Get the checksum of the accumulator we use for the spend and also add it to our checksum map
     uint32_t nChecksum_v2 = GetChecksum(accumulator_v2.getValue());
     //AddAccumulatorChecksum(nChecksum_v2, accumulator_v2.getValue(), true);
-    uint256 ptxHash = CBigNum::RandKBitBigum(256).getuint256();
+    uint256 ptxHash = CBigNum::randKBitBignum(256).getuint256();
     CoinSpend coinSpend_v2(Params().Zerocoin_Params(false), Params().Zerocoin_Params(false), privateCoin_v2, accumulator_v2, nChecksum_v2, witness_v2, ptxHash, SpendType::SPEND);
 
     BOOST_CHECK_MESSAGE(coinSpend_v2.HasValidSerial(Params().Zerocoin_Params(false)), "coinspend_v2 does not have a valid serial");
@@ -501,16 +463,17 @@ BOOST_AUTO_TEST_CASE(checksum_tests)
     }
 }
 
+/* TODO
 BOOST_AUTO_TEST_CASE(test_checkpoints)
 {
     /* PR141: **TODO**
      * error: in "zerocoin_implementation_tests/test_checkpoints": failed to load checkpoints
     BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::LoadCheckpoints("main"), "failed to load checkpoints");
-    BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::mapCheckpoints.at(1000020)
+    BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::mapCheckpoints.at(1100020)
                                 .at(libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND)
-                                .GetHex() == "5e33c35654a34b971acd068760eda578a3e512e78b333cecaf7ae8cf3e665b19d091faa819f2a98063be4992b8beed47885e58fd5344d43fcdff14afb38da59fe3c4b22ff81c6730de6c6ddf8ea5c9f25305b5dbab276db410bfe3d59dfdb7bb3e664998696b00d25e1caf9f1d298b7276c9690c5fc2b2e3e77e89b57bb46a646b9955cf3d175a45b9337189ae4275898d10ecddc66955862ca42fcf18b44d43a0b89b13298e951f4ce5933beca41b4f1924d688415d255dab54ecb54e37bcc1174464be979cf79cb366387d9bd10afc4f20ba1494d87b680b15af2b492da18f375fac6eeccda47ea0eda6d8e22fa1d413a73a14febc23a867b5edfc263f6455", "does not match");
-    */
+                                .GetHex() == "8db0b3495edb380ef7dda75a0ce2c53427b7a5ca70e0f6e93596a23e77d1c2e3244b581506ced3492ffb6ed53b42ce9eec293fc8f44bc59dcc5dd449ab6e93f087cf37f11aecf84386328e50fe14251fecfef7dbf5d33d07068f68a7466921c0267f38ca0b79ff30876d3e6c06a878b30d4bd17e35e53c3fcfc886200ee216401ee1dc90ba7c4345c01fc00aa4cf4540d51158f76da334226d076de56f9b5f8d32791cff7ed51af5054e9beb05237c330f24430ac7c2ffe5cf1a6b4fed14600e18e635d848476b826a12e2a9429170e7cc6dbdb44e04dfe00f3b7660bb083a1942aaee19d30a848cdb1228efd9ec3e7a8af611c8822d930f62cf73d4c0f1597c", "does not match");
 }
+*/
 
 BOOST_AUTO_TEST_CASE(deterministic_tests)
 {

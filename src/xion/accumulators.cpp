@@ -147,7 +147,7 @@ bool LoadAccumulatorValuesFromDB(const uint256 nCheckpoint)
         if (!zerocoinDB->ReadAccumulatorValue(nChecksum, bnValue)) {
             if (!count(listAccCheckpointsNoDB.begin(), listAccCheckpointsNoDB.end(), nCheckpoint))
                 listAccCheckpointsNoDB.push_back(nCheckpoint);
-            LogPrint("zero", "%s : Missing databased value for checksum %d", __func__, nChecksum);
+            LogPrint("zero", "%s : Missing databased value for checksum %d\n", __func__, nChecksum);
             return false;
         }
         mapAccumulatorValues.insert(make_pair(nChecksum, bnValue));
@@ -266,7 +266,7 @@ bool CalculateAccumulatorCheckpoint(int nHeight, uint256& nCheckpoint, Accumulat
 
     //Accumulate all coins over the last ten blocks that havent been accumulated (height - 20 through height - 11)
     int nTotalMintsFound = 0;
-    CBlockIndex *pindex = chainActive[nHeightCheckpoint - 20];
+    CBlockIndex *pindex = chainActive[nHeightCheckpoint >= 20 ? nHeightCheckpoint - 20 : 0];
 
     while (pindex->nHeight < nHeight - 10) {
         // checking whether we should stop this process due to a shutdown request

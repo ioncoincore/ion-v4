@@ -119,7 +119,7 @@ HEADERS += src/activemasternode.h \
            src/tinyformat.h \
            src/txdb.h \
            src/txmempool.h \
-           src/ui_interface.h \
+           src/guiinterface.h \
            src/uint256.h \
            src/undo.h \
            src/util.h \
@@ -206,7 +206,7 @@ HEADERS += src/activemasternode.h \
            src/qt/transactiondesc.h \
            src/qt/transactiondescdialog.h \
            src/qt/transactionfilterproxy.h \
-           src/qt/transactionrecord.h \
+           src/transactionrecord.h \
            src/qt/transactiontablemodel.h \
            src/qt/transactionview.h \
            src/qt/utilitydialog.h \
@@ -419,6 +419,7 @@ SOURCES += src/activemasternode.cpp \
            src/spork.cpp \
            src/sync.cpp \
            src/timedata.cpp \
+           src/tokens/rpctokens.cpp \
            src/txdb.cpp \
            src/txmempool.cpp \
            src/uint256.cpp \

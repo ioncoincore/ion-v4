@@ -13,10 +13,12 @@
 #include "netbase.h"
 #include "rpc/server.h"
 #include "timedata.h"
+#include "transactionrecord.h"
 #include "util.h"
 #include "utilmoneystr.h"
 #include "wallet.h"
 #include "walletdb.h"
+#include "tokens/tokengroupwallet.h"
 #include "xionchain.h"
 
 #include <stdint.h>
@@ -63,12 +65,12 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
     uint256 hash = wtx.GetHash();
     entry.push_back(Pair("txid", hash.GetHex()));
     UniValue conflicts(UniValue::VARR);
-    BOOST_FOREACH (const uint256& conflict, wtx.GetConflicts())
+    for (const uint256& conflict : wtx.GetConflicts())
         conflicts.push_back(conflict.GetHex());
     entry.push_back(Pair("walletconflicts", conflicts));
     entry.push_back(Pair("time", wtx.GetTxTime()));
     entry.push_back(Pair("timereceived", (int64_t)wtx.nTimeReceived));
-    BOOST_FOREACH (const PAIRTYPE(string, string) & item, wtx.mapValue)
+    for (const PAIRTYPE(string, string) & item : wtx.mapValue)
         entry.push_back(Pair(item.first, item.second));
 }
 
@@ -137,7 +139,7 @@ CBitcoinAddress GetAccountAddress(string strAccount, bool bForceNew = false)
              it != pwalletMain->mapWallet.end() && account.vchPubKey.IsValid();
              ++it) {
             const CWalletTx& wtx = (*it).second;
-            BOOST_FOREACH (const CTxOut& txout, wtx.vout)
+            for (const CTxOut& txout : wtx.vout)
                 if (txout.scriptPubKey == scriptPubKey)
                     bKeyUsed = true;
         }
@@ -312,7 +314,7 @@ UniValue getaddressesbyaccount(const UniValue& params, bool fHelp)
 
     // Find all addresses that have the given account
     UniValue ret(UniValue::VARR);
-    BOOST_FOREACH (const PAIRTYPE(CBitcoinAddress, CAddressBookData) & item, pwalletMain->mapAddressBook) {
+    for (const PAIRTYPE(CBitcoinAddress, CAddressBookData) & item : pwalletMain->mapAddressBook) {
         const CBitcoinAddress& address = item.first;
         const string& strName = item.second.name;
         if (strName == strAccount)
@@ -487,9 +489,9 @@ UniValue listaddressgroupings(const UniValue& params, bool fHelp)
 
     UniValue jsonGroupings(UniValue::VARR);
     map<CTxDestination, CAmount> balances = pwalletMain->GetAddressBalances();
-    BOOST_FOREACH (set<CTxDestination> grouping, pwalletMain->GetAddressGroupings()) {
+    for (set<CTxDestination> grouping : pwalletMain->GetAddressGroupings()) {
         UniValue jsonGrouping(UniValue::VARR);
-        BOOST_FOREACH (CTxDestination address, grouping) {
+        for (CTxDestination address : grouping) {
             UniValue addressInfo(UniValue::VARR);
             addressInfo.push_back(CBitcoinAddress(address).ToString());
             addressInfo.push_back(ValueFromAmount(balances[address]));
@@ -605,7 +607,7 @@ UniValue getreceivedbyaddress(const UniValue& params, bool fHelp)
         if (wtx.IsCoinBase() || !IsFinalTx(wtx))
             continue;
 
-        BOOST_FOREACH (const CTxOut& txout, wtx.vout)
+        for (const CTxOut& txout : wtx.vout)
             if (txout.scriptPubKey == scriptPubKey)
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
                     nAmount += txout.nValue;
@@ -657,7 +659,7 @@ UniValue getreceivedbyaccount(const UniValue& params, bool fHelp)
         if (wtx.IsCoinBase() || !IsFinalTx(wtx))
             continue;
 
-        BOOST_FOREACH (const CTxOut& txout, wtx.vout) {
+        for (const CTxOut& txout : wtx.vout) {
             CTxDestination address;
             if (ExtractDestination(txout.scriptPubKey, address) && IsMine(*pwalletMain, address) && setAddress.count(address))
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
@@ -759,10 +761,10 @@ UniValue getbalance(const UniValue& params, bool fHelp)
             list<COutputEntry> listSent;
             wtx.GetAmounts(listReceived, listSent, allFee, strSentAccount, filter);
             if (wtx.GetDepthInMainChain() >= nMinDepth) {
-                BOOST_FOREACH (const COutputEntry& r, listReceived)
+                for (const COutputEntry& r : listReceived)
                     nBalance += r.amount;
             }
-            BOOST_FOREACH (const COutputEntry& s, listSent)
+            for (const COutputEntry& s : listSent)
                 nBalance -= s.amount;
             nBalance -= allFee;
         }
@@ -1027,7 +1029,7 @@ UniValue sendmany(const UniValue& params, bool fHelp)
 
     CAmount totalAmount = 0;
     vector<string> keys = sendTo.getKeys();
-    BOOST_FOREACH(const string& name_, keys) {
+    for (const string& name_ : keys) {
         CBitcoinAddress address(name_);
         if (!address.IsValid())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid ION address: ")+name_);
@@ -1164,7 +1166,7 @@ UniValue ListReceived(const UniValue& params, bool fByAccounts)
         if (nDepth < nMinDepth)
             continue;
 
-        BOOST_FOREACH (const CTxOut& txout, wtx.vout) {
+        for (const CTxOut& txout : wtx.vout) {
             CTxDestination address;
             if (!ExtractDestination(txout.scriptPubKey, address))
                 continue;
@@ -1186,7 +1188,7 @@ UniValue ListReceived(const UniValue& params, bool fByAccounts)
     // Reply
     UniValue ret(UniValue::VARR);
     map<string, tallyitem> mapAccountTally;
-    BOOST_FOREACH (const PAIRTYPE(CBitcoinAddress, CAddressBookData) & item, pwalletMain->mapAddressBook) {
+    for (const PAIRTYPE(CBitcoinAddress, CAddressBookData) & item : pwalletMain->mapAddressBook) {
         const CBitcoinAddress& address = item.first;
         const string& strAccount = item.second.name;
         map<CBitcoinAddress, tallyitem>::iterator it = mapTally.find(address);
@@ -1221,7 +1223,7 @@ UniValue ListReceived(const UniValue& params, bool fByAccounts)
             obj.push_back(Pair("bcconfirmations", (nBCConf == std::numeric_limits<int>::max() ? 0 : nBCConf)));
             UniValue transactions(UniValue::VARR);
             if (it != mapTally.end()) {
-                BOOST_FOREACH (const uint256& item, (*it).second.txids) {
+                for (const uint256& item : (*it).second.txids) {
                     transactions.push_back(item.GetHex());
                 }
             }
@@ -1325,8 +1327,8 @@ void ListTransactions(const CWalletTx& wtx, const string& strAccount, int nMinDe
 {
     CAmount nFee;
     string strSentAccount;
-    list<COutputEntry> listReceived;
-    list<COutputEntry> listSent;
+    list<CGroupedOutputEntry> listReceived;
+    list<CGroupedOutputEntry> listSent;
 
     wtx.GetAmounts(listReceived, listSent, nFee, strSentAccount, filter);
 
@@ -1335,7 +1337,7 @@ void ListTransactions(const CWalletTx& wtx, const string& strAccount, int nMinDe
 
     // Sent
     if ((!listSent.empty() || nFee != 0) && (fAllAccounts || strAccount == strSentAccount)) {
-        BOOST_FOREACH (const COutputEntry& s, listSent) {
+        for (const CGroupedOutputEntry& s : listSent) {
             UniValue entry(UniValue::VOBJ);
             if (involvesWatchonly || (::IsMine(*pwalletMain, s.destination) & ISMINE_WATCH_ONLY))
                 entry.push_back(Pair("involvesWatchonly", true));
@@ -1343,6 +1345,11 @@ void ListTransactions(const CWalletTx& wtx, const string& strAccount, int nMinDe
             MaybePushAddress(entry, s.destination);
             std::map<std::string, std::string>::const_iterator it = wtx.mapValue.find("DS");
             entry.push_back(Pair("category", (it != wtx.mapValue.end() && it->second == "1") ? "darksent" : "send"));
+            if (s.grp != NoGroup)
+            {
+                entry.push_back(Pair("group", EncodeTokenGroup(s.grp)));
+                entry.push_back(Pair("groupAmount", -s.grpAmount));
+            }
             entry.push_back(Pair("amount", ValueFromAmount(-s.amount)));
             entry.push_back(Pair("vout", s.vout));
             entry.push_back(Pair("fee", ValueFromAmount(-nFee)));
@@ -1354,7 +1361,7 @@ void ListTransactions(const CWalletTx& wtx, const string& strAccount, int nMinDe
 
     // Received
     if (listReceived.size() > 0 && wtx.GetDepthInMainChain() >= nMinDepth) {
-        BOOST_FOREACH (const COutputEntry& r, listReceived) {
+        for (const CGroupedOutputEntry& r : listReceived) {
             string account;
             if (pwalletMain->mapAddressBook.count(r.destination))
                 account = pwalletMain->mapAddressBook[r.destination].name;
@@ -1373,6 +1380,11 @@ void ListTransactions(const CWalletTx& wtx, const string& strAccount, int nMinDe
                         entry.push_back(Pair("category", "generate"));
                 } else {
                     entry.push_back(Pair("category", "receive"));
+                }
+                if (r.grp != NoGroup)
+                {
+                    entry.push_back(Pair("group", EncodeTokenGroup(r.grp)));
+                    entry.push_back(Pair("groupAmount", r.grpAmount));
                 }
                 entry.push_back(Pair("amount", ValueFromAmount(r.amount)));
                 entry.push_back(Pair("vout", r.vout));
@@ -1522,6 +1534,142 @@ UniValue listtransactions(const UniValue& params, bool fHelp)
     return ret;
 }
 
+void ListTransactionRecords(const CWalletTx& wtx, const string& strAccount, int nMinDepth, bool fLong, UniValue& ret, const isminefilter& filter)
+{
+    std::vector<TransactionRecord> vRecs = TransactionRecord::decomposeTransaction(pwalletMain, wtx);
+    for(auto&& vRec: vRecs) {
+        UniValue entry(UniValue::VOBJ);
+        entry.push_back(Pair("type", vRec.GetTransactionRecordType()));
+        entry.push_back(Pair("transactionid", vRec.getTxID()));
+        entry.push_back(Pair("outputindex", vRec.getOutputIndex()));
+        entry.push_back(Pair("time", vRec.time));
+        entry.push_back(Pair("debit", ValueFromAmount(vRec.debit)));
+        entry.push_back(Pair("credit", ValueFromAmount(vRec.credit)));
+        entry.push_back(Pair("involvesWatchonly", vRec.involvesWatchAddress));
+
+        if (fLong) {
+            if (vRec.statusUpdateNeeded()) vRec.updateStatus(wtx);
+
+            entry.push_back(Pair("depth", vRec.status.depth));
+            entry.push_back(Pair("status", vRec.GetTransactionStatus()));
+            entry.push_back(Pair("countsForBalance", vRec.status.countsForBalance));
+            entry.push_back(Pair("matures_in", vRec.status.matures_in));
+            entry.push_back(Pair("open_for", vRec.status.open_for));
+            entry.push_back(Pair("cur_num_blocks", vRec.status.cur_num_blocks));
+            entry.push_back(Pair("cur_num_ix_locks", vRec.status.cur_num_ix_locks));
+        }
+        ret.push_back(entry);
+    }
+}
+
+UniValue listtransactionrecords(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 4)
+        throw runtime_error(
+                "listtransactionrecords ( \"account\" count from includeWatchonly)\n"
+                "\nReturns up to 'count' most recent transactions skipping the first 'from' transactions for account 'account'.\n"
+
+                "\nArguments:\n"
+                "1. \"account\"    (string, optional) The account name. If not included, it will list all transactions for all accounts.\n"
+                "                                     If \"\" is set, it will list transactions for the default account.\n"
+                "2. count          (numeric, optional, default=10) The number of transactions to return\n"
+                "3. from           (numeric, optional, default=0) The number of transactions to skip\n"
+                "4. includeWatchonly (bool, optional, default=false) Include transactions to watchonly addresses (see 'importaddress')\n"
+
+                "\nResult:\n"
+                "[\n"
+                "  {\n"
+                "    \"type\" : \"type\",                         (string) The output type.\n"
+                "    \"transactionid\" : \"hash\",                (string) The transaction hash in hex.\n"
+                "    \"outputindex\" : n,                       (numeric) The transaction output index.\n"
+                "    \"time\" : ttt,                            (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT).\n"
+                "    \"debit\" : x.xxx,                         (numeric) The transaction debit amount. This is negative and only available \n"
+                "                                                 for the 'send' category of transactions.\n"
+                "    \"credit\" : x.xxx,                        (numeric) The transaction debit amount. Available for the 'receive' category \n"
+                "                                                 of transactions.\n"
+                "    \"involvesWatchonly\" : true|false,        (boolean) Only returned if imported addresses were involved in transaction.\n"
+                "    \"depth\" : n,                             (numeric) The depth of the transaction in the blockchain.\n"
+                "    \"status\" : \"status\",                     (string) The transaction status.\n"
+                "    \"countsForBalance\" : true|false,         (boolean) Does the transaction count towards the available balance.\n"
+                "    \"matures_in\" : n,                        (numeric) The number of blocks until the transaction is mature.\n"
+                "    \"open_for\" : n,                          (numeric) The number of blocks that need to be mined before finalization.\n"
+                "    \"cur_num_blocks\" : n,                    (numeric) The current number of blocks.\n"
+                "    \"cur_num_ix_locks\" : n,                  (numeric) When to update transaction for ix locks.\n"
+                "  }\n"
+                "]\n"
+
+                "\nExamples:\n"
+                "\nList the most recent 10 transactions in the systems\n" +
+                HelpExampleCli("listtransactionrecords", "") +
+                "\nList the most recent 10 transactions for the tabby account\n" +
+                HelpExampleCli("listtransactionrecords", "\"tabby\"") +
+                "\nList transactions 100 to 120 from the tabby account\n" +
+                HelpExampleCli("listtransactionrecords", "\"tabby\" 20 100") +
+                "\nAs a json rpc call\n" +
+                HelpExampleRpc("listtransactionrecords", "\"tabby\", 20, 100"));
+
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    string strAccount = "*";
+    if (params.size() > 0)
+        strAccount = params[0].get_str();
+    int nCount = 10;
+    if (params.size() > 1)
+        nCount = params[1].get_int();
+    int nFrom = 0;
+    if (params.size() > 2)
+        nFrom = params[2].get_int();
+    isminefilter filter = ISMINE_SPENDABLE;
+    if (params.size() > 3)
+        if (params[3].get_bool())
+            filter = filter | ISMINE_WATCH_ONLY;
+
+    if (nCount < 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative count");
+    if (nFrom < 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative from");
+
+    UniValue ret(UniValue::VARR);
+
+    const CWallet::TxItems & txOrdered = pwalletMain->wtxOrdered;
+
+    // iterate backwards until we have nCount items to return:
+    for (CWallet::TxItems::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it) {
+        CWalletTx* const pwtx = (*it).second.first;
+        if (pwtx != 0){}
+            ListTransactionRecords(*pwtx, strAccount, 0, true, ret, filter);
+        CAccountingEntry* const pacentry = (*it).second.second;
+        if (pacentry != 0)
+            AcentryToJSON(*pacentry, strAccount, ret);
+
+        if ((int)ret.size() >= (nCount + nFrom)) break;
+    }
+    // ret is newest to oldest
+
+    if (nFrom > (int)ret.size())
+        nFrom = ret.size();
+    if ((nFrom + nCount) > (int)ret.size())
+        nCount = ret.size() - nFrom;
+
+    vector<UniValue> arrTmp = ret.getValues();
+
+    vector<UniValue>::iterator first = arrTmp.begin();
+    std::advance(first, nFrom);
+    vector<UniValue>::iterator last = arrTmp.begin();
+    std::advance(last, nFrom+nCount);
+
+    if (last != arrTmp.end()) arrTmp.erase(last, arrTmp.end());
+    if (first != arrTmp.begin()) arrTmp.erase(arrTmp.begin(), first);
+
+    std::reverse(arrTmp.begin(), arrTmp.end()); // Return oldest to newest
+
+    ret.clear();
+    ret.setArray();
+    ret.push_backV(arrTmp);
+
+    return ret;
+}
+
 UniValue listaccounts(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() > 2)
@@ -1560,7 +1708,7 @@ UniValue listaccounts(const UniValue& params, bool fHelp)
             includeWatchonly = includeWatchonly | ISMINE_WATCH_ONLY;
 
     map<string, CAmount> mapAccountBalances;
-    BOOST_FOREACH (const PAIRTYPE(CTxDestination, CAddressBookData) & entry, pwalletMain->mapAddressBook) {
+    for (const PAIRTYPE(CTxDestination, CAddressBookData) & entry : pwalletMain->mapAddressBook) {
         if (IsMine(*pwalletMain, entry.first) & includeWatchonly) // This address belongs to me
             mapAccountBalances[entry.second.name] = 0;
     }
@@ -1576,10 +1724,10 @@ UniValue listaccounts(const UniValue& params, bool fHelp)
             continue;
         wtx.GetAmounts(listReceived, listSent, nFee, strSentAccount, includeWatchonly);
         mapAccountBalances[strSentAccount] -= nFee;
-        BOOST_FOREACH (const COutputEntry& s, listSent)
+        for (const COutputEntry& s : listSent)
             mapAccountBalances[strSentAccount] -= s.amount;
         if (nDepth >= nMinDepth) {
-            BOOST_FOREACH (const COutputEntry& r, listReceived)
+            for (const COutputEntry& r : listReceived)
                 if (pwalletMain->mapAddressBook.count(r.destination))
                     mapAccountBalances[pwalletMain->mapAddressBook[r.destination].name] += r.amount;
                 else
@@ -1588,11 +1736,11 @@ UniValue listaccounts(const UniValue& params, bool fHelp)
     }
 
     const list<CAccountingEntry> & acentries = pwalletMain->laccentries;
-    BOOST_FOREACH (const CAccountingEntry& entry, acentries)
+    for (const CAccountingEntry& entry : acentries)
         mapAccountBalances[entry.strAccount] += entry.nCreditDebit;
 
     UniValue ret(UniValue::VOBJ);
-    BOOST_FOREACH (const PAIRTYPE(string, CAmount) & accountBalance, mapAccountBalances) {
+    for (const PAIRTYPE(string, CAmount) & accountBalance : mapAccountBalances) {
         ret.push_back(Pair(accountBalance.first, ValueFromAmount(accountBalance.second)));
     }
     return ret;
@@ -1710,11 +1858,13 @@ UniValue gettransaction(const UniValue& params, bool fHelp)
             "  \"timereceived\" : ttt,    (numeric) The time received in seconds since epoch (1 Jan 1970 GMT)\n"
             "  \"details\" : [\n"
             "    {\n"
+            "      \"group\": \"groupidentifier\", (string) The token identifier (appears only if applicable)\n"
+            "      \"groupAmount\": n,             (numeric) The token quantity (appears only if applicable)\n"
             "      \"account\" : \"accountname\",  (string) The account name involved in the transaction, can be \"\" for the default account.\n"
             "      \"address\" : \"ionaddress\",   (string) The ion address involved in the transaction\n"
-            "      \"category\" : \"send|receive\",    (string) The category, either 'send' or 'receive'\n"
-            "      \"amount\" : x.xxx                  (numeric) The amount in ION\n"
-            "      \"vout\" : n,                       (numeric) the vout value\n"
+            "      \"category\" : \"send|receive\",(string) The category, either 'send' or 'receive'\n"
+            "      \"amount\" : x.xxx              (numeric) The amount in ION\n"
+            "      \"vout\" : n,                   (numeric) the vout value\n"
             "    }\n"
             "    ,...\n"
             "  ],\n"
@@ -2153,7 +2303,7 @@ UniValue listlockunspent(const UniValue& params, bool fHelp)
 
     UniValue ret(UniValue::VARR);
 
-    BOOST_FOREACH (COutPoint& outpt, vOutpts) {
+    for (COutPoint& outpt : vOutpts) {
         UniValue o(UniValue::VOBJ);
 
         o.push_back(Pair("txid", outpt.hash.GetHex()));
@@ -2406,7 +2556,7 @@ UniValue printAddresses()
     std::vector<COutput> vCoins;
     pwalletMain->AvailableCoins(vCoins);
     std::map<std::string, double> mapAddresses;
-    BOOST_FOREACH (const COutput& out, vCoins) {
+    for (const COutput& out : vCoins) {
         CTxDestination utxoAddress;
         ExtractDestination(out.tx->vout[out.i].scriptPubKey, utxoAddress);
         std::string strAdd = CBitcoinAddress(utxoAddress).ToString();
@@ -2846,6 +2996,10 @@ UniValue mintzerocoin(const UniValue& params, bool fHelp)
             "\nAs a json rpc call\n" +
             HelpExampleRpc("mintzerocoin", "13, \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\""));
 
+
+    if (Params().NetworkID() != CBaseChainParams::REGTEST)
+        throw JSONRPCError(RPC_WALLET_ERROR, "xION minting is DISABLED");
+
     LOCK2(cs_main, pwalletMain->cs_wallet);
 
     if (params.size() == 1)
@@ -2930,6 +3084,7 @@ UniValue spendzerocoin(const UniValue& params, bool fHelp)
             "3. minimizechange  (boolean, required) Try to minimize the returning change  [false]\n"
             "4. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
             "                       If there is change then an address is required\n"
+            "5. ispublicspend (boolean, optional, default=true) create a public zc spend instead of use the old code (only for regression tests)"
 
             "\nResult:\n"
             "{\n"
@@ -2967,12 +3122,19 @@ UniValue spendzerocoin(const UniValue& params, bool fHelp)
 
     CAmount nAmount = AmountFromValue(params[0]);   // Spending amount
     bool fMintChange = params[1].get_bool();        // Mint change to xION
+    if (fMintChange && Params().NetworkID() != CBaseChainParams::REGTEST)
+        throw JSONRPCError(RPC_WALLET_ERROR, "xION minting is DISABLED, cannot mint change");
     bool fMinimizeChange = params[2].get_bool();    // Minimize change
     std::string address_str = params.size() > 3 ? params[3].get_str() : "";
+    bool ispublicspend = params.size() > 4 ? params[3].get_bool() : true;
 
     vector<CZerocoinMint> vMintsSelected;
 
-    return DoXionSpend(nAmount, fMintChange, fMinimizeChange, vMintsSelected, address_str);
+    if (!ispublicspend && Params().NetworkID() != CBaseChainParams::REGTEST) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "xION old spend only available in regtest for tests purposes");
+    }
+
+    return DoXionSpend(nAmount, fMintChange, fMinimizeChange, vMintsSelected, address_str, ispublicspend);
 }
 
 
@@ -3070,8 +3232,12 @@ UniValue spendzerocoinmints(const UniValue& params, bool fHelp)
 }
 
 
-extern UniValue DoXionSpend(const CAmount nAmount, bool fMintChange, bool fMinimizeChange, vector<CZerocoinMint>& vMintsSelected, std::string address_str)
+extern UniValue DoXionSpend(const CAmount nAmount, bool fMintChange, bool fMinimizeChange, vector<CZerocoinMint>& vMintsSelected, std::string address_str, bool ispublicspend)
 {
+    // zerocoin MINT is disabled. fMintChange should be false here. Double check
+    if (fMintChange && Params().NetworkID() != CBaseChainParams::REGTEST)
+        throw JSONRPCError(RPC_WALLET_ERROR, "xION minting is DISABLED, cannot mint change");
+
     int64_t nTimeStart = GetTimeMillis();
     CBitcoinAddress address = CBitcoinAddress(); // Optional sending address. Dummy initialization here.
     CWalletTx wtx;
@@ -3082,9 +3248,9 @@ extern UniValue DoXionSpend(const CAmount nAmount, bool fMintChange, bool fMinim
         address = CBitcoinAddress(address_str);
         if(!address.IsValid())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid ION address");
-        fSuccess = pwalletMain->SpendZerocoin(nAmount, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange, &address);
+        fSuccess = pwalletMain->SpendZerocoin(nAmount, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange, &address, ispublicspend);
     } else                   // Spend to newly generated local address
-        fSuccess = pwalletMain->SpendZerocoin(nAmount, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange);
+        fSuccess = pwalletMain->SpendZerocoin(nAmount, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange, nullptr, ispublicspend);
 
     if (!fSuccess)
         throw JSONRPCError(RPC_WALLET_ERROR, receipt.GetStatusMessage());
@@ -3111,7 +3277,7 @@ extern UniValue DoXionSpend(const CAmount nAmount, bool fMintChange, bool fMinim
         nValueOut += txout.nValue;
 
         CTxDestination dest;
-        if(txout.scriptPubKey.IsZerocoinMint())
+        if(txout.IsZerocoinMint())
             out.push_back(Pair("address", "zerocoinmint"));
         else if(ExtractDestination(txout.scriptPubKey, dest))
             out.push_back(Pair("address", CBitcoinAddress(dest).ToString()));

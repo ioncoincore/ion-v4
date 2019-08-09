@@ -1,12 +1,12 @@
 Ion Core integration/staging repository
 =======================================
-[![GitHub license](https://img.shields.io/github/license/ioncoincore/ion.svg?style=social)](https://github.com/ioncoincore/ion) ![](https://img.shields.io/github/contributors-anon/ioncoincore/ion.svg?style=social) [![GitHub issues](https://img.shields.io/github/issues/ioncoincore/ion.svg?style=social)](https://github.com/ioncoincore/ion/issues) [![GitHub forks](https://img.shields.io/github/forks/ioncoincore/ion.svg?style=social)](https://github.com/ioncoincore/ion/network) [![GitHub stars](https://img.shields.io/github/stars/ioncoincore/ion.svg?style=social)](https://github.com/ioncoincore/ion/stargazers) 
-[![GitHub version](https://badge.fury.io/gh/ioncoincore%2Fion.svg)](https://badge.fury.io/gh/ioncoincore%2Fion) [![Build Status](https://travis-ci.org/ioncoincore/ion.svg?branch=master)](https://travis-ci.org/ioncoincore/ion) [![Snap Status](https://build.snapcraft.io/badge/ioncoincore/ion.svg)](https://build.snapcraft.io/user/ioncoincore/ion) ![Commits since latest version](https://img.shields.io/github/commits-since/ioncoincore/ion/latest.svg)
-![Top Language](https://img.shields.io/github/languages/top/ioncoincore/ion.svg?color=blue) ![Languages amount](https://img.shields.io/github/languages/count/ioncoincore/ion.svg) ![Commit activity](https://img.shields.io/github/commit-activity/m/ioncoincore/ion.svg) ![Last commit](https://img.shields.io/github/last-commit/ioncoincore/ion/master.svg)
+[![GitHub license](https://img.shields.io/github/license/cevap/ion.svg?style=social)](https://github.com/cevap/ion) ![](https://img.shields.io/github/contributors-anon/cevap/ion.svg?style=social) [![GitHub issues](https://img.shields.io/github/issues/cevap/ion.svg?style=social)](https://github.com/cevap/ion/issues) [![GitHub forks](https://img.shields.io/github/forks/cevap/ion.svg?style=social)](https://github.com/cevap/ion/network) [![GitHub stars](https://img.shields.io/github/stars/cevap/ion.svg?style=social)](https://github.com/cevap/ion/stargazers) 
+[![GitHub version](https://badge.fury.io/gh/ioncoincore%2Fion.svg)](https://badge.fury.io/gh/ioncoincore%2Fion) [![Build Status](https://travis-ci.org/cevap/ion.svg?branch=master)](https://travis-ci.org/cevap/ion) [![Snap Status](https://build.snapcraft.io/badge/cevap/ion.svg)](https://build.snapcraft.io/user/cevap/ion) ![Commits since latest version](https://img.shields.io/github/commits-since/cevap/ion/latest.svg)
+![Top Language](https://img.shields.io/github/languages/top/cevap/ion.svg?color=blue) ![Languages amount](https://img.shields.io/github/languages/count/cevap/ion.svg) ![Commit activity](https://img.shields.io/github/commit-activity/m/cevap/ion.svg) ![Last commit](https://img.shields.io/github/last-commit/cevap/ion/master.svg)
 
 **Latest release** | **Contact us/Chat with us** | **ionomy.com homepage status** |
  :-: | :-: | :-: |
-[![Latest release](https://img.shields.io/github/release/ioncoincore/ion.svg)](https://github.com/ioncoincore/ion/releases/latest) ![Release date](https://img.shields.io/github/release-date/ioncoincore/ion.svg) | [![Twitter](https://img.shields.io/twitter/url/https/github.com/ioncoincore/ion.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fioncoincore%2Fion) [![Chat on Discord](https://img.shields.io/discord/308323056592486420.svg?logo=discord)](https://discord.gg/vuZn7gC) ![Official Encrypted Support (Matrix)](https://img.shields.io/matrix/ionsupportgeneral:matrix.provenstack.com.svg?server_fqdn=matrix.provenstack.com) | [![](https://img.shields.io/website/https/ionomy.com.svg?down_color=darkred&down_message=ionomy.com%20is%20offline&style=for-the-badge&up_color=green&up_message=ionomy.com%20is%20online)](https://ionomy.com)
+[![Latest release](https://img.shields.io/github/release/cevap/ion.svg)](https://github.com/cevap/ion/releases/latest) ![Release date](https://img.shields.io/github/release-date/cevap/ion.svg) | [![Twitter](https://img.shields.io/twitter/url/https/github.com/cevap/ion.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fioncoincore%2Fion) [![Chat on Discord](https://img.shields.io/discord/308323056592486420.svg?logo=discord)](https://discord.gg/vuZn7gC) ![Official Encrypted Support (Matrix)](https://img.shields.io/matrix/ionsupportgeneral:matrix.provenstack.com.svg?server_fqdn=matrix.provenstack.com) | [![](https://img.shields.io/website/https/ionomy.com.svg?down_color=darkred&down_message=ionomy.com%20is%20offline&style=for-the-badge&up_color=green&up_message=ionomy.com%20is%20online)](https://ionomy.com)
 
 _If you want to encrypt your email/files, please use public pgp key provided below._
 ![Keybase PGP](https://img.shields.io/keybase/pgp/ioncoincore.svg?style=flat)
@@ -26,7 +26,7 @@ _For full information about usage and possible installation methods and Branches
 
 #### Download and install latest stable release binaries (_preffered method for windows and mac os users_)
 
-[![Latest release](https://img.shields.io/github/release/ioncoincore/ion.svg)](https://github.com/ioncoincore/ion/releases/latest) ![Latest stable Release](https://img.shields.io/github/downloads/ioncoincore/ion/latest/total.svg?style=social)
+[![Latest release](https://img.shields.io/github/release/cevap/ion.svg)](https://github.com/cevap/ion/releases/latest) ![Latest stable Release](https://img.shields.io/github/downloads/cevap/ion/latest/total.svg?style=social)
 
 _For full information about usage and possible installation methods and Branches, please check out [Build and install ion (all OS)](../../tree/master/doc)_
 
@@ -94,14 +94,14 @@ Block Height | Masternodes | Miner | Budget |
 
 ## Ion Core FAQ/Help
 _get support/chat with us or send your request per [Email](mail:support@ionomy.com). You can also join our discord or encrypted chat on matrix._
-[![Twitter](https://img.shields.io/twitter/url/https/github.com/ioncoincore/ion.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fioncoincore%2Fion) [![Chat on Discord](https://img.shields.io/discord/308323056592486420.svg?logo=discord)](https://discord.gg/vuZn7gC) ![Official Encrypted Support (Matrix)](https://img.shields.io/matrix/ionsupportgeneral:matrix.provenstack.com.svg?server_fqdn=matrix.provenstack.com)
+[![Twitter](https://img.shields.io/twitter/url/https/github.com/cevap/ion.svg?style=social)](https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2Fioncoincore%2Fion) [![Chat on Discord](https://img.shields.io/discord/308323056592486420.svg?logo=discord)](https://discord.gg/vuZn7gC) ![Official Encrypted Support (Matrix)](https://img.shields.io/matrix/ionsupportgeneral:matrix.provenstack.com.svg?server_fqdn=matrix.provenstack.com)
 
 - [Documentation](../../tree/master/doc)
   - [Setup Ion](../../tree/master/doc#setup)
   - [Running Ion Core](../../tree/master/doc#running)
-    - [Windows](https://github.com/ioncoincore/ion/tree/master/doc#windows)
-    - [Unix](https://github.com/ioncoincore/ion/tree/master/doc#unix)
-    - [OSX](https://github.com/ioncoincore/ion/tree/master/doc#osx)
+    - [Windows](https://github.com/cevap/ion/tree/master/doc#windows)
+    - [Unix](https://github.com/cevap/ion/tree/master/doc#unix)
+    - [OSX](https://github.com/cevap/ion/tree/master/doc#osx)
 - [Ion Core CE Wiki](../../wiki)
   - [Accounts-Explained](../../wiki/Accounts-Explained)
   - [API Call list](../../wiki/API-Calls-List)

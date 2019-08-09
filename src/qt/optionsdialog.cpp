@@ -68,9 +68,12 @@ OptionsDialog::OptionsDialog(QWidget* parent, bool enableWallet) : QDialog(paren
     ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabWindow));
 #endif
 
-    /* remove Wallet tab in case of -disablewallet */
+    /* remove Wallet tab and xIon options in case of -disablewallet */
     if (!enableWallet) {
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabWallet));
+
+        ui->verticalXionOptionsWidget->hide();
+        ui->verticalXionDisplayWidget->hide();
     }
 
     /* Display elements init */
@@ -269,7 +272,6 @@ void OptionsDialog::on_resetButton_clicked()
 void OptionsDialog::on_okButton_clicked()
 {
     mapper->submit();
-    obfuScationPool.cachedNumBlocks = std::numeric_limits<int>::max();
     pwalletMain->MarkDirty();
     accept();
 }

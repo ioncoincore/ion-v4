@@ -26,7 +26,7 @@ public:
     CScriptID(const uint160& in) : uint160(in) {}
 };
 
-static const unsigned int MAX_OP_RETURN_RELAY = 83;      //!< bytes (+1 for OP_RETURN, +2 for the pushdata opcodes)
+static const unsigned int MAX_OP_RETURN_RELAY = 184;      //!< bytes (+1 for OP_RETURN, +5 for the OpRetGroupId, +178 for GroupDescData)
 extern unsigned nMaxDatacarrierBytes;
 
 /**
@@ -65,6 +65,8 @@ enum txnouttype
     TX_MULTISIG,
     TX_NULL_DATA,
     TX_ZEROCOINMINT,
+    TX_GRP_PUBKEYHASH,
+    TX_GRP_SCRIPTHASH
 };
 
 class CNoDestination {
@@ -90,6 +92,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
 int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions);
 bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType);
 bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet);
+bool ExtractDestinationAndType(const CScript &scriptPubKey, CTxDestination &addressRet, txnouttype &whichType);
 bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<CTxDestination>& addressRet, int& nRequiredRet);
 
 CScript GetScriptForDestination(const CTxDestination& dest);

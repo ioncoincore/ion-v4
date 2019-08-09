@@ -13,7 +13,6 @@
 #include "script/standard.h"
 #include "util.h"
 
-#include <boost/foreach.hpp>
 
 using namespace std;
 
@@ -22,7 +21,7 @@ typedef vector<unsigned char> valtype;
 unsigned int HaveKeys(const vector<valtype>& pubkeys, const CKeyStore& keystore)
 {
     unsigned int nResult = 0;
-    BOOST_FOREACH (const valtype& pubkey, pubkeys) {
+    for (const valtype& pubkey : pubkeys) {
         CKeyID keyID = CPubKey(pubkey).GetID();
         if(keystore.HaveKey(keyID))
             ++nResult;
@@ -66,11 +65,13 @@ isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
             return ISMINE_SPENDABLE;
         break;
     case TX_PUBKEYHASH:
+    case TX_GRP_PUBKEYHASH:
         keyID = CKeyID(uint160(vSolutions[0]));
         if(keystore.HaveKey(keyID))
             return ISMINE_SPENDABLE;
         break;
     case TX_SCRIPTHASH: {
+    case TX_GRP_SCRIPTHASH:
         CScriptID scriptID = CScriptID(uint160(vSolutions[0]));
         CScript subscript;
         if(keystore.GetCScript(scriptID, subscript)) {

@@ -13,7 +13,6 @@
 #include "uint256.h"
 #include "util.h"
 
-#include <boost/foreach.hpp>
 
 using namespace std;
 
@@ -86,6 +85,7 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
         }
         return true;
     case TX_PUBKEYHASH:
+    case TX_GRP_PUBKEYHASH:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (!Sign1(keyID, keystore, hash, nHashType, scriptSigRet))
         {
@@ -100,6 +100,7 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
         }
         return true;
     case TX_SCRIPTHASH:
+    case TX_GRP_SCRIPTHASH:
         return keystore.GetCScript(uint160(vSolutions[0]), scriptSigRet);
 
     case TX_MULTISIG:
@@ -123,7 +124,7 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CMutabl
     if (!Solver(keystore, fromPubKey, hash, nHashType, txin.scriptSig, whichType))
         return false;
 
-    if (whichType == TX_SCRIPTHASH)
+    if ((whichType == TX_SCRIPTHASH) || (whichType == TX_GRP_SCRIPTHASH))
     {
         // Solver returns the subscript that need to be evaluated;
         // the final scriptSig is the signatures from that
@@ -142,7 +143,7 @@ bool SignSignature(const CKeyStore &keystore, const CScript& fromPubKey, CMutabl
     }
 
     // Test solution
-    return VerifyScript(txin.scriptSig, fromPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker(&txTo, nIn));
+    return VerifyScript(txin.scriptSig, fromPubKey, STANDARD_SCRIPT_VERIFY_FLAGS, MAX_OPS_PER_SCRIPT, MutableTransactionSignatureChecker(&txTo, nIn));
 }
 
 bool SignSignature(const CKeyStore &keystore, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType)
@@ -158,7 +159,7 @@ bool SignSignature(const CKeyStore &keystore, const CTransaction& txFrom, CMutab
 static CScript PushAll(const vector<valtype>& values)
 {
     CScript result;
-    BOOST_FOREACH(const valtype& v, values)
+    for (const valtype& v : values)
         result << v;
     return result;
 }
@@ -169,12 +170,12 @@ static CScript CombineMultisig(const CScript& scriptPubKey, const CTransaction& 
 {
     // Combine all the signatures we've got:
     set<valtype> allsigs;
-    BOOST_FOREACH(const valtype& v, sigs1)
+    for (const valtype& v : sigs1)
     {
         if (!v.empty())
             allsigs.insert(v);
     }
-    BOOST_FOREACH(const valtype& v, sigs2)
+    for (const valtype& v : sigs2)
     {
         if (!v.empty())
             allsigs.insert(v);
@@ -185,7 +186,7 @@ static CScript CombineMultisig(const CScript& scriptPubKey, const CTransaction& 
     unsigned int nSigsRequired = vSolutions.front()[0];
     unsigned int nPubKeys = vSolutions.size()-2;
     map<valtype, valtype> sigs;
-    BOOST_FOREACH(const valtype& sig, allsigs)
+    for (const valtype& sig : allsigs)
     {
         for (unsigned int i = 0; i < nPubKeys; i++)
         {
@@ -233,10 +234,12 @@ static CScript CombineSignatures(const CScript& scriptPubKey, const CTransaction
         return PushAll(sigs2);
     case TX_PUBKEY:
     case TX_PUBKEYHASH:
+    case TX_GRP_PUBKEYHASH:
         // Signatures are bigger than placeholders or empty scripts:
         if (sigs1.empty() || sigs1[0].empty())
             return PushAll(sigs2);
         return PushAll(sigs1);
+    case TX_GRP_SCRIPTHASH:
     case TX_SCRIPTHASH:
         if (sigs1.empty() || sigs1.back().empty())
             return PushAll(sigs2);
@@ -272,9 +275,9 @@ CScript CombineSignatures(const CScript& scriptPubKey, const CTransaction& txTo,
     Solver(scriptPubKey, txType, vSolutions);
 
     vector<valtype> stack1;
-    EvalScript(stack1, scriptSig1, SCRIPT_VERIFY_STRICTENC, BaseSignatureChecker());
+    EvalScript(stack1, scriptSig1, SCRIPT_VERIFY_STRICTENC, MAX_OPS_PER_SCRIPT, BaseSignatureChecker());
     vector<valtype> stack2;
-    EvalScript(stack2, scriptSig2, SCRIPT_VERIFY_STRICTENC, BaseSignatureChecker());
+    EvalScript(stack2, scriptSig2, SCRIPT_VERIFY_STRICTENC, MAX_OPS_PER_SCRIPT, BaseSignatureChecker());
 
     return CombineSignatures(scriptPubKey, txTo, nIn, txType, vSolutions, stack1, stack2);
 }
