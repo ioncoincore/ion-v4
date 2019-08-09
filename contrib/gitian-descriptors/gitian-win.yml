@@ -1,5 +1,5 @@
 ---
-name: "ion-win-3.3"
+name: "ion-win-4.0"
 enable_cache: true
 distro: "ubuntu"
 suites:
