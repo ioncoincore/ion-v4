@@ -11,10 +11,10 @@
 #include <univalue.h>
 
 static CAmount COINFromDecimalPos(const uint8_t& nDecimalPos) {
-    uint8_t n = nDecimalPos < 16 ? nDecimalPos : 0;
-    static CAmount pow10[16] = {
+    uint8_t n = nDecimalPos <= 16 ? nDecimalPos : 0;
+    static CAmount pow10[17] = {
         1, 10, 100, 1000, 10000, 100000, 1000000, 10000000,
-        100000000, 1000000000, 10000000000, 100000000000, 1000000000000, 10000000000000, 100000000000000, 1000000000000000
+        100000000, 1000000000, 10000000000, 100000000000, 1000000000000, 10000000000000, 100000000000000, 1000000000000000, 10000000000000000
     };
 
     return pow10[n];
