@@ -136,9 +136,11 @@ bool CTokenGroupManager::RemoveTokenGroup(CTransaction tx, CTokenGroupID &toRemo
 }
 
 bool CTokenGroupManager::GetTokenGroupCreation(const CTokenGroupID& tgID, CTokenGroupCreation& tgCreation) {
-    std::map<CTokenGroupID, CTokenGroupCreation>::iterator iter = mapTokenGroups.find(tgID);
+    const CTokenGroupID grpID = tgID.isSubgroup() ? tgID.parentGroup() : tgID;
+
+    std::map<CTokenGroupID, CTokenGroupCreation>::iterator iter = mapTokenGroups.find(grpID);
     if (iter != mapTokenGroups.end()) {
-        tgCreation = mapTokenGroups.at(tgID);
+        tgCreation = mapTokenGroups.at(grpID);
     } else {
         return false;
     }
