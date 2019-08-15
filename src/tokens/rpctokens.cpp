@@ -1098,15 +1098,15 @@ extern UniValue configuretoken(const UniValue &params, bool fHelp)
 
      if (fHelp || params.size() < 5)
         throw std::runtime_error(
-            "configuretoken \"ticker\" \"name\" ( decimalpos \"description_url\" description_hash ) ( confirm_send ) \n"
+            "configuretoken \"ticker\" \"name\" decimalpos \"description_url\" description_hash ( confirm_send ) \n"
             "\n"
             "Configures a new token type.\n"
             "\nArguments:\n"
             "1. \"ticker\"              (string, required) the token ticker\n"
             "2. \"name\"                (string, required) the token name\n"
-            "3. \"decimalpos\"          (numeric, optional, default=8) the number of decimals after the decimal separator\n"
-            "4. \"description_url\"     (string, optional) the URL of the token's description document\n"
-            "5. \"description_hash\"    (hex, optional) the hash of the token description document\n"
+            "3. \"decimalpos\"          (numeric, required, default=8) the number of decimals after the decimal separator\n"
+            "4. \"description_url\"     (string, required) the URL of the token's description document\n"
+            "5. \"description_hash\"    (hex, required) the hash of the token description document\n"
             "6. \"confirm_send\"        (boolean, optional, default=false) the configuration transaction will be sent\n"
             "\n"
             "\nExamples:\n" +
