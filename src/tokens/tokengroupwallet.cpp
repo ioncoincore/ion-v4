@@ -268,6 +268,57 @@ void GetGroupBalanceAndAuthorities(CAmount &balance, GroupAuthorityFlags &author
     });
 }
 
+void GetGroupCoins(const CWallet *wallet, std::vector<COutput>& coins, CAmount& balance, const CTokenGroupID &grpID, const CTxDestination &dest) {
+    wallet->FilterCoins(coins, [dest, grpID, &balance](const CWalletTx *tx, const CTxOut *out) {
+        CTokenGroupInfo tg(out->scriptPubKey);
+        if ((grpID == tg.associatedGroup) && !tg.isAuthority()) {
+            bool useit = dest == CTxDestination(CNoDestination());
+            if (!useit) {
+                CTxDestination address;
+                txnouttype whichType;
+                if (ExtractDestinationAndType(out->scriptPubKey, address, whichType)) {
+                    if (address == dest)
+                        useit = true;
+                }
+            }
+            if (useit) {
+                if (tg.quantity > std::numeric_limits<CAmount>::max() - balance) {
+                    balance = std::numeric_limits<CAmount>::max();
+                } else {
+                    balance += tg.quantity;
+                }
+                return true;
+            }
+        }
+        return false;
+    });
+}
+
+void GetGroupAuthority(const CWallet *wallet, std::vector<COutput>& coins, GroupAuthorityFlags flags, const CTokenGroupID &grpID, const CTxDestination &dest) {
+    // For now: return only the first matching coin (in coins[0])
+    // Todo:
+    // - Find the coin with the minimum amount of authorities
+    // - If needed, combine coins to provide the requested authorities
+    wallet->FilterCoins(coins, [flags, dest, grpID](const CWalletTx *tx, const CTxOut *out) {
+        CTokenGroupInfo tg(out->scriptPubKey);
+        if ((grpID == tg.associatedGroup) && tg.isAuthority() && hasCapability(tg.controllingGroupFlags(), flags)) {
+            bool useit = dest == CTxDestination(CNoDestination());
+            if (!useit) {
+                CTxDestination address;
+                txnouttype whichType;
+                if (ExtractDestinationAndType(out->scriptPubKey, address, whichType)) {
+                    if (address == dest)
+                        useit = true;
+                }
+            }
+            if (useit) {
+                return true;
+            }
+        }
+        return false;
+    });
+}
+
 CScript GetScriptForDestination(const CTxDestination &dest, const CTokenGroupID &group, const CAmount &amount)
 {
     CScript script;

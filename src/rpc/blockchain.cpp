@@ -11,9 +11,9 @@
 #include "consensus/validation.h"
 #include "dstencode.h"
 #include "main.h"
+#include "rpc/blockchain.h"
 #include "rpc/server.h"
 #include "sync.h"
-#include "consensus/tokengroups.h"
 #include "tokens/tokengroupwallet.h"
 #include "tokens/tokengroupmanager.h"
 #include "txdb.h"
@@ -2196,4 +2196,49 @@ UniValue getblockindexstats(const UniValue& params, bool fHelp) {
     ret.push_back(Pair("feeperkb", FormatMoney(nFeeRate.GetFeePerK())));
 
     return ret;
+}
+
+void GetChainTokenBalances(std::unordered_map<std::string, CAmount>& mAtomBalances, CAmount& nAtomCount, const CTokenGroupID& needle) {
+    mAtomBalances.clear();
+
+    CoinsViewScanReserver reserver;
+    if (!reserver.reserve()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan already in progress, use action \"abort\" or \"status\"");
+    }
+    if (!needle.isUserGroup())
+    {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid group specified");
+    }
+
+    // Scan the unspent transaction output set for inputs
+    UniValue unspents(UniValue::VARR);
+    std::vector<CTxOut> input_txos;
+    std::map<COutPoint, Coin> coins;
+    g_should_abort_scan = false;
+    g_scan_progress = 0;
+    int64_t count = 0;
+    std::unique_ptr<CCoinsViewCursor> pcursor;
+    {
+        LOCK(cs_main);
+        FlushStateToDisk();
+        pcursor = std::unique_ptr<CCoinsViewCursor>(pcoinsdbview->Cursor());
+        assert(pcursor);
+    }
+    FindTokenGroupID(g_scan_progress, g_should_abort_scan, count, pcursor.get(), needle, coins);
+
+    for (const auto& it : coins) {
+        const Coin& coin = it.second;
+        const CTxOut& txo = coin.out;
+        const CTokenGroupInfo& tokenGroupInfo = CTokenGroupInfo(txo.scriptPubKey);
+
+        CTxDestination dest;
+        ExtractDestination(txo.scriptPubKey, dest);
+
+        if (IsValidDestination(dest) && !tokenGroupInfo.isAuthority()) {
+            CAmount amount = tokenGroupInfo.getAmount();
+            mAtomBalances[EncodeDestination(dest)] += amount;
+            nAtomCount += amount;
+            LogPrintf("%s - [%s] [%d]\n", __func__, EncodeDestination(dest), amount);
+        }
+    }
 }

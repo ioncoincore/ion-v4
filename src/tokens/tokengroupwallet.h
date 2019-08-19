@@ -26,6 +26,9 @@ void ListGroupAuthorities(const CWallet *wallet, std::vector<COutput> &coins, co
 void GetGroupBalanceAndAuthorities(CAmount &balance, GroupAuthorityFlags &authorities, const CTokenGroupID &grpID,
     const CTxDestination &dest, const CWallet *wallet);
 
+void GetGroupCoins(const CWallet *wallet, std::vector<COutput>& coins, CAmount& balance, const CTokenGroupID &grpID, const CTxDestination &dest = CNoDestination());
+void GetGroupAuthority(const CWallet *wallet, std::vector<COutput>& coins, GroupAuthorityFlags flags, const CTokenGroupID &grpID, const CTxDestination &dest = CNoDestination());
+
 // Token group helper functions -- not members because they use objects not available in the consensus lib
 //* Initialize the group id from an address
 CTokenGroupID GetTokenGroup(const CTxDestination &id);
