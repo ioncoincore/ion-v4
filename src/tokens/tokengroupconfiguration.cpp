@@ -48,11 +48,11 @@ bool CTokenGroupDescription::SetGroupDescData(const std::vector<std::vector<unsi
 
     if (it == descriptionData.end()) return false;
 
-    strTicker = GetStringFromChars(*it, 8); // Max 9 bytes (1+8)
+    strTicker = GetStringFromChars(*it, 10); // Max 11 bytes (1+10)
     it++;
 
     if (it == descriptionData.end()) return false;
-    strName = GetStringFromChars(*it, 32); // Max 33 bytes (1+32)
+    strName = GetStringFromChars(*it, 30); // Max 31 bytes (1+30)
     it++;
 
     if (it == descriptionData.end()) return false;

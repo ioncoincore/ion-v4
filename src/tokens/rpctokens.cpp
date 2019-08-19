@@ -101,9 +101,8 @@ std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &pa
     confirmed = false;
 
     std::string tickerStr = params[curparam].get_str();
-    if (tickerStr.size() > 8)
-    {
-        std::string strError = strprintf("Ticker %s has too many characters (8 max)", tickerStr);
+    if (tickerStr.size() > 10) {
+        std::string strError = strprintf("Ticker %s has too many characters (10 max)", tickerStr);
         throw JSONRPCError(RPC_INVALID_PARAMS, strError);
     }
     ret.push_back(std::vector<unsigned char>(tickerStr.begin(), tickerStr.end()));
@@ -114,6 +113,10 @@ std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &pa
         throw JSONRPCError(RPC_INVALID_PARAMS, "Missing parameter: token name");
     }
     std::string name = params[curparam].get_str();
+    if (name.size() > 30) {
+        std::string strError = strprintf("Name %s has too many characters (30 max)", name);
+        throw JSONRPCError(RPC_INVALID_PARAMS, strError);
+    }
     ret.push_back(std::vector<unsigned char>(name.begin(), name.end()));
 
     curparam++;
@@ -188,8 +191,7 @@ CScript BuildTokenDescScript(const std::vector<std::vector<unsigned char> > &des
 {
     CScript ret;
     std::vector<unsigned char> data;
-    // github.com/bitcoincashorg/bitcoincash.org/blob/master/etc/protocols.csv
-    uint32_t OpRetGroupId = 88888888; // see https:
+    uint32_t OpRetGroupId = 88888888;
     ret << OP_RETURN << OpRetGroupId;
     for (auto &d : desc)
     {
@@ -916,32 +918,6 @@ extern UniValue configuretokendryrun(const UniValue &params, bool fHelp)
     CWallet *wallet = pwalletMain;
     if (!pwalletMain)
         return NullUniValue;
-
-    if (fHelp || params.size() < 1)
-        throw std::runtime_error(
-            "token [new, mint, melt, send] \n"
-            "\nToken functions.\n"
-            "'new' creates a new token type. args: authorityAddress\n"
-            "'mint' creates new tokens. args: groupID address quantity\n"
-            "'melt' removes tokens from circulation. args: groupID quantity\n"
-            "'balance' reports quantity of this token. args: groupID [address]\n"
-            "'send' sends tokens to a new address. args: groupID address quantity [address quantity...]\n"
-            "'authority create' creates a new authority args: groupID address [mint melt nochild rescript]\n"
-            "'subgroup' translates a group and additional data into a subgroup identifier. args: groupID data\n"
-            "\nArguments:\n"
-            "1. \"groupID\"     (string, required) the group identifier\n"
-            "2. \"address\"     (string, required) the destination address\n"
-            "3. \"quantity\"    (numeric, required) the quantity desired\n"
-            "4. \"data\"        (number, 0xhex, or string) binary data\n"
-            "\nResult:\n"
-            "\n"
-            "\nExamples:\n"
-            "\nCreate a transaction with no inputs\n" +
-            HelpExampleCli("createrawtransaction", "\"[]\" \"{\\\"myaddress\\\":0.01}\"") +
-            "\nAdd sufficient unsigned inputs to meet the output value\n" +
-            HelpExampleCli("fundrawtransaction", "\"rawtransactionhex\"") + "\nSign the transaction\n" +
-            HelpExampleCli("signrawtransaction", "\"fundedtransactionhex\"") + "\nSend the transaction\n" +
-            HelpExampleCli("sendrawtransaction", "\"signedtransactionhex\""));
 
     LOCK2(cs_main, wallet->cs_wallet);
 
