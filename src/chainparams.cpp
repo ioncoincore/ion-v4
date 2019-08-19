@@ -148,6 +148,7 @@ public:
         nTargetTimespanDGW = 1 * 60; // ION: 1 day
         nTargetSpacing = 1 * 60;  // ION: 1 minute
         nMaturity = 60;
+        nStakeMinAge = 60 * 60;                // ION: 1 hour
         nMasternodeCountDrift = 20;
         nMaxMoneyOut = 38600000 * COIN;
 
@@ -415,6 +416,7 @@ public:
         bnProofOfWorkLimit = ~uint256(0) >> 1;
         nLastPOWBlock = 250;
         nMaturity = 100;
+        nStakeMinAge = 0;
         nMasternodeCountDrift = 4;
         nModifierUpdateBlock = 0; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = 38600000 * COIN;
