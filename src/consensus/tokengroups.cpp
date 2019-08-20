@@ -52,6 +52,10 @@ std::string EncodeGroupAuthority(const GroupAuthorityFlags flags) {
             if (sflags != "") sflags += " ";
             sflags += "subgroup";
         }
+        if (hasCapability(flags, GroupAuthorityFlags::CONFIGURE)) {
+            if (sflags != "") sflags += " ";
+            sflags += "configure";
+        }
     }
     return sflags;
 }

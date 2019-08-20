@@ -144,9 +144,10 @@ enum class GroupAuthorityFlags : uint64_t
     CCHILD = 1ULL << 60, // Can create controller outputs
     RESCRIPT = 1ULL << 59, // Can change the redeem script
     SUBGROUP = 1ULL << 58,
+    CONFIGURE = 1ULL << 57, // (reserved)
 
     NONE = 0,
-    ALL = CTRL | MINT | MELT | CCHILD | RESCRIPT | SUBGROUP,
+    ALL = CTRL | MINT | MELT | CCHILD | RESCRIPT | SUBGROUP | CONFIGURE,
     ALL_BITS = 0xffffULL << (64 - 16)
 };
 
@@ -292,6 +293,12 @@ public:
     {
         return (controllingGroupFlags() & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::SUBGROUP)) ==
                (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::SUBGROUP);
+    }
+    // return true if this object allows (re)configuration of the tokengroup).
+    bool allowsConfig() const
+    {
+        return (controllingGroupFlags() & (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::CONFIGURE)) ==
+               (GroupAuthorityFlags::CTRL | GroupAuthorityFlags::CONFIGURE);
     }
 
     bool isInvalid() const { return invalid; };
