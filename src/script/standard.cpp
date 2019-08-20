@@ -177,7 +177,15 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
             {
                 // Expect that there is some data in the script at this point
                 if (vch1.size() == 0)
+                {
+                    /* this exception for MINIMAL_DATA encodings is commented out because all group
+                       data encodings must be > 1 byte to avoid the MINIMAL_DATA parsing insanity
+                    // These opcodes ARE data (disallowed in group)
+                    if (!(((opcode1>=OP_1)&&(opcode1<=OP_16))||(opcode1==OP_1NEGATE)))
+                        break;
+                    */
                     break;
+                }
                 if (group.empty())
                     group = vch1; // group id is first
                 else
