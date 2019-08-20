@@ -324,7 +324,7 @@ public:
         nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
         nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
         nBIP65Height = 1; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
-        nOpGroupStartHeight = 1150; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
+        nOpGroupStartHeight = 5540; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
 
         // Public coin spend enforcement
         nPublicZCSpends = 9999999;
