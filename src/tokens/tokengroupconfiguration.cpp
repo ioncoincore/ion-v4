@@ -48,26 +48,28 @@ bool CTokenGroupDescription::SetGroupDescData(const std::vector<std::vector<unsi
 
     if (it == descriptionData.end()) return false;
 
-    strTicker = GetStringFromChars(*it, 10); // Max 11 bytes (1+10)
-    it++;
-
-    if (it == descriptionData.end()) return false;
-    strName = GetStringFromChars(*it, 30); // Max 31 bytes (1+30)
-    it++;
-
-    if (it == descriptionData.end()) return false;
-    nDecimalPos = (uint8_t)(*it)[0]; // Max 1 byte
-    it++;
-
-    if (it == descriptionData.end()) return false;
-    strDocumentUrl = GetStringFromChars(*it, 100); // Max 102 bytes (2+100)
-    it++;
-
-    if (it == descriptionData.end()) return false;
     try {
+        strTicker = GetStringFromChars(*it, 10); // Max 11 bytes (1+10)
+        it++;
+
+        if (it == descriptionData.end()) return false;
+        strName = GetStringFromChars(*it, 30); // Max 31 bytes (1+30)
+        it++;
+
+        if (it == descriptionData.end()) return false;
+        if ((*it).size() != 2) return false;
+        nDecimalPos = (uint8_t)(*it)[0]; // Max 3 bytes
+        it++;
+
+        if (it == descriptionData.end()) return false;
+        strDocumentUrl = GetStringFromChars(*it, 98); // Max 101 bytes (2+98)
+        it++;
+
+        if (it == descriptionData.end()) return false;
+
         documentHash = uint256(*it); // Max 33 bytes (1+32)
-    } catch (const std::exception& e) {
-        documentHash = 0;
+    } catch (...) {
+        return false;
     }
 
     return true;

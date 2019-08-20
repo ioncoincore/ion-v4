@@ -38,6 +38,8 @@ static GroupAuthorityFlags ParseAuthorityParams(const UniValue &params, unsigned
             flags |= GroupAuthorityFlags::RESCRIPT;
         else if (sflag == "subgroup")
             flags |= GroupAuthorityFlags::SUBGROUP;
+        else if (sflag == "configure")
+            flags |= GroupAuthorityFlags::CONFIGURE;
         else
             break; // If param didn't match, then return because we've left the list of flags
         curparam++;
@@ -141,7 +143,7 @@ std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &pa
         std::string strError = strprintf("Parameter %d is invalid - valid values are between 0 and 16", decimalPosition);
         throw JSONRPCError(RPC_INVALID_PARAMS, strError);
     }
-    ret.push_back(std::vector<unsigned char>({(unsigned char)decimalPosition}));
+    ret.push_back(SerializeAmount(decimalPosition));
 
     curparam++;
     // we will accept just ticker, name and decimal position
@@ -160,6 +162,10 @@ std::vector<std::vector<unsigned char> > ParseGroupDescParams(const UniValue &pa
     }
 
     std::string url = strCurparamValue;
+    if (name.size() > 98) {
+        std::string strError = strprintf("URL %s has too many characters (98 max)", name);
+        throw JSONRPCError(RPC_INVALID_PARAMS, strError);
+    }
     ret.push_back(std::vector<unsigned char>(url.begin(), url.end()));
 
     curparam++;
@@ -1708,6 +1714,8 @@ extern UniValue droptokenauthorities(const UniValue &params, bool fHelp)
                 authoritiesToDrop |= GroupAuthorityFlags::RESCRIPT;
             else if (sflag == "subgroup")
                 authoritiesToDrop |= GroupAuthorityFlags::SUBGROUP;
+            else if (sflag == "configure")
+                authoritiesToDrop |= GroupAuthorityFlags::CONFIGURE;
             else if (sflag == "all")
                 authoritiesToDrop |= GroupAuthorityFlags::ALL;
             else
