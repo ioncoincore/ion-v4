@@ -545,7 +545,7 @@ CTokenGroupID MakeSubgroup(CTokenGroupID g, int xtra, int size = 0)
     for (int i = 0; i < gsize; i++)
         sgbytes[i] = g.bytes()[i];
     sgbytes[gsize] = xtra;
-    for (int i = gsize + 1; i < size; i++)
+    for (unsigned int i = gsize + 1; i < size; i++)
         sgbytes[i] = 0; // just fill it out
     return CTokenGroupID(sgbytes);
 }
@@ -640,14 +640,27 @@ BOOST_AUTO_TEST_CASE(tokengroup_basicfunctions)
     // grpAddr = pubkey.GetID();
     // eGrpAddr = pubkey.GetHash();
 
+    for (CAmount qty = 1; qty < 257; qty += 1)
     { // check GP2PKH
-        CScript script = CScript() << ToByteVector(grpAddr) << SerializeAmount(1) << OP_GROUP << OP_DROP << OP_DROP
-                                   << OP_DUP << OP_HASH160 << ToByteVector(addr) << OP_EQUALVERIFY << OP_CHECKSIG;
+        CScript script = CScript() << ToByteVector(grpAddr);
+        script << SerializeAmount(qty);
+        script << OP_GROUP << OP_DROP << OP_DROP << OP_DUP << OP_HASH160 << ToByteVector(addr) << OP_EQUALVERIFY
+               << OP_CHECKSIG;
         CTokenGroupInfo ret(script);
-        BOOST_CHECK(ret == CTokenGroupInfo(grpAddr, GroupAuthorityFlags::NONE, 1));
+        BOOST_CHECK(ret == CTokenGroupInfo(grpAddr, GroupAuthorityFlags::NONE, qty));
         CTxDestination resultAddr;
         bool worked = ExtractDestination(script, resultAddr);
         BOOST_CHECK(worked && (resultAddr == CTxDestination(addr)));
+
+        // Verify that the script passes standard checks, especially the data coding
+        std::vector<std::vector<uint8_t> > stack;
+        BaseSignatureChecker sigchecker;
+        ScriptError err = SCRIPT_ERR_OK;
+        bool r = EvalScript(stack, script, STANDARD_SCRIPT_VERIFY_FLAGS | SCRIPT_VERIFY_MINIMALDATA, MAX_OPS_PER_SCRIPT,
+            sigchecker, &err);
+        // BOOST_CHECK(r);  r will be false because the signature check will fail.  What's important here is that
+        // minimaldata passes
+        BOOST_CHECK(err != SCRIPT_ERR_MINIMALDATA);
     }
 
     { // check P2SH

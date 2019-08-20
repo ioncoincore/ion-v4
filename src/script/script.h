@@ -8,6 +8,7 @@
 #ifndef BITCOIN_SCRIPT_SCRIPT_H
 #define BITCOIN_SCRIPT_SCRIPT_H
 
+#include "crypto/common.h"
 #include "pubkey.h"
 #include "script_error.h"
 
@@ -365,6 +366,14 @@ private:
     int64_t m_value;
 };
 
+/** wrapper class that serializes in an older way that is incompatible with current rules, but is used by the genesis
+block */
+class LegacyCScriptNum : public CScriptNum
+{
+public:
+    explicit LegacyCScriptNum(const int64_t &n) : CScriptNum(n) {}
+};
+
 /** Serialized script, used inside transaction inputs and outputs */
 class CScript : public std::vector<unsigned char>
 {
@@ -427,8 +436,10 @@ public:
         return *this;
     }
 
-    CScript& operator<<(const std::vector<unsigned char>& b)
+    CScript &operator<<(const LegacyCScriptNum &a)
     {
+        auto b = a.getvch();
+
         if (b.size() < OP_PUSHDATA1)
         {
             insert(end(), (unsigned char)b.size());
@@ -468,6 +479,50 @@ public:
         return (*this) << vchKey;
     }
 
+
+    CScript &operator<<(const std::vector<unsigned char> &b)
+    {
+        if (b.size() == 0)
+        {
+            insert(end(), OP_0);
+            return *this;
+        }
+        if ((b.size() == 1) && (b[0] >= 1 && b[0] <= 16))
+        {
+            insert(end(), OP_1 - 1 + b[0]);
+            return *this;
+        }
+        else if ((b.size() == 1) && (b[0] == 0x81))
+        {
+            insert(end(), OP_1NEGATE);
+            return *this;
+        }
+        else if (b.size() < OP_PUSHDATA1)
+        {
+            insert(end(), (unsigned char)b.size());
+        }
+        else if (b.size() <= 0xff)
+        {
+            insert(end(), OP_PUSHDATA1);
+            insert(end(), (unsigned char)b.size());
+        }
+        else if (b.size() <= 0xffff)
+        {
+            insert(end(), OP_PUSHDATA2);
+            uint8_t data[2];
+            WriteLE16(data, b.size());
+            insert(end(), data, data + sizeof(data));
+        }
+        else
+        {
+            insert(end(), OP_PUSHDATA4);
+            uint8_t data[4];
+            WriteLE32(data, b.size());
+            insert(end(), data, data + sizeof(data));
+        }
+        insert(end(), b.begin(), b.end());
+        return *this;
+    }
 
     bool GetOp(iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>& vchRet)
     {

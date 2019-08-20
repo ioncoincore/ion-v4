@@ -157,12 +157,15 @@ std::vector<unsigned char> SerializeAmount(CAmount num)
         int64_t xSize = num;
         WRITEDATA(strm, xSize);
     }
+    /* Disallow amounts to be encoded as a single byte because these may need to have special encodings if
+       the SCRIPT_VERIFY_MINIMALDATA flag is set
     else if (num < 256)
     {
         unsigned char chSize = num;
         WRITEDATA(strm, chSize);
 //        ser_writedata8(strm, num);
     }
+    */
     else if (num <= std::numeric_limits<unsigned short>::max())
     {
         unsigned short xSize = num;
@@ -184,13 +187,25 @@ std::vector<unsigned char> SerializeAmount(CAmount num)
     return std::vector<unsigned char>(strm.begin(), strm.end());
 }
 
-CAmount DeserializeAmount(std::vector<unsigned char> &vec)
+CAmount DeserializeAmount(opcodetype opcodeQty, std::vector<unsigned char> &vec)
 {
+    /* Disallow raw opcodes or single byte sizes, because having them is an unnecessary decode complication
+    if ((opcodeQty >= OP_1) && (opcodeQty <= OP_16))
+    {
+        return opcodeQty-OP_1+1;
+    }
+    if (opcodeQty == OP_1NEGATE)
+    {
+        return 0x81;
+    }
+
     int sz = vec.size();
     if (sz == 1)
     {
         return vec[0];
     }
+    */
+    int sz = vec.size();
     CDataStream strm(vec, SER_NETWORK, CLIENT_VERSION);
     if (sz == 2)
     {
@@ -279,8 +294,19 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
             invalid = true;
             return;
         }
+        /* Disallow amounts to be encoded as a single byte because these may need to have special encodings if
+           the SCRIPT_VERIFY_MINIMALDATA flag is set
         // quantity must be 1, 2, 4, or 8 bytes
-        if ((opcodeQty != 1) && (opcodeQty != 2) && (opcodeQty != 4) && (opcodeQty != 8))
+        if (((opcodeQty < OP_1)||(opcodeQty > OP_16)) && (opcodeQty != OP_1NEGATE) && (opcodeQty != 1) && (opcodeQty != 2)
+           && (opcodeQty != 4) && (opcodeQty != 8))
+        {
+            invalid = true;
+            return;
+        }
+        */
+
+        // Quantity must be a 2, 4, or 8 byte number
+        if ((opcodeQty != 2) && (opcodeQty != 4) && (opcodeQty != 8))
         {
             invalid = true;
             return;
@@ -289,7 +315,7 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
 
     try
     {
-        quantity = DeserializeAmount(tokenQty);
+        quantity = DeserializeAmount(opcodeQty, tokenQty);
     }
     catch (std::ios_base::failure &f)
     {

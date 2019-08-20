@@ -323,7 +323,7 @@ std::vector<unsigned char> SerializeAmount(CAmount num);
 // Deserialize a CAmount from an array of bytes.
 // This function uses the size of the vector to determine how many bytes were used in serialization.
 // It is therefore useful only within a system that already identifies the length of this field (such as a CScript).
-CAmount DeserializeAmount(std::vector<unsigned char> &vec);
+CAmount DeserializeAmount(opcodetype opcodeQty, std::vector<unsigned char> &vec);
 
 // Convenience function to just extract the group from a script
 inline CTokenGroupID GetTokenGroup(const CScript &script) { return CTokenGroupInfo(script).associatedGroup; }
