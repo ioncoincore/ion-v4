@@ -11,6 +11,17 @@
 #include <endian.h>
 #endif
 
+uint32_t static inline ReadLE16(const unsigned char* ptr)
+{
+#if HAVE_DECL_LE16TOH == 1
+    return le16toh(*((uint16_t*)ptr));
+#elif !defined(WORDS_BIGENDIAN)
+    return *((uint16_t*)ptr);
+#else
+    return ((uint16_t)ptr[1] << 8 | (uint16_t)ptr[0]);
+#endif
+}
+
 uint32_t static inline ReadLE32(const unsigned char* ptr)
 {
 #if HAVE_DECL_LE32TOH == 1
@@ -31,6 +42,18 @@ uint64_t static inline ReadLE64(const unsigned char* ptr)
 #else
     return ((uint64_t)ptr[7] << 56 | (uint64_t)ptr[6] << 48 | (uint64_t)ptr[5] << 40 | (uint64_t)ptr[4] << 32 |
             (uint64_t)ptr[3] << 24 | (uint64_t)ptr[2] << 16 | (uint64_t)ptr[1] << 8 | (uint64_t)ptr[0]);
+#endif
+}
+
+void static inline WriteLE16(unsigned char* ptr, uint16_t x)
+{
+#if HAVE_DECL_HTOLE16 == 1
+    *((uint16_t*)ptr) = htole16(x);
+#elif !defined(WORDS_BIGENDIAN)
+    *((uint16_t*)ptr) = x;
+#else
+    ptr[1] = x >> 8;
+    ptr[0] = x;
 #endif
 }
 
