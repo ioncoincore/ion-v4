@@ -40,6 +40,8 @@ static GroupAuthorityFlags ParseAuthorityParams(const UniValue &params, unsigned
             flags |= GroupAuthorityFlags::SUBGROUP;
         else if (sflag == "configure")
             flags |= GroupAuthorityFlags::CONFIGURE;
+        else if (sflag == "all")
+            flags |= GroupAuthorityFlags::ALL;
         else
             break; // If param didn't match, then return because we've left the list of flags
         curparam++;
@@ -427,7 +429,7 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         if (grpID.isSubgroup()) {
             CTokenGroupID parentgrp = grpID.parentGroup();
             std::vector<unsigned char> subgroupData = grpID.GetSubGroupData();
-            tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
+            tokenGroupManager->GetTokenGroupCreation(parentgrp, tgCreation);
             entry.push_back(Pair("parentGroupIdentifier", EncodeTokenGroup(parentgrp)));
             entry.push_back(Pair("subgroup-data", std::string(subgroupData.begin(), subgroupData.end())));
         } else {
@@ -543,7 +545,7 @@ extern UniValue gettokenbalance(const UniValue &params, bool fHelp)
             if (grpID.isSubgroup()) {
                 CTokenGroupID parentgrp = grpID.parentGroup();
                 std::vector<unsigned char> subgroupData = grpID.GetSubGroupData();
-                tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
+                tokenGroupManager->GetTokenGroupCreation(parentgrp, tgCreation);
                 retobj.push_back(Pair("parentGroupIdentifier", EncodeTokenGroup(parentgrp)));
                 retobj.push_back(Pair("subgroup-data", std::string(subgroupData.begin(), subgroupData.end())));
             } else {
@@ -1574,7 +1576,7 @@ extern UniValue listtokenauthorities(const UniValue &params, bool fHelp)
 
     if (fHelp || params.size() > 2)
         throw std::runtime_error(
-            "listtokenauthorities \"groupid\" \n"
+            "listtokenauthorities ( \"groupid\" ) \n"
             "\nLists the available token authorities.\n"
             "\nArguments:\n"
             "1. \"groupid\"     (string, optional) the token group identifier\n"
@@ -1604,9 +1606,18 @@ extern UniValue listtokenauthorities(const UniValue &params, bool fHelp)
         CTxDestination dest;
         ExtractDestination(coin.GetScriptPubKey(), dest);
 
+        CTokenGroupCreation tgCreation;
+        if (tgInfo.associatedGroup.isSubgroup()) {
+            CTokenGroupID parentgrp = tgInfo.associatedGroup.parentGroup();
+            tokenGroupManager->GetTokenGroupCreation(parentgrp, tgCreation);
+        } else {
+            tokenGroupManager->GetTokenGroupCreation(tgInfo.associatedGroup, tgCreation);
+        }
+
         UniValue retobj(UniValue::VOBJ);
         retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgInfo.associatedGroup)));
         retobj.push_back(Pair("txid", coin.tx->GetHash().ToString()));
+        retobj.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
         retobj.push_back(Pair("vout", coin.i));
         retobj.push_back(Pair("address", EncodeDestination(dest)));
         retobj.push_back(Pair("token_authorities", EncodeGroupAuthority(tgInfo.controllingGroupFlags())));
