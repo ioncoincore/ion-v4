@@ -1617,8 +1617,8 @@ extern UniValue listtokenauthorities(const UniValue &params, bool fHelp)
         UniValue retobj(UniValue::VOBJ);
         retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgInfo.associatedGroup)));
         retobj.push_back(Pair("txid", coin.tx->GetHash().ToString()));
-        retobj.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
         retobj.push_back(Pair("vout", coin.i));
+        retobj.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
         retobj.push_back(Pair("address", EncodeDestination(dest)));
         retobj.push_back(Pair("token_authorities", EncodeGroupAuthority(tgInfo.controllingGroupFlags())));
         ret.push_back(retobj);
@@ -1639,8 +1639,9 @@ extern UniValue droptokenauthorities(const UniValue &params, bool fHelp)
             "The authority to drop is specified by the txid:outnr of the UTXO that holds the authorities.\n"
             "\nArguments:\n"
             "1. \"groupid\"           (string, required) the group identifier\n"
-            "2. \"transactionid\"     (string, required) the destination address\n"
-            "3. authority             (required) a list of token authorities to dro, separated by spaces\n"
+            "2. \"transactionid\"     (string, required) transaction ID of the UTXO\n"
+            "3. vout                (number, required) output number of the UTXO\n"
+            "4. authority           (required) a list of token authorities to dro, separated by spaces\n"
             "\n"
             "\nExamples:\n"
             "\nDrop mint and melt authorities:\n" +
