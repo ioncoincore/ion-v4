@@ -4743,12 +4743,11 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     // check for version 2, 7, 8 and 9 upgrades
     if((block.nVersion < 2 && nHeight >= Params().BIP34Height()) ||
        (block.nVersion < 7 && nHeight >= Params().BIP66Height()) ||
-       (block.nVersion < 8 && nHeight >= Params().BIP65Height()) ||
-       (block.nVersion < 9 && nHeight >= Params().Zerocoin_StartHeight()) ||
+       (block.nVersion < 8 && nHeight >= Params().Zerocoin_StartHeight()) ||
+       (block.nVersion < 9 && nHeight >= Params().BIP65Height()) ||
        (block.nVersion < 10 && nHeight >= Params().OpGroup_StartHeight()))
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
-
     return true;
 }
 
