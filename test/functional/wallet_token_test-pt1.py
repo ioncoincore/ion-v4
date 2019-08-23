@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2017 The Bitcoin Core developers
+<<<<<<< HEAD
 # Copyright (c) 2018-2019 The Ion developers
+=======
+>>>>>>> 212958d07ec35cea51b5c3d4d045e269bf397190
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the functionality of all Token commands.
@@ -41,6 +44,7 @@ class TokenTest (BitcoinTestFramework):
         self.log.info("Send to address %s %s" % (ION_AUTH_ADDR, self.nodes[0].sendtoaddress(ION_AUTH_ADDR, 1)))
         self.log.info("Accounts %s" % self.nodes[0].listaddressgroupings())
         self.nodes[0].generate(6)
+<<<<<<< HEAD
         # try creating tokens without mgmt addresses
         try:
             self.nodes[0].token('mint', ionrt1zd7r4v074c6wg2gvchnaueuxw4mg4zxwe8n55p34a68dhfyzwdeqstxxp62, mintaddr, '100')
@@ -48,6 +52,22 @@ class TokenTest (BitcoinTestFramework):
             self.log.info("Error: No management token")
             self.log.info(e)
         magicTok=self.nodes[0].configuremanagementtoken("MAGIC", "MagicToken", "4", "https://github.com/ioncoincore/ATP-descriptions/blob/master/ION-testnet-MAGIC.json", "4f92d91db24bb0b8ca24a2ec86c4b012ccdc4b2e9d659c2079f5cc358413a765", "true")
+=======
+        #post_transaction(self, "gAQQQjA4DCT2EZDVK6Jae4mFfB217V43Nt")
+        # try creating tokens without mgmt addresses
+        #try:
+        #    self.nodes[0].token('mint', AtomGroup_ID, mintaddr, '100')
+        #except Exception as e:
+        #    self.log.info("Error: No management token")
+        #    self.log.info(e)
+        #magicTok=self.nodes[0].managementtoken('new', 'MAGIC', 'MagicToken', '4', 'https://wiki.lspace.org/mediawiki/Magic', '0')
+        Testing="Testing"
+        
+        #hash1 = hashlib.sha256("Testing".encode('utf-8'))
+        #hash2 = hashlib.sha256(hash1)
+        #print('Hash', hash2.hexdigest())
+        magicTok=self.nodes[0].configuremanagementtoken("MAGIC", "MagicToken", "4", "https://wiki.lspace.org/mediawiki/Magic", "0", "true")
+>>>>>>> 212958d07ec35cea51b5c3d4d045e269bf397190
         self.log.info("Magic TOk %s" % magicTok)
         self.nodes[0].generate(1)
         self.log.info("tokeninfo %s" % self.nodes[0].tokeninfo("all"))
@@ -56,10 +76,17 @@ class TokenTest (BitcoinTestFramework):
         MagicAddr=self.nodes[0].getnewaddress()
         self.nodes[0].minttoken(MagicGroup_ID, MagicAddr, 5000)
         self.nodes[0].generate(1)
+<<<<<<< HEAD
         XDMTok=self.nodes[0].configuremanagementtoken("XDM", "DarkMatter", "13", "https://raw.githubusercontent.com/ioncoincore/ATP-descriptions/master/ION-testnet-XDM.json", "f5125a90bde180ef073ce1109376d977f5cbddb5582643c81424cc6cc842babd", "true")
         self.nodes[0].generate(1)
         XDMGroup_ID= XDMTok['groupIdentifier']
         AtomTok=self.nodes[0].configuremanagementtoken("ATOM", "Atom", "0",  "https://raw.githubusercontent.com/ioncoincore/ATP-descriptions/master/ION-testnet-ATOM.json", "b0425ee4ba234099970c53c28288da749e2a1afc0f49856f4cab82b37f72f6a5", "true")
+=======
+        XDMTok=self.nodes[0].configuremanagementtoken("XDM", "DarkMatter", "13", "https://www.darkmatter.info/", "0", "true")
+        self.nodes[0].generate(1)
+        XDMGroup_ID= XDMTok['groupIdentifier']
+        AtomTok=self.nodes[0].configuremanagementtoken("ATOM", "Atom", "0",  "https://www.ionomy.com/", "0", "true")
+>>>>>>> 212958d07ec35cea51b5c3d4d045e269bf397190
         self.nodes[0].generate(1)
         AtomGroup_ID= AtomTok['groupIdentifier']
         self.log.info("Token Info %s" % json.dumps(self.nodes[0].tokeninfo("all"), indent=4))
@@ -114,12 +141,15 @@ class TokenTest (BitcoinTestFramework):
             if XDM['ticker']=="XDM" and (XDM['address'] != newkeyAddr):
                 oldXDM_vout=XDM['vout']
                 oldXDM_txid=XDM['txid']
+<<<<<<< HEAD
         self.nodes[0].droptokenauthorities(XDMGroup_ID, oldXDM_txid, str(oldXDM_vout), 'mint')
         try:
             self.nodes[0].minttoken(XDMGroup_ID, mintaddr, '100')
         except Exception as e:
             self.log.info("Error: No mint flag")
             self.log.info(e)
+=======
+>>>>>>> 212958d07ec35cea51b5c3d4d045e269bf397190
         self.nodes[0].droptokenauthorities(XDMGroup_ID, oldXDM_txid, str(oldXDM_vout), 'all')
         self.log.info("New Authoritiy %s" %self.nodes[0].listtokenauthorities(XDMGroup_ID))
 
