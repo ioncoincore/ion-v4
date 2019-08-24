@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
-# Copyright (c) 2018-2019 The Ion developers
+# Copyright (c) 2019 The ION Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the functionality of all Token commands.
