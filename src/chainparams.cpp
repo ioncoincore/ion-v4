@@ -168,6 +168,9 @@ public:
         nDGWStartHeight = 550000;                   // Startheight of DGW
         nDGWStartTime = 1521851265;                 // GMT: Saturday, March 24, 2018 12:27:45 AM - Exact time when DGW algorithm starts and old MIDAS stops
 
+        // Public coin spend enforcement
+        nPublicZCSpends = 9999999;
+
         // Fake Serial Attack
         nFakeSerialBlockheightEnd = 1073534;
         nSupplyBeforeFakeSerial = 1308446 * COIN;   // zerocoin supply at block nFakeSerialBlockheightEnd
@@ -241,6 +244,7 @@ public:
             "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
             "31438167899885040445364023527381951378636564391212010397122822120720357";
         nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMaxZerocoinPublicSpendsPerTransaction = 637; // Assume about 220 bytes each input
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
@@ -249,6 +253,7 @@ public:
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a xion to be stakable
 
         nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
+        nProposalEstablishmentTime = 60 * 60 * 24; // Proposals must be at least a day old to make it into a budget
     }
 
     const Checkpoints::CCheckpointData& Checkpoints() const
@@ -303,6 +308,9 @@ public:
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
 
+        // Public coin spend enforcement
+        nPublicZCSpends = 9999999;
+
         // Fake Serial Attack
         nFakeSerialBlockheightEnd = -1;
         nSupplyBeforeFakeSerial = 0;
@@ -349,6 +357,8 @@ public:
         nStartMasternodePayments = 1558696183; // GMT: Thursday, 15. February 2018 12:03:03
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
                                        // here because we only have a 8 block finalization window on testnet
+
+        nProposalEstablishmentTime = 60 * 5; // Proposals must be at least 5 mns old to make it into a test budget
         nZerocoinHeaderVersion = 8; //Block headers must be this version once zerocoin is active
     }
     const Checkpoints::CCheckpointData& Checkpoints() const
@@ -405,6 +415,9 @@ public:
         nMidasStartTime = 253402300799;
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
+
+        // Public coin spend enforcement
+        nPublicZCSpends = 350;
 
         //! Modify the regtest genesis block so the timestamp is valid for a later start.
         genesis.nTime = 1491737471; // GMT: Thursday, February 2, 2017 14:30:00
