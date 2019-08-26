@@ -393,8 +393,6 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         uint256 hash = pindex ? pindex->GetBlockHash() : uint256();
         uint64_t nXDMTransactions = pindex ? pindex->nChainXDMTransactions : 0;
         uint64_t nXDMSupply = pindex ? pindex->nXDMSupply : 0;
-        uint64_t nMagicTransactions = pindex ? pindex->nChainMagicTransactions : 0;
-        uint64_t nMagicSupply = pindex ? pindex->nMagicSupply : 0;
         uint64_t nHeight = pindex ? pindex->nHeight : -1;
 
         UniValue entry(UniValue::VOBJ);
@@ -405,10 +403,6 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         if (tokenGroupManager->DarkMatterTokensCreated()) {
             entry.push_back(Pair("XDM_supply", tokenGroupManager->TokenValueFromAmount(nXDMSupply, tokenGroupManager->GetDarkMatterID())));
             entry.push_back(Pair("XDM_transactions", (uint64_t)nXDMTransactions));
-        }
-        if (tokenGroupManager->MagicTokensCreated()) {
-            entry.push_back(Pair("Magic_supply", tokenGroupManager->TokenValueFromAmount(nMagicSupply, tokenGroupManager->GetMagicID())));
-            entry.push_back(Pair("Magic_transactions", (uint64_t)nMagicTransactions));
         }
         ret.push_back(entry);
 

@@ -149,10 +149,8 @@ public:
     //! Number of XDM transactions in this block.
     //! Note: in a potential headers-first mode, this number cannot be relied upon until after full block validation
     unsigned int nXDMTransactions;
-    unsigned int nMagicTransactions;
     //! (memory only) Number of XDM transactions in the chain up to and including this block.
     unsigned int nChainXDMTransactions;
-    unsigned int nChainMagicTransactions;
 
     //! Verification status of this block. See enum BlockStatus
     unsigned int nStatus;
@@ -175,7 +173,6 @@ public:
     int64_t nMoneySupply;
 
     int64_t nXDMSupply;
-    int64_t nMagicSupply;
 
     //! block header
     int nVersion;
@@ -206,15 +203,12 @@ public:
         nChainTx = 0;
         nXDMTransactions = 0;
         nChainXDMTransactions = 0;
-        nMagicTransactions = 0;
-        nChainMagicTransactions = 0;
         nStatus = 0;
         nSequenceId = 0;
 
         nMint = 0;
         nMoneySupply = 0;
         nXDMSupply = 0;
-        nMagicSupply = 0;
         nFlags = 0;
         nStakeModifier = 0;
         nStakeModifierChecksum = 0;
@@ -256,7 +250,6 @@ public:
         nMint = 0;
         nMoneySupply = 0;
         nXDMSupply = 0;
-        nMagicSupply = 0;
         nFlags = 0;
         nStakeModifier = 0;
         nStakeModifierChecksum = 0;
@@ -520,11 +513,9 @@ public:
             READWRITE(mapZerocoinSupply);
             READWRITE(vMintDenominationsInBlock);
         }
-        if(this->nVersion > 9) {
+        if(this->nVersion > 10) {
             READWRITE(VARINT(nXDMTransactions));
             READWRITE(VARINT(nXDMSupply));
-            READWRITE(VARINT(nMagicTransactions));
-            READWRITE(VARINT(nMagicSupply));
         }
 
     }
