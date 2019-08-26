@@ -183,8 +183,8 @@ public:
         nOpGroupNewRequiredConfirmations = 1;
 
         // Fake Serial Attack
-        nFakeSerialBlockheightEnd = 1073534;
-        nSupplyBeforeFakeSerial = 1308446 * COIN;   // zerocoin supply at block nFakeSerialBlockheightEnd
+        nFakeSerialBlockheightEnd = -1;
+        nSupplyBeforeFakeSerial = 0;   // zerocoin supply at block nFakeSerialBlockheightEnd
 
         /**
          * Build the genesis block. Note that the output of the genesis coinbase cannot
