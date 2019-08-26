@@ -127,7 +127,7 @@ bool CXIonStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
     return true;
 }
 
-bool CXIonStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount nTotal)
+bool CXIonStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal)
 {
     //Create an output returning the xION that was staked
     CTxOut outReward;
@@ -206,9 +206,9 @@ CAmount CIonStake::GetValue()
     return txFrom.vout[nPosition].nValue;
 }
 
-bool CIonStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount nTotal)
+bool CIonStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal)
 {
-    vector<valtype> vSolutions;
+    std::vector<valtype> vSolutions;
     txnouttype whichType;
     CScript scriptPubKeyKernel = txFrom.vout[nPosition].scriptPubKey;
     if (!Solver(scriptPubKeyKernel, whichType, vSolutions)) {

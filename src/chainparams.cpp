@@ -16,8 +16,6 @@
 
 #include <boost/assign/list_of.hpp>
 
-using namespace std;
-using namespace boost::assign;
 
 struct SeedSpec6 {
     uint8_t addr[16];
@@ -148,6 +146,7 @@ public:
         nTargetTimespanDGW = 1 * 60; // ION: 1 day
         nTargetSpacing = 1 * 60;  // ION: 1 minute
         nMaturity = 60;
+        nStakeMinAge = 60 * 60;                // ION: 1 hour
         nMasternodeCountDrift = 20;
         nMaxMoneyOut = 38600000 * COIN;
 
@@ -203,7 +202,7 @@ public:
         txNew.nTime = genesis.nTime;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
-        txNew.vin[0].scriptSig = CScript() << 1486045800 << LegacyCScriptNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vin[0].scriptSig = CScript() << 1486045800 << LegacyCScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
         txNew.vout[0].nValue = 1 * COIN;
         txNew.vout[0].scriptPubKey = CScript() << ParseHex("045622582bdfad9366cdff9652d35a562af17ea4e3462d32cd988b32919ba2ff4bc806485be5228185ad3f75445039b6e744819c4a63304277ca8d20c99a6acec8") << OP_CHECKSIG;
         genesis.vtx.push_back(txNew);
@@ -415,6 +414,7 @@ public:
         bnProofOfWorkLimit = ~uint256(0) >> 1;
         nLastPOWBlock = 250;
         nMaturity = 100;
+        nStakeMinAge = 0;
         nMasternodeCountDrift = 4;
         nModifierUpdateBlock = 0; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = 38600000 * COIN;
@@ -468,8 +468,13 @@ public:
         fTestnetToBeDeprecatedFieldRPC = false;
 
         nPoolMaxTransactions = 2;
-        strSporkKey = "0430b1f83d3acb90cde0b7e0e1d9365c00bfaf04ab8614457cfa0766a787239dd47ad6ca478659dd5e401fccb7fea6fa83acad23a2c7b451aafe6fa2ae4cfd4a58";
-        strSporkKeyOld = "0470e14fc60a25e0eb4f6b1fe280e4c3f9427f7bb8b38f14a0c310c2e56402bdce0f25049bf22351dc3d07f389d4d433b339d8e1b991784f11df68f50340185c1d";
+
+        /* Spork Key for RegTest:
+        WIF private key: 93QPD8M8SrVb4yL3E679sCGztzy1NRWYH3fs2wJQr2LMKnppFCJ
+        private key hex: ef79644e8345b759f056f73e268f984bd95428210beab6edc40f9bb6b9c0af3a
+        */
+        strSporkKey = "042fa4f727ecf4e34121bb6d8df436e079352f8a083f820859b75d6312f98d0eedd73ad4fe7567a096acb1fefb8760b6099ef2fb6025f614a6e75a3f70800e7b85";
+        strSporkKeyOld = "0430b1f83d3acb90cde0b7e0e1d9365c00bfaf04ab8614457cfa0766a787239dd47ad6ca478659dd5e401fccb7fea6fa83acad23a2c7b451aafe6fa2ae4cfd4a58";
         strObfuscationPoolDummyAddress = "g9gvvemz52aDkRn4iiGrzTbBRS1HiqcY9r";
         nStartMasternodePayments = 1558696183; // GMT: Thursday, 15. February 2018 12:03:03
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short

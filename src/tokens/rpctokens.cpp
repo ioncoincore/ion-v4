@@ -216,9 +216,9 @@ static void MaybePushAddress(UniValue &entry, const CTxDestination &dest)
     }
 }
 
-static void AcentryToJSON(const CAccountingEntry &acentry, const string &strAccount, UniValue &ret)
+static void AcentryToJSON(const CAccountingEntry &acentry, const std::string &strAccount, UniValue &ret)
 {
-    bool fAllAccounts = (strAccount == string("*"));
+    bool fAllAccounts = (strAccount == std::string("*"));
 
     if (fAllAccounts || acentry.strAccount == strAccount)
     {
@@ -235,20 +235,20 @@ static void AcentryToJSON(const CAccountingEntry &acentry, const string &strAcco
 
 void ListGroupedTransactions(const CTokenGroupID &grp,
     const CWalletTx &wtx,
-    const string &strAccount,
+    const std::string &strAccount,
     int nMinDepth,
     bool fLong,
     UniValue &ret,
     const isminefilter &filter)
 {
     CAmount nFee;
-    string strSentAccount;
-    list<COutputEntry> listReceived;
-    list<COutputEntry> listSent;
+    std::string strSentAccount;
+    std::list<COutputEntry> listReceived;
+    std::list<COutputEntry> listSent;
 
     wtx.GetGroupAmounts(grp, listReceived, listSent, nFee, strSentAccount, filter);
 
-    bool fAllAccounts = (strAccount == string("*"));
+    bool fAllAccounts = (strAccount == std::string("*"));
     bool involvesWatchonly = wtx.IsFromMe(ISMINE_WATCH_ONLY);
 
     // Sent
@@ -279,7 +279,7 @@ void ListGroupedTransactions(const CTokenGroupID &grp,
     {
         BOOST_FOREACH (const COutputEntry &r, listReceived)
         {
-            string account;
+            std::string account;
             if (pwalletMain->mapAddressBook.count(r.destination))
                 account = pwalletMain->mapAddressBook[r.destination].name;
             if (fAllAccounts || (account == strAccount))
@@ -592,7 +592,7 @@ extern UniValue listtokentransactions(const UniValue &params, bool fHelp)
         return NullUniValue;
 
     if (fHelp || params.size() > 4)
-        throw runtime_error(
+        throw std::runtime_error(
             "listtokentransactions \"groupid\" ( count from includeWatchonly )\n"
             "\nReturns up to 'count' most recent transactions skipping the first 'from' transactions for account "
             "'account'.\n"
@@ -672,7 +672,7 @@ extern UniValue listtokentransactions(const UniValue &params, bool fHelp)
 
     unsigned int curparam = 0;
 
-    string strAccount = "*";
+    std::string strAccount = "*";
 
     if (params.size() <= curparam)
     {
@@ -729,11 +729,11 @@ extern UniValue listtokentransactions(const UniValue &params, bool fHelp)
     if ((nFrom + nCount) > (int)ret.size())
         nCount = ret.size() - nFrom;
 
-    vector<UniValue> arrTmp = ret.getValues();
+    std::vector<UniValue> arrTmp = ret.getValues();
 
-    vector<UniValue>::iterator first = arrTmp.begin();
+    std::vector<UniValue>::iterator first = arrTmp.begin();
     std::advance(first, nFrom);
-    vector<UniValue>::iterator last = arrTmp.begin();
+    std::vector<UniValue>::iterator last = arrTmp.begin();
     std::advance(last, nFrom + nCount);
 
     if (last != arrTmp.end())
@@ -756,7 +756,7 @@ extern UniValue listtokenssinceblock(const UniValue &params, bool fHelp)
         return NullUniValue;
 
     if (fHelp || params.size() < 1)
-        throw runtime_error(
+        throw std::runtime_error(
             "listtokenssinceblock \"groupid\" ( \"blockhash\" target-confirmations includeWatchonly )\n"
             "\nGet all transactions in blocks since block [blockhash], or all transactions if omitted\n"
             "\nArguments:\n"
@@ -855,7 +855,7 @@ extern UniValue listtokenssinceblock(const UniValue &params, bool fHelp)
 
     UniValue transactions(UniValue::VARR);
 
-    for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end();
+    for (std::map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end();
          it++)
     {
         CWalletTx tx = (*it).second;
@@ -1750,7 +1750,7 @@ extern UniValue droptokenauthorities(const UniValue &params, bool fHelp)
     CTokenGroupInfo tgInfo(script);
     CTxDestination dest;
     ExtractDestination(script, dest);
-    string strAuthorities = EncodeGroupAuthority(tgInfo.controllingGroupFlags());
+    std::string strAuthorities = EncodeGroupAuthority(tgInfo.controllingGroupFlags());
 
     GroupAuthorityFlags authoritiesToKeep = tgInfo.controllingGroupFlags() & ~authoritiesToDrop;
 

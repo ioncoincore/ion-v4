@@ -86,11 +86,11 @@ bool CTokenGroupCreation::ValidateDescription() {
 // Such as: max ticker length, no special characters, and sane decimal positions.
 // Validation is performed before data is written to the database
 void TGFilterCharacters(CTokenGroupCreation &tokenGroupCreation) {
-    regex regexAlpha("^[a-zA-Z]+$");
-    regex regexAlphaNum("^[a-zA-Z0-9]+$");
-    regex regexUrl(R"((https?|ftp)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$)");
+    std::regex regexAlpha("^[a-zA-Z]+$");
+    std::regex regexAlphaNum("^[a-zA-Z0-9]+$");
+    std::regex regexUrl(R"((https?|ftp)://(-\.)?([^\s/?\.#-]+\.?)+(/[^\s]*)?$)");
 
-    smatch matchResult;
+    std::smatch matchResult;
 
     if (tokenGroupCreation.tokenGroupDescription.strTicker != "" &&
             !std::regex_match(tokenGroupCreation.tokenGroupDescription.strTicker, matchResult, regexAlpha)) {

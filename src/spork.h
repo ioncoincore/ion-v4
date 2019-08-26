@@ -17,8 +17,6 @@
 #include "obfuscation.h"
 #include "protocol.h"
 
-using namespace std;
-using namespace boost;
 
 /*
     Don't ever reuse these IDs for other sporks
@@ -42,7 +40,7 @@ using namespace boost;
 #define SPORK_1_SWIFTTX_DEFAULT 978307200                         //2001-1-1
 #define SPORK_2_SWIFTTX_BLOCK_FILTERING_DEFAULT 1424217600        //2015-2-18
 #define SPORK_5_MAX_VALUE_DEFAULT 1000                            //1000 ION
-#define SPORK_4_MASTERNODE_PAYMENT_ENFORCEMENT_DEFAULT 1521851265 //OFF
+#define SPORK_4_MASTERNODE_PAYMENT_ENFORCEMENT_DEFAULT 4070908800 //OFF
 #define SPORK_5_MASTERNODE_BUDGET_ENFORCEMENT_DEFAULT 4070908800  //OFF
 #define SPORK_6_MASTERNODE_ENABLE_SUPERBLOCKS_DEFAULT 4070908800  //OFF
 #define SPORK_7_MASTERNODE_PAY_UPDATED_NODES_DEFAULT 1521851265   //GMT: Saturday, March 24, 2018 12:27:45 AM (OFF 4070908800)
