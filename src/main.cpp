@@ -4746,7 +4746,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
        (block.nVersion < 7 && nHeight >= Params().BIP66Height()) ||
        (block.nVersion < 8 && nHeight >= Params().Zerocoin_StartHeight()) ||
        (block.nVersion < 9 && nHeight >= Params().BIP65Height()) ||
-       (block.nVersion < 10 && nHeight >= Params().OpGroup_StartHeight()))
+       (block.nVersion < 11 && nHeight >= Params().OpGroup_StartHeight()))
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
     return true;
