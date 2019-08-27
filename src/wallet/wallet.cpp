@@ -1763,7 +1763,7 @@ unsigned int CWallet::FilterCoins(std::vector<COutput> &vCoins,
             if (!CheckFinalTx(*pcoin))
                 continue;
 
-            if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
+            if ((pcoin->IsCoinBase() || pcoin->IsCoinStake()) && pcoin->GetBlocksToMaturity() > 0)
                 continue;
 
             int nDepth = pcoin->GetDepthInMainChain();
@@ -3961,9 +3961,10 @@ int CMerkleTx::GetBlocksToMaturity() const
     if (!(IsCoinBase() || IsCoinStake() || IsAnyOutputGroupedAuthority((CTransaction(*this)))))
         return 0;
     int depth = GetDepthInMainChain();
+    int minBlocksToMaturity = 0;
     if (IsAnyOutputGroupedAuthority((CTransaction(*this))))
-        return std::max(0, (Params().OpGroup_NewRequiredConfirmations() + 1) - depth);
-    return std::max(0, (Params().COINBASE_MATURITY() + 1) - depth);
+        minBlocksToMaturity = std::max(0, (Params().OpGroup_NewRequiredConfirmations() + 1) - depth);
+    return std::max(minBlocksToMaturity, (Params().COINBASE_MATURITY() + 1) - depth);
 }
 
 
