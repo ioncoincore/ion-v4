@@ -306,7 +306,8 @@ bool CheckStakeKernelHash(const CBlockIndex* pindexPrev, const unsigned int nBit
             __func__, HexStr(ssUniqueID), nTimeTx, hashProofOfStake.GetHex(),
             nBits, nValueIn, bnTarget.GetHex(), res);
     }
-    return res;
+    bool DGW = (pindexPrev->nHeight + 1) >= Params().DGWStartHeight() && nTimeTx >= (unsigned int)Params().DGWStartTime();
+    return res || !DGW;
 }
 
 /*
@@ -332,7 +333,23 @@ bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t 
     return true;
 }
 */
+
+bool GetHashProofOfStakePreDGW(const CBlockIndex* pindexPrev, CStakeInput* stake, const unsigned int nTimeTx, const bool fVerify, uint256& hashProofOfStakeRet) {
+    // Grab the stake data
+    CBlockIndex* pindexfrom = stake->GetIndexFrom();
+    const unsigned int nTimeBlockFrom = pindexfrom->nTime;
+
+    CDataStream ss(SER_GETHASH, 0);
+    ss << nTimeBlockFrom << hashProofOfStakeRet << stake->GetValue() << nTimeTx;
+    hashProofOfStakeRet = Hash(ss.begin(), ss.end());
+
+    return true;
+}
+
 bool GetHashProofOfStake(const CBlockIndex* pindexPrev, CStakeInput* stake, const unsigned int nTimeTx, const bool fVerify, uint256& hashProofOfStakeRet) {
+    if (pindexPrev->nHeight < Params().DGWStartHeight())
+        return GetHashProofOfStakePreDGW(pindexPrev, stake, nTimeTx, fVerify, hashProofOfStakeRet);
+
     // Grab the stake data
     CBlockIndex* pindexfrom = stake->GetIndexFrom();
     if (!pindexfrom) return error("%s : Failed to find the block index for stake origin", __func__);
