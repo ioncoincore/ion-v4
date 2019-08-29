@@ -145,7 +145,7 @@ EXTENDED_SCRIPTS = [
     #'example_test.py', # Not required/ **TODO**
     'feature_notifications.py',
     'rpc_invalidateblock.py',
-    'wallet_token_test-pt1.py',
+    #'wallet_token_test-pt1.py',
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
