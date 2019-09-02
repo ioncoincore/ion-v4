@@ -756,7 +756,9 @@ static bool GetUTXOStats(CCoinsView *view, CCoinsStats &stats)
                     stats.nTransactionOutputs++;
                     ss << VARINT(i+1);
                     ss << out;
-                    nTotalAmount += out.nValue;
+                    if (!out.scriptPubKey.IsUnspendable() && !out.IsZerocoinMint()) {
+                        nTotalAmount += out.nValue;
+                    }
                 }
             }
             stats.nSerializedSize += 32 + pcursor->GetValueSize();
