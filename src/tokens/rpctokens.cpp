@@ -64,6 +64,11 @@ static unsigned int ParseGroupAddrValue(const UniValue &params,
     {
         throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
     }
+    CTokenGroupCreation tgCreation;
+    if (!tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation)) {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: Token group configuration transaction not found. Has it confirmed?");
+    }
+
     outputs.reserve(params.size() / 2);
     curparam++;
     totalValue = 0;
