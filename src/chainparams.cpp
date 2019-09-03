@@ -15,9 +15,7 @@
 #include <assert.h>
 
 #include <boost/assign/list_of.hpp>
-
-using namespace std;
-using namespace boost::assign;
+#include <limits>
 
 struct SeedSpec6 {
     uint8_t addr[16];
@@ -82,12 +80,15 @@ static const Checkpoints::CCheckpointData data = {
 };
 
 static Checkpoints::MapCheckpoints mapCheckpointsTestnet =
-    boost::assign::map_list_of(0, uint256("0x001"));
+    boost::assign::map_list_of
+        (       0,  uint256("00000a5e695356de7ccae09478a4aa7053a402f7c2f57a40c44310d8fbe5d3c7") )  // Genesis block
+        (    1138,  uint256("7ffeeefe7b8de3f9b63bba7fdafd11aa4c7a03d6a3eeea4ebeaf17de3af01bd7") )  // ATP RC - 2019-08-05            1565007768   2082
+        (    5702,  uint256("6d9051f0cefb84f839d4466bfb5eb7f647d205b689659cb81390be4df692801c") ); // MAGIC creation                 1567019644   11238
 static const Checkpoints::CCheckpointData dataTestnet = {
     &mapCheckpointsTestnet,
-    1491737471,
-    0,
-    250};
+    1567019644,
+    11238,
+    2900};
 
 static Checkpoints::MapCheckpoints mapCheckpointsRegtest =
     boost::assign::map_list_of(0, uint256("0x001"));
@@ -113,6 +114,17 @@ libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params(bool useModulusV1) co
         return &ZCParamsHex;
 
     return &ZCParamsDec;
+}
+
+bool CChainParams::HasStakeMinAgeOrDepth(const int contextHeight, const uint32_t contextTime,
+        const int utxoFromBlockHeight, const uint32_t utxoFromBlockTime) const
+{
+    // before stake modifier V2, the age required was 60 * 60 (1 hour) / not required on regtest
+    if (!IsStakeModifierV2(contextHeight))
+        return (NetworkID() == CBaseChainParams::REGTEST || (utxoFromBlockTime + 3600 <= contextTime));
+
+    // after stake modifier V2, we require the utxo to be nStakeMinDepth deep in the chain
+    return (contextHeight - utxoFromBlockHeight >= nStakeMinDepth);
 }
 
 class CMainParams : public CChainParams
@@ -142,16 +154,18 @@ public:
         nToCheckBlockUpgradeMajority = 10800; // Approximate expected amount of blocks in 7 days (1440*7.5)
         nMinerThreads = 0;
         nTargetTimespanMidas = 7 * 24 * 60 * 60;    // 1 week
-        nTargetTimespanDGW = 1 * 60; // ION: 1 day
-        nTargetSpacing = 1 * 60;  // ION: 1 minute
+        nTargetSpacing = 1 * 60;  // 1 minute
         nMaturity = 60;
+        nStakeMinDepth = 600;
+        nFutureTimeDriftPoW = 7200;
+        nFutureTimeDriftPoS = 180;
         nMasternodeCountDrift = 20;
         nMaxMoneyOut = 38600000 * COIN;
 
         /** Height or Time Based Activations **/
         nLastPOWBlock = 1000;
         nModifierUpdateBlock = 615800;
-        nZerocoinStartHeight = 550001;
+        nZerocoinStartHeight = 550001;              // Start enforcing the Zerocoin protocol for blocks with version 8 and higher
         nZerocoinStartTime = 1521851265;            // GMT: Saturday, March 24, 2018 12:27:45 AM,
         nBlockEnforceSerialRange = 550137;          //Enforce serial range starting this block
         nBlockRecalculateAccumulators = 550137;     //Trigger a recalculation of accumulators
@@ -168,9 +182,22 @@ public:
         nDGWStartHeight = 550000;                   // Startheight of DGW
         nDGWStartTime = 1521851265;                 // GMT: Saturday, March 24, 2018 12:27:45 AM - Exact time when DGW algorithm starts and old MIDAS stops
 
+        nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
+        nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
+        nBIP65Height = 1014023; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
+        nOpGroupStartHeight = 1320000; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 11 and higher
+        nBlockStakeModifierlV2 = nOpGroupStartHeight; // Start enforcing the V2 stake modifier for blocks with version 11 and higher
+
+        // Public coin spend enforcement
+        nPublicZCSpends = nOpGroupStartHeight;
+
+        // Token groups
+        strTokenManagementKey = "inqaYuaES1cmRBXHodp25UceeVPbWQG5wY";
+        nOpGroupNewRequiredConfirmations = 1;
+
         // Fake Serial Attack
-        nFakeSerialBlockheightEnd = 1073534;
-        nSupplyBeforeFakeSerial = 1308446 * COIN;   // zerocoin supply at block nFakeSerialBlockheightEnd
+        nFakeSerialBlockheightEnd = -1;
+        nSupplyBeforeFakeSerial = 0;   // zerocoin supply at block nFakeSerialBlockheightEnd
 
         /**
          * Build the genesis block. Note that the output of the genesis coinbase cannot
@@ -188,7 +215,7 @@ public:
         txNew.nTime = genesis.nTime;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
-        txNew.vin[0].scriptSig = CScript() << 1486045800 << CScriptNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+        txNew.vin[0].scriptSig = CScript() << 1486045800 << LegacyCScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
         txNew.vout[0].nValue = 1 * COIN;
         txNew.vout[0].scriptPubKey = CScript() << ParseHex("045622582bdfad9366cdff9652d35a562af17ea4e3462d32cd988b32919ba2ff4bc806485be5228185ad3f75445039b6e744819c4a63304277ca8d20c99a6acec8") << OP_CHECKSIG;
         genesis.vtx.push_back(txNew);
@@ -241,6 +268,7 @@ public:
             "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
             "31438167899885040445364023527381951378636564391212010397122822120720357";
         nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMaxZerocoinPublicSpendsPerTransaction = 637; // Assume about 220 bytes each input
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
@@ -249,6 +277,7 @@ public:
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a xion to be stakable
 
         nBudget_Fee_Confirmations = 6; // Number of confirmations for the finalization fee
+        nProposalEstablishmentTime = 60 * 60 * 24; // Proposals must be at least a day old to make it into a budget
     }
 
     const Checkpoints::CCheckpointData& Checkpoints() const
@@ -280,10 +309,10 @@ public:
         nToCheckBlockUpgradeMajority = 5760; // 4 days
         nMinerThreads = 0;
         nTargetTimespanMidas = 7 * 24 * 60 * 60;   // 1 week
-        nTargetTimespanDGW = 1 * 60; // ION: 1 day
         nTargetSpacing = 1 * 60;  // ION: 1 minute
         nLastPOWBlock = 200;
         nMaturity = 15;
+        nStakeMinDepth = 100;
         nMasternodeCountDrift = 4;
         nModifierUpdateBlock = 999999999; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = 38600000 * COIN;
@@ -302,6 +331,19 @@ public:
         nMidasStartTime = 253402300799;
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
+
+        nBIP34Height = 1; // Start enforcing BIP34 (Height in Coinbase) for blocks with version 2 and higher
+        nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher
+        nBIP65Height = 1; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher
+        nOpGroupStartHeight = 5530; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 11 and higher
+        nBlockStakeModifierlV2 = nOpGroupStartHeight;  // Start enforcing the V2 stake modifier for blocks with version 11 and higher
+
+        // Public coin spend enforcement
+        nPublicZCSpends = 5500;
+
+        // Token groups
+        strTokenManagementKey = "gBi3gDLnGfw8HA2rN4HmNxHk9hMC4GLFbh";
+        nOpGroupNewRequiredConfirmations = 1;
 
         // Fake Serial Attack
         nFakeSerialBlockheightEnd = -1;
@@ -349,6 +391,8 @@ public:
         nStartMasternodePayments = 1558696183; // GMT: Thursday, 15. February 2018 12:03:03
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short
                                        // here because we only have a 8 block finalization window on testnet
+
+        nProposalEstablishmentTime = 60 * 5; // Proposals must be at least 5 mns old to make it into a test budget
         nZerocoinHeaderVersion = 8; //Block headers must be this version once zerocoin is active
     }
     const Checkpoints::CCheckpointData& Checkpoints() const
@@ -379,11 +423,11 @@ public:
         nToCheckBlockUpgradeMajority = 1000;
         nMinerThreads = 1;
         nTargetTimespanMidas = 7 * 24 * 60 * 60; // 1 week
-        nTargetTimespanDGW = 24 * 60 * 60; // ION: 1 day
         nTargetSpacing = 1 * 60; // ION: 1 minutes
         bnProofOfWorkLimit = ~uint256(0) >> 1;
         nLastPOWBlock = 250;
         nMaturity = 100;
+        nStakeMinDepth = 0;
         nMasternodeCountDrift = 4;
         nModifierUpdateBlock = 0; //approx Mon, 17 Apr 2017 04:00:00 GMT
         nMaxMoneyOut = 38600000 * COIN;
@@ -406,6 +450,19 @@ public:
         nDGWStartHeight = nZerocoinStartHeight;
         nDGWStartTime = nZerocoinStartTime;
 
+        nBIP34Height = 100000000; // BIP34 has not activated on regtest (far in the future so block v1 are not rejected in tests)
+        nBIP66Height = 1; // Start enforcing BIP66 (Strict DER signatures) for blocks with version 7 and higher (Used in rpc activation tests)
+        nBIP65Height = 300; // Start enforcing BIP65 (CHECKLOCKTIMEVERIFY) for blocks with version 9 and higher (Used in rpc activation tests)
+        nOpGroupStartHeight = 300; // Start enforcing the Atomic Token Protocol (ATP) for blocks with version 10 and higher
+        nBlockStakeModifierlV2 = 300; // Start enforcing the V2 stake modifier for blocks with version 11 and higher
+
+        // Token groups
+        strTokenManagementKey = "gAQQQjA4DCT2EZDVK6Jae4mFfB217V43Nt";
+        nOpGroupNewRequiredConfirmations = 1;
+
+        // Public coin spend enforcement
+        nPublicZCSpends = 350;
+
         //! Modify the regtest genesis block so the timestamp is valid for a later start.
         genesis.nTime = 1491737471; // GMT: Thursday, February 2, 2017 14:30:00
         genesis.nNonce = 574753;
@@ -425,8 +482,13 @@ public:
         fTestnetToBeDeprecatedFieldRPC = false;
 
         nPoolMaxTransactions = 2;
-        strSporkKey = "0430b1f83d3acb90cde0b7e0e1d9365c00bfaf04ab8614457cfa0766a787239dd47ad6ca478659dd5e401fccb7fea6fa83acad23a2c7b451aafe6fa2ae4cfd4a58";
-        strSporkKeyOld = "0470e14fc60a25e0eb4f6b1fe280e4c3f9427f7bb8b38f14a0c310c2e56402bdce0f25049bf22351dc3d07f389d4d433b339d8e1b991784f11df68f50340185c1d";
+
+        /* Spork Key for RegTest:
+        WIF private key: 93QPD8M8SrVb4yL3E679sCGztzy1NRWYH3fs2wJQr2LMKnppFCJ
+        private key hex: ef79644e8345b759f056f73e268f984bd95428210beab6edc40f9bb6b9c0af3a
+        */
+        strSporkKey = "042fa4f727ecf4e34121bb6d8df436e079352f8a083f820859b75d6312f98d0eedd73ad4fe7567a096acb1fefb8760b6099ef2fb6025f614a6e75a3f70800e7b85";
+        strSporkKeyOld = "0430b1f83d3acb90cde0b7e0e1d9365c00bfaf04ab8614457cfa0766a787239dd47ad6ca478659dd5e401fccb7fea6fa83acad23a2c7b451aafe6fa2ae4cfd4a58";
         strObfuscationPoolDummyAddress = "g9gvvemz52aDkRn4iiGrzTbBRS1HiqcY9r";
         nStartMasternodePayments = 1558696183; // GMT: Thursday, 15. February 2018 12:03:03
         nBudget_Fee_Confirmations = 3; // Number of confirmations for the finalization fee. We have to make this very short

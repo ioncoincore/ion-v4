@@ -8,7 +8,7 @@
 #include "rpc/client.h"
 
 #include "rpc/protocol.h"
-#include "ui_interface.h"
+#include "guiinterface.h"
 #include "util.h"
 
 #include <set>
@@ -17,7 +17,6 @@
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 #include <univalue.h>
 
-using namespace std;
 
 class CRPCConvertParam
 {
@@ -111,10 +110,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"setban", 2},
         {"setban", 3},
         {"spork", 1},
-        {"mnbudget", 3},
-        {"mnbudget", 4},
-        {"mnbudget", 6},
-        {"mnbudget", 8},
         {"preparebudget", 2},
         {"preparebudget", 3},
         {"preparebudget", 5},
@@ -157,6 +152,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getaccumulatorwitness",2},
         {"getmintsvalues", 2},
         {"getaccumulatorcheckpoints", 0},
+        {"getblockindexstats", 0},
+        {"getblockindexstats", 1},
+        {"getblockindexstats", 2},
         {"getmintsinblocks", 0},
         {"getmintsinblocks", 1},
         {"getmintsinblocks", 2},
@@ -167,6 +165,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getchecksumblock", 1},
         {"getchecksumblock", 2},
         {"enableautomintaddress", 0},
+        {"listtokentransactions", 2},
+        {"listtokentransactions", 3},
+        {"listtokentransactions", 4},
+        {"listtokenssinceblock", 1},
+        {"listtokenssinceblock", 2},
     };
 
 class CRPCConvertTable
@@ -204,7 +207,7 @@ UniValue ParseNonRFCJSONValue(const std::string& strVal)
     UniValue jVal;
     if (!jVal.read(std::string("[")+strVal+std::string("]")) ||
         !jVal.isArray() || jVal.size()!=1)
-        throw runtime_error(string("Error parsing JSON:")+strVal);
+        throw std::runtime_error(std::string("Error parsing JSON:")+strVal);
     return jVal[0];
 }
 

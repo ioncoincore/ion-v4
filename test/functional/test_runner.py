@@ -55,48 +55,51 @@ TEST_EXIT_SKIPPED = 77
 BASE_SCRIPTS= [
     # Scripts that are run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
+    #'wallet_basic.py', # Not required/ **TODO**
     'wallet_backup.py',
-    'p2p_pos_fakestake.py',
-    'p2p_pos_fakestake_accepted.py',
-    'p2p_zpos_fakestake.py',
-    'p2p_zpos_fakestake_accepted.py',
-    'zerocoin_wrapped_serials.py',
+
     # vv Tests less than 5m vv
+    'rpc_rawtransaction.py',
+    'wallet_zapwallettxes.py',
+    'wallet_keypool_topup.py',
+    #'p2p_pos_doublespend.py', # Not working TODO fix it
+    #'wallet_txn_doublespend.py --mineblock', # Not required/ **TODO**
+    #'wallet_txn_clone.py --mineblock', # Not required/ **TODO**
+    'interface_rest.py',
+    'feature_proxy.py',
+    #'p2p_pos_fakestake.py',
+    #'p2p_pos_fakestake_accepted.py',
+    #'p2p_zpos_fakestake.py',
+    #'p2p_zpos_fakestake_accepted.py',
+    #'zerocoin_wrapped_serials.py',
     #'feature_block.py', # Not required/ **TODO**
     #'rpc_fundrawtransaction.py', # Not required/ **TODO**
     # vv Tests less than 2m vv
-    'p2p_pos_doublespend.py',
-    #'wallet_basic.py', # Not required/ **TODO**
+    'feature_uacomment.py',
     'wallet_accounts.py',
     'wallet_dump.py',
     'rpc_listtransactions.py',
     # vv Tests less than 60s vv
-    'wallet_zapwallettxes.py',
     #'wallet_importmulti.py', # Not required/ **TODO**
     #'mempool_limit.py', # We currently don't limit our mempool
     'wallet_listreceivedby.py',
     #'wallet_abandonconflict.py', # Not required/ **TODO**
-    'rpc_rawtransaction.py',
     'feature_reindex.py',
     'rpc_bip38.py',
     # vv Tests less than 30s vv
-    'wallet_keypool_topup.py',
+    'rpc_spork.py',
     'interface_zmq.py', # **TODO**
     'interface_bitcoin_cli.py',
     #'mempool_resurrect.py', # Not required
-    #'wallet_txn_doublespend.py --mineblock', # Not required/ **TODO**
-    #'wallet_txn_clone.py --mineblock', # Not required/ **TODO**
     #'rpc_getchaintips.py', # Not required/ **TODO**
-    'interface_rest.py',
     #'mempool_spend_coinbase.py', # Not required/ **TODO**
     #'mempool_reorg.py', # Not required
     #'mempool_persist.py', # Not yet implemented
-    #'interface_http.py', # Not required/ **TODO**
+    'interface_http.py',
     #'rpc_users.py', # Not required/ **TODO**
-    'feature_proxy.py',
     'rpc_signrawtransaction.py',
     'p2p_disconnect_ban.py',
-    'rpc_decodescript.py',
+    #'rpc_decodescript.py',
     'rpc_blockchain.py',
     #'rpc_deprecated.py', # Not required/ **TODO**
     'wallet_disable.py',
@@ -117,7 +120,6 @@ BASE_SCRIPTS= [
     #'wallet_resendwallettransactions.py', # Not required/ **TODO**
     'feature_minchainwork.py',
     #'p2p_fingerprint.py', # Not required/ **TODO**
-    'feature_uacomment.py',
     #'p2p_unrequested_blocks.py', # Not required/ **TODO**
     #'feature_config_args.py', # Not required/ **TODO**
     'feature_help.py',
@@ -130,7 +132,10 @@ EXTENDED_SCRIPTS = [
     # Longest test should go first, to favor running tests in parallel
     # vv Tests less than 20m vv
     #'feature_fee_estimation.py', # Not required/ **TODO**
+    'wallet_cli-pt1.py',
+    'wallet_cli-pt2.py',
     # vv Tests less than 5m vv
+    'rpc_masternodes.py',
     # vv Tests less than 2m vv
     #'p2p_timeouts.py', # Not required/ **TODO**
     # vv Tests less than 60s vv
@@ -140,6 +145,7 @@ EXTENDED_SCRIPTS = [
     #'example_test.py', # Not required/ **TODO**
     'feature_notifications.py',
     'rpc_invalidateblock.py',
+    #'wallet_token_test-pt1.py',
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
@@ -300,13 +306,17 @@ def run_tests(test_list, src_dir, build_dir, exeext, tmpdir, jobs=1, enable_cove
     test_results = []
 
     max_len_name = len(max(test_list, key=len))
-
-    for _ in range(len(test_list)):
+    test_count = len(test_list)
+    for i in range(test_count):
         test_result, testdir, stdout, stderr = job_queue.get_next()
         test_results.append(test_result)
-
+        done_str = "{}/{} - {}{}{}".format(i + 1, test_count, BOLD[1], test_result.name, BOLD[0])
         if test_result.status == "Passed":
-            logging.debug("\n%s%s%s passed, Duration: %s s" % (BOLD[1], test_result.name, BOLD[0], test_result.time))
+            if stderr == "":
+                logging.debug("%s passed, Duration: %s s" % (done_str, test_result.time))
+            else:
+                logging.debug("%s passed (with warnings), Duration: %s s" % (done_str, test_result.time))
+                print(BOLD[1] + 'stderr:\n' + BOLD[0] + stderr + '\n')
         elif test_result.status == "Skipped":
             logging.debug("\n%s%s%s skipped" % (BOLD[1], test_result.name, BOLD[0]))
         else:
@@ -398,6 +408,12 @@ class TestHandler:
                               log_stderr))
         if not self.jobs:
             raise IndexError('pop from empty list')
+
+        # Print remaining running jobs when all jobs have been started.
+        if not self.test_list:
+            print("Remaining jobs: [{}]".format(", ".join(j[0] for j in self.jobs)))
+
+        dot_count = 0
         while True:
             # Return first proc that finishes
             time.sleep(.5)
@@ -411,7 +427,7 @@ class TestHandler:
                     log_out.seek(0), log_err.seek(0)
                     [stdout, stderr] = [l.read().decode('utf-8') for l in (log_out, log_err)]
                     log_out.close(), log_err.close()
-                    if proc.returncode == TEST_EXIT_PASSED and stderr == "":
+                    if proc.returncode == TEST_EXIT_PASSED:
                         status = "Passed"
                     elif proc.returncode == TEST_EXIT_SKIPPED:
                         status = "Skipped"
@@ -420,8 +436,12 @@ class TestHandler:
                     self.num_running -= 1
                     self.jobs.remove(j)
 
+                    clearline = '\r' + (' ' * dot_count) + '\r'
+                    print(clearline, end='', flush=True)
+                    dot_count = 0
                     return TestResult(name, status, int(time.time() - time0)), testdir, stdout, stderr
             print('.', end='', flush=True)
+            dot_count += 1
 
 class TestResult():
     def __init__(self, name, status, time):

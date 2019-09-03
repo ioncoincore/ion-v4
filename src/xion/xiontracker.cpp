@@ -13,7 +13,6 @@
 #include "xion/xionwallet.h"
 #include "witness.h"
 
-using namespace std;
 
 CxIONTracker::CxIONTracker(std::string strWalletFile)
 {
@@ -136,7 +135,7 @@ bool CxIONTracker::ClearSpendCache()
 
 std::vector<uint256> CxIONTracker::GetSerialHashes()
 {
-    vector<uint256> vHashes;
+    std::vector<uint256> vHashes;
     for (auto it : mapSerialHashes) {
         if (it.second.isArchived)
             continue;
@@ -154,7 +153,7 @@ CAmount CxIONTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) con
     //! zerocoin specific fields
     std::map<libzerocoin::CoinDenomination, unsigned int> myZerocoinSupply;
     for (auto& denom : libzerocoin::zerocoinDenomList) {
-        myZerocoinSupply.insert(make_pair(denom, 0));
+        myZerocoinSupply.insert(std::make_pair(denom, 0));
     }
 
     {
@@ -187,7 +186,7 @@ CAmount CxIONTracker::GetUnconfirmedBalance() const
 
 std::vector<CMintMeta> CxIONTracker::GetMints(bool fConfirmedOnly) const
 {
-    vector<CMintMeta> vMints;
+    std::vector<CMintMeta> vMints;
     for (auto& it : mapSerialHashes) {
         CMintMeta mint = it.second;
         if (mint.isArchived || mint.isUsed)
@@ -353,7 +352,7 @@ void CxIONTracker::SetPubcoinUsed(const uint256& hashPubcoin, const uint256& txi
         return;
     CMintMeta meta = GetMetaFromPubcoin(hashPubcoin);
     meta.isUsed = true;
-    mapPendingSpends.insert(make_pair(meta.hashSerial, txid));
+    mapPendingSpends.insert(std::make_pair(meta.hashSerial, txid));
     UpdateState(meta);
 }
 
@@ -460,7 +459,7 @@ bool CxIONTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, CMi
     return false;
 }
 
-std::set<CMintMeta> CxIONTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus, bool fWrongSeed)
+std::set<CMintMeta> CxIONTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus, bool fWrongSeed, bool fExcludeV1)
 {
     CWalletDB walletdb(strWalletFile);
     if (fUpdateStatus) {
@@ -473,6 +472,8 @@ std::set<CMintMeta> CxIONTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, 
 
         CxIONWallet* xIONWallet = new CxIONWallet(strWalletFile);
         for (auto& dMint : listDeterministicDB) {
+            if (fExcludeV1 && dMint.GetVersion() < 2)
+                continue;
             Add(dMint, false, false, xIONWallet);
         }
         delete xIONWallet;

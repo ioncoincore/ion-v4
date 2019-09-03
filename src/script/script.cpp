@@ -18,7 +18,6 @@ inline std::string ValueString(const std::vector<unsigned char>& vch)
 }
 } // anon namespace
 
-using namespace std;
 
 const char* GetOpName(opcodetype opcode)
 {
@@ -146,7 +145,7 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP4                   : return "OP_NOP4";
     case OP_NOP5                   : return "OP_NOP5";
     case OP_NOP6                   : return "OP_NOP6";
-    case OP_NOP7                   : return "OP_NOP7";
+    case OP_GROUP                  : return "OP_GROUP";
     case OP_NOP8                   : return "OP_NOP8";
     case OP_NOP9                   : return "OP_NOP9";
     case OP_NOP10                  : return "OP_NOP10";
@@ -154,6 +153,7 @@ const char* GetOpName(opcodetype opcode)
     // zerocoin
     case OP_ZEROCOINMINT           : return "OP_ZEROCOINMINT";
     case OP_ZEROCOINSPEND          : return "OP_ZEROCOINSPEND";
+    case OP_ZEROCOINPUBLICSPEND          : return "OP_ZEROCOINPUBLICSPEND";
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 
@@ -200,7 +200,7 @@ unsigned int CScript::GetSigOpCount(const CScript& scriptSig) const
     // get the last item that the scriptSig
     // pushes onto the stack:
     const_iterator pc = scriptSig.begin();
-    vector<unsigned char> data;
+    std::vector<unsigned char> data;
     while (pc < scriptSig.end())
     {
         opcodetype opcode;
@@ -239,28 +239,55 @@ bool CScript::IsNormalPaymentScript() const
     return true;
 }
 
-bool CScript::IsPayToScriptHash() const
+bool CScript::IsPayToScriptHash(vector<unsigned char> *hashBytes) const
 {
+    if (!(this->size() > 0 )) return false;
+    unsigned int offset = 0;
+    if ((*this)[0] > OP_0 && (*this)[0] < OP_PUSHDATA1)
+    {
+        unsigned int len = this->size();
+        offset += (*this)[0] + 1;
+        if ((offset < len) && ((*this)[offset] > OP_0) && ((*this)[offset] < OP_PUSHDATA1))
+        {
+            offset += (*this)[offset] + 1;
+            if ((offset < len) && ((*this)[offset] != OP_GROUP))
+                offset = 0;
+            else
+                offset += 3; // 2 more bytes for OP_GROUP OP_DROP OP_DROP
+        }
+    }
     // Extra-fast test for pay-to-script-hash CScripts:
-    return (this->size() == 23 &&
-            this->at(0) == OP_HASH160 &&
-            this->at(1) == 0x14 &&
-            this->at(22) == OP_EQUAL);
+    if (this->size() == offset + 23 && (*this)[offset] == OP_HASH160 && (*this)[offset + 1] == 0x14 &&
+        (*this)[offset + 22] == OP_EQUAL)
+    {
+        if (hashBytes)
+        {
+            hashBytes->reserve(20);
+            copy(begin() + offset + 2, begin() + offset + 22, back_inserter(*hashBytes));
+        }
+        return true;
+    }
+    return false;
+}
+
+bool CScript::StartsWithOpcode(const opcodetype opcode) const
+{
+    return (!this->empty() && this->at(0) == opcode);
 }
 
 bool CScript::IsZerocoinMint() const
 {
-    //fast test for Zerocoin Mint CScripts
-    return (this->size() > 0 &&
-        this->at(0) == OP_ZEROCOINMINT);
+    return StartsWithOpcode(OP_ZEROCOINMINT);
 }
 
 bool CScript::IsZerocoinSpend() const
 {
-    if (this->empty())
-        return false;
+    return StartsWithOpcode(OP_ZEROCOINSPEND);
+}
 
-    return (this->at(0) == OP_ZEROCOINSPEND);
+bool CScript::IsZerocoinPublicSpend() const
+{
+    return StartsWithOpcode(OP_ZEROCOINPUBLICSPEND);
 }
 
 bool CScript::IsPushOnly(const_iterator pc) const

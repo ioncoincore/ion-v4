@@ -49,7 +49,10 @@ std::vector<uint8_t> PackAddrData(const T &id, uint8_t type)
         encoded_size = 7;
         break;
     default:
-        throw std::runtime_error("Error packing ionaddr: invalid address length");
+        if (type == GROUP_TYPE) // Groups can be any length
+            encoded_size = 7;
+        else
+            throw std::runtime_error("Error packing ionaddr: invalid address length");
     }
     version_byte |= encoded_size;
     std::vector<uint8_t> data = {version_byte};
@@ -158,16 +161,19 @@ IONAddrContent DecodeIONAddrContent(const std::string &addr, const CChainParams 
     }
 
     auto type = IONAddrType((version >> 3) & 0x1f);
-    uint32_t hash_size = 20 + 4 * (version & 0x03);
-    if (version & 0x04)
+    if ((type != GROUP_TYPE) || (version & 7) != 7) // group size 7 means any size
     {
-        hash_size *= 2;
-    }
+        uint32_t hash_size = 20 + 4 * (version & 0x03);
+        if (version & 0x04)
+        {
+            hash_size *= 2;
+        }
 
-    // Check that we decoded the exact number of bytes we expected.
-    if (data.size() != hash_size + 1)
-    {
-        return {};
+        // Check that we decoded the exact number of bytes we expected.
+        if (data.size() != hash_size + 1)
+        {
+            return {};
+        }
     }
 
     // Pop the version.

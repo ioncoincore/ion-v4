@@ -8,6 +8,7 @@
 #ifndef BITCOIN_CHAIN_H
 #define BITCOIN_CHAIN_H
 
+#include "chainparams.h"
 #include "pow.h"
 #include "primitives/block.h"
 #include "tinyformat.h"
@@ -17,7 +18,6 @@
 
 #include <vector>
 
-#include <boost/foreach.hpp>
 
 struct CDiskBlockPos {
     int nFile;
@@ -147,6 +147,12 @@ public:
     //! Change to 64-bit type when necessary; won't happen before 2030
     unsigned int nChainTx;
 
+    //! Number of XDM transactions in this block.
+    //! Note: in a potential headers-first mode, this number cannot be relied upon until after full block validation
+    unsigned int nXDMTransactions;
+    //! (memory only) Number of XDM transactions in the chain up to and including this block.
+    unsigned int nChainXDMTransactions;
+
     //! Verification status of this block. See enum BlockStatus
     unsigned int nStatus;
 
@@ -166,6 +172,9 @@ public:
     uint256 hashProofOfStake;
     int64_t nMint;
     int64_t nMoneySupply;
+    uint256 nStakeModifierV2;
+
+    int64_t nXDMSupply;
 
     //! block header
     int nVersion;
@@ -177,11 +186,11 @@ public:
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     uint32_t nSequenceId;
-    
+
     //! zerocoin specific fields
     std::map<libzerocoin::CoinDenomination, int64_t> mapZerocoinSupply;
     std::vector<libzerocoin::CoinDenomination> vMintDenominationsInBlock;
-    
+
     void SetNull()
     {
         phashBlock = NULL;
@@ -194,13 +203,17 @@ public:
         nChainWork = 0;
         nTx = 0;
         nChainTx = 0;
+        nXDMTransactions = 0;
+        nChainXDMTransactions = 0;
         nStatus = 0;
         nSequenceId = 0;
 
         nMint = 0;
         nMoneySupply = 0;
+        nXDMSupply = 0;
         nFlags = 0;
         nStakeModifier = 0;
+        nStakeModifierV2 = uint256();
         nStakeModifierChecksum = 0;
         prevoutStake.SetNull();
         nStakeTime = 0;
@@ -213,7 +226,7 @@ public:
         nAccumulatorCheckpoint = 0;
         // Start supply of each denomination with 0s
         for (auto& denom : libzerocoin::zerocoinDenomList) {
-            mapZerocoinSupply.insert(make_pair(denom, 0));
+            mapZerocoinSupply.insert(std::make_pair(denom, 0));
         }
         vMintDenominationsInBlock.clear();
     }
@@ -235,25 +248,13 @@ public:
         if(block.nVersion > 7)
             nAccumulatorCheckpoint = block.nAccumulatorCheckpoint;
 
-        //Proof of Stake
-        bnChainTrust = uint256();
-        nMint = 0;
-        nMoneySupply = 0;
-        nFlags = 0;
-        nStakeModifier = 0;
-        nStakeModifierChecksum = 0;
-        hashProofOfStake = uint256();
-
         if (block.IsProofOfStake()) {
             SetProofOfStake();
             prevoutStake = block.vtx[1].vin[0].prevout;
             nStakeTime = block.nTime;
-        } else {
-            prevoutStake.SetNull();
-            nStakeTime = 0;
         }
     }
-    
+
 
     CDiskBlockPos GetBlockPos() const
     {
@@ -395,7 +396,7 @@ public:
 
     /**
      * Returns true if there are nRequired or more blocks of minVersion or above
-     * in the last Params().ToCheckBlockUpgradeMajority() blocks, starting at pstart 
+     * in the last Params().ToCheckBlockUpgradeMajority() blocks, starting at pstart
      * and going backwards.
      */
     static bool IsSuperMajority(int minVersion, const CBlockIndex* pstart, unsigned int nRequired);
@@ -452,9 +453,9 @@ public:
         hashNext = uint256();
     }
 
-    explicit CDiskBlockIndex(CBlockIndex* pindex) : CBlockIndex(*pindex)
+    explicit CDiskBlockIndex(const CBlockIndex* pindex) : CBlockIndex(*pindex)
     {
-        hashPrev = (pprev ? pprev->GetBlockHash() : uint256());
+        hashPrev = (pprev ? pprev->GetBlockHash() : uint256(0));
     }
 
     ADD_SERIALIZE_METHODS;
@@ -479,7 +480,14 @@ public:
         READWRITE(nMint);
         READWRITE(nMoneySupply);
         READWRITE(nFlags);
-        READWRITE(nStakeModifier);
+
+        // v1/v2 modifier selection.
+        if (!Params().IsStakeModifierV2(nHeight)) {
+            READWRITE(nStakeModifier);
+        } else {
+            READWRITE(nStakeModifierV2);
+        }
+
         if (IsProofOfStake()) {
             READWRITE(prevoutStake);
             READWRITE(nStakeTime);
@@ -501,6 +509,10 @@ public:
             READWRITE(nAccumulatorCheckpoint);
             READWRITE(mapZerocoinSupply);
             READWRITE(vMintDenominationsInBlock);
+        }
+        if(this->nVersion > 10) {
+            READWRITE(VARINT(nXDMTransactions));
+            READWRITE(VARINT(nXDMSupply));
         }
 
     }

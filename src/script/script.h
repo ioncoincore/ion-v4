@@ -8,10 +8,13 @@
 #ifndef BITCOIN_SCRIPT_SCRIPT_H
 #define BITCOIN_SCRIPT_SCRIPT_H
 
+#include "crypto/common.h"
+#include "pubkey.h"
+#include "script_error.h"
+
 #include <assert.h>
 #include <climits>
 #include <limits>
-#include "pubkey.h"
 #include <stdexcept>
 #include <stdint.h>
 #include <string.h>
@@ -21,6 +24,12 @@
 typedef std::vector<unsigned char> valtype;
 
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520; // bytes
+
+// Maximum number of non-push operations per script
+static const int MAX_OPS_PER_SCRIPT = 201;
+
+// Maximum script length in bytes
+static const int MAX_SCRIPT_SIZE = 10000;
 
 // Threshold for nLockTime: below this value it is interpreted as block number,
 // otherwise as UNIX timestamp.
@@ -163,7 +172,8 @@ enum opcodetype
     OP_NOP4 = 0xb3,
     OP_NOP5 = 0xb4,
     OP_NOP6 = 0xb5,
-    OP_NOP7 = 0xb6,
+    OP_GROUP = 0xb6,
+    OP_NOP7 = OP_GROUP,
     OP_NOP8 = 0xb7,
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
@@ -171,8 +181,10 @@ enum opcodetype
     // zerocoin
     OP_ZEROCOINMINT = 0xc1,
     OP_ZEROCOINSPEND = 0xc2,
+    OP_ZEROCOINPUBLICSPEND = 0xc3,
 
     // template matching params
+    OP_GRP_DATA = 0xf9,
     OP_SMALLINTEGER = 0xfa,
     OP_PUBKEYS = 0xfb,
     OP_PUBKEYHASH = 0xfd,
@@ -186,7 +198,8 @@ const char* GetOpName(opcodetype opcode);
 class scriptnum_error : public std::runtime_error
 {
 public:
-    explicit scriptnum_error(const std::string& str) : std::runtime_error(str) {}
+    ScriptError errNum;
+    explicit scriptnum_error(ScriptError errnum, const std::string &str) : std::runtime_error(str), errNum(errnum) {}
 };
 
 class CScriptNum
@@ -212,7 +225,7 @@ public:
             const size_t nMaxNumSize = nDefaultMaxNumSize)
     {
         if (vch.size() > nMaxNumSize) {
-            throw scriptnum_error("script number overflow");
+            throw scriptnum_error(SCRIPT_ERR_NUMBER_OVERFLOW, "script number overflow");
         }
         if (fRequireMinimal && vch.size() > 0) {
             // Check that the number is encoded with the minimum possible
@@ -228,7 +241,7 @@ public:
                 // is +-255, which encode to 0xff00 and 0xff80 respectively.
                 // (big-endian).
                 if (vch.size() <= 1 || (vch[vch.size() - 2] & 0x80) == 0) {
-                    throw scriptnum_error("non-minimally encoded script number");
+                    throw scriptnum_error(SCRIPT_ERR_NUMBER_BAD_ENCODING, "non-minimally encoded script number");
                 }
             }
         }
@@ -353,6 +366,14 @@ private:
     int64_t m_value;
 };
 
+/** wrapper class that serializes in an older way that is incompatible with current rules, but is used by the genesis
+block */
+class LegacyCScriptNum : public CScriptNum
+{
+public:
+    explicit LegacyCScriptNum(const int64_t &n) : CScriptNum(n) {}
+};
+
 /** Serialized script, used inside transaction inputs and outputs */
 class CScript : public std::vector<unsigned char>
 {
@@ -415,8 +436,10 @@ public:
         return *this;
     }
 
-    CScript& operator<<(const std::vector<unsigned char>& b)
+    CScript &operator<<(const LegacyCScriptNum &a)
     {
+        auto b = a.getvch();
+
         if (b.size() < OP_PUSHDATA1)
         {
             insert(end(), (unsigned char)b.size());
@@ -456,6 +479,50 @@ public:
         return (*this) << vchKey;
     }
 
+
+    CScript &operator<<(const std::vector<unsigned char> &b)
+    {
+        if (b.size() == 0)
+        {
+            insert(end(), OP_0);
+            return *this;
+        }
+        if ((b.size() == 1) && (b[0] >= 1 && b[0] <= 16))
+        {
+            insert(end(), OP_1 - 1 + b[0]);
+            return *this;
+        }
+        else if ((b.size() == 1) && (b[0] == 0x81))
+        {
+            insert(end(), OP_1NEGATE);
+            return *this;
+        }
+        else if (b.size() < OP_PUSHDATA1)
+        {
+            insert(end(), (unsigned char)b.size());
+        }
+        else if (b.size() <= 0xff)
+        {
+            insert(end(), OP_PUSHDATA1);
+            insert(end(), (unsigned char)b.size());
+        }
+        else if (b.size() <= 0xffff)
+        {
+            insert(end(), OP_PUSHDATA2);
+            uint8_t data[2];
+            WriteLE16(data, b.size());
+            insert(end(), data, data + sizeof(data));
+        }
+        else
+        {
+            insert(end(), OP_PUSHDATA4);
+            uint8_t data[4];
+            WriteLE32(data, b.size());
+            insert(end(), data, data + sizeof(data));
+        }
+        insert(end(), b.begin(), b.end());
+        return *this;
+    }
 
     bool GetOp(iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>& vchRet)
     {
@@ -597,9 +664,12 @@ public:
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
     bool IsNormalPaymentScript() const;
-    bool IsPayToScriptHash() const;
+    // if this is a p2sh then the script hash is filled into the passed param if its not null
+    bool IsPayToScriptHash(std::vector<unsigned char> *hashBytes = nullptr) const;
+    bool StartsWithOpcode(const opcodetype opcode) const;
     bool IsZerocoinMint() const;
     bool IsZerocoinSpend() const;
+    bool IsZerocoinPublicSpend() const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;
@@ -614,6 +684,7 @@ public:
     {
         return (size() > 0 && *begin() == OP_RETURN);
     }
+	/** Remove all instructions in this script. */
 
     std::string ToString() const;
     void clear()

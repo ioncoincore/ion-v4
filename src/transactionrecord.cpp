@@ -12,7 +12,9 @@
 #include "timedata.h"
 #include "wallet/wallet.h"
 #include "xionchain.h"
+#include "main.h"
 
+#include <iostream>
 #include <stdint.h>
 
 /* Return positive answer if transaction should be shown in list.
@@ -31,9 +33,9 @@ bool TransactionRecord::showTransaction(const CWalletTx& wtx)
 /*
  * Decompose CWallet transaction to model transaction records.
  */
-QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* wallet, const CWalletTx& wtx)
+std::vector<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* wallet, const CWalletTx& wtx)
 {
-    QList<TransactionRecord> parts;
+    std::vector<TransactionRecord> parts;
     int64_t nTime = wtx.GetComputedTxTime();
     CAmount nCredit = wtx.GetCredit(ISMINE_ALL);
     CAmount nDebit = wtx.GetDebit(ISMINE_ALL);
@@ -42,19 +44,18 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
     std::map<std::string, std::string> mapValue = wtx.mapValue;
     bool fZSpendFromMe = false;
 
-    if (wtx.IsZerocoinSpend()) {
-        // a zerocoin spend that was created by this wallet
-        libzerocoin::CoinSpend zcspend = TxInToZerocoinSpend(wtx.vin[0]);
+    if (wtx.HasZerocoinSpendInputs()) {
+        libzerocoin::CoinSpend zcspend = wtx.HasZerocoinPublicSpendInputs() ? XIONModule::parseCoinSpend(wtx.vin[0]) : TxInToZerocoinSpend(wtx.vin[0]);
         fZSpendFromMe = wallet->IsMyZerocoinSpend(zcspend.getCoinSerialNumber());
     }
 
     if (wtx.IsCoinStake()) {
         TransactionRecord sub(hash, nTime);
         CTxDestination address;
-        if (!wtx.IsZerocoinSpend() && !ExtractDestination(wtx.vout[1].scriptPubKey, address))
+        if (!wtx.HasZerocoinSpendInputs() && !ExtractDestination(wtx.vout[1].scriptPubKey, address))
             return parts;
 
-        if (wtx.IsZerocoinSpend() && (fZSpendFromMe || wallet->xionTracker->HasMintTx(hash))) {
+        if (wtx.HasZerocoinSpendInputs() && (fZSpendFromMe || wallet->xionTracker->HasMintTx(hash))) {
             //xION stake reward
             sub.involvesWatchAddress = false;
             sub.type = TransactionRecord::StakeXION;
@@ -84,8 +85,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
             }
         }
 
-        parts.append(sub);
-    } else if (wtx.IsZerocoinSpend()) {
+        parts.push_back(sub);
+    } else if (wtx.HasZerocoinSpendInputs()) {
         //zerocoin spend outputs
         bool fFeeAssigned = false;
         for (const CTxOut& txout : wtx.vout) {
@@ -105,11 +106,11 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
                     fFeeAssigned = true;
                 }
                 sub.idx = parts.size();
-                parts.append(sub);
+                parts.push_back(sub);
                 continue;
             }
 
-            string strAddress = "";
+            std::string strAddress = "";
             CTxDestination address;
             if (ExtractDestination(txout.scriptPubKey, address))
                 strAddress = CBitcoinAddress(address).ToString();
@@ -129,7 +130,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
                 if (strAddress != "")
                     sub.address = strAddress;
                 sub.idx = parts.size();
-                parts.append(sub);
+                parts.push_back(sub);
                 continue;
             }
 
@@ -146,13 +147,13 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
             if (strAddress != "")
                 sub.address = strAddress;
             sub.idx = parts.size();
-            parts.append(sub);
+            parts.push_back(sub);
         }
     } else if (nNet > 0 || wtx.IsCoinBase()) {
         //
         // Credit
         //
-        BOOST_FOREACH (const CTxOut& txout, wtx.vout) {
+        for (const CTxOut& txout : wtx.vout) {
             isminetype mine = wallet->IsMine(txout);
             if (mine) {
                 TransactionRecord sub(hash, nTime);
@@ -174,7 +175,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
                     sub.type = TransactionRecord::Generated;
                 }
 
-                parts.append(sub);
+                parts.push_back(sub);
             }
         }
     } else {
@@ -182,7 +183,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
         int nFromMe = 0;
         bool involvesWatchAddress = false;
         isminetype fAllFromMe = ISMINE_SPENDABLE;
-        BOOST_FOREACH (const CTxIn& txin, wtx.vin) {
+        for (const CTxIn& txin : wtx.vin) {
             if (wallet->IsMine(txin)) {
                 fAllFromMeDenom = fAllFromMeDenom && wallet->IsDenominated(txin);
                 nFromMe++;
@@ -195,7 +196,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
         isminetype fAllToMe = ISMINE_SPENDABLE;
         bool fAllToMeDenom = true;
         int nToMe = 0;
-        BOOST_FOREACH (const CTxOut& txout, wtx.vout) {
+        for (const CTxOut& txout : wtx.vout) {
             if (wallet->IsMine(txout)) {
                 fAllToMeDenom = fAllToMeDenom && wallet->IsDenominatedAmount(txout.nValue);
                 nToMe++;
@@ -206,8 +207,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
         }
 
         if (fAllFromMeDenom && fAllToMeDenom && nFromMe * nToMe) {
-            parts.append(TransactionRecord(hash, nTime, TransactionRecord::ObfuscationDenominate, "", -nDebit, nCredit));
-            parts.last().involvesWatchAddress = false; // maybe pass to TransactionRecord as constructor argument
+            parts.push_back(TransactionRecord(hash, nTime, TransactionRecord::ObfuscationDenominate, "", -nDebit, nCredit));
+            parts.back().involvesWatchAddress = false; // maybe pass to TransactionRecord as constructor argument
         } else if (fAllFromMe && fAllToMe) {
             // Payment to self
             // TODO: this section still not accurate but covers most cases,
@@ -243,9 +244,9 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
 
             sub.debit = -(nDebit - nChange);
             sub.credit = nCredit - nChange;
-            parts.append(sub);
-            parts.last().involvesWatchAddress = involvesWatchAddress; // maybe pass to TransactionRecord as constructor argument
-        } else if (fAllFromMe || wtx.IsZerocoinMint()) {
+            parts.push_back(sub);
+            parts.back().involvesWatchAddress = involvesWatchAddress; // maybe pass to TransactionRecord as constructor argument
+        } else if (fAllFromMe || wtx.HasZerocoinMintOutputs()) {
             //
             // Debit
             //
@@ -267,7 +268,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
                 if (ExtractDestination(txout.scriptPubKey, address)) {
                     //This is most likely only going to happen when resyncing deterministic wallet without the knowledge of the
                     //private keys that the change was sent to. Do not display a "sent to" here.
-                    if (wtx.IsZerocoinMint())
+                    if (wtx.HasZerocoinMintOutputs())
                         continue;
                     // Sent to ION Address
                     sub.type = TransactionRecord::SendToAddress;
@@ -294,14 +295,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet* 
                 }
                 sub.debit = -nValue;
 
-                parts.append(sub);
+                parts.push_back(sub);
             }
         } else {
             //
             // Mixed debit transaction, can't break down payees
             //
-            parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet, 0));
-            parts.last().involvesWatchAddress = involvesWatchAddress;
+            parts.push_back(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet, 0));
+            parts.back().involvesWatchAddress = involvesWatchAddress;
         }
     }
 
@@ -397,12 +398,69 @@ bool TransactionRecord::statusUpdateNeeded()
     return status.cur_num_blocks != chainActive.Height() || status.cur_num_ix_locks != nCompleteTXLocks;
 }
 
-QString TransactionRecord::getTxID() const
+std::string TransactionRecord::getTxID() const
 {
-    return QString::fromStdString(hash.ToString());
+    return hash.ToString();
 }
 
 int TransactionRecord::getOutputIndex() const
 {
     return idx;
+}
+
+std::string TransactionRecord::GetTransactionRecordType() const
+{
+    return GetTransactionRecordType(type);
+}
+std::string TransactionRecord::GetTransactionRecordType(Type type) const
+{
+    switch (type)
+    {
+        case Other: return "Other";
+        case Generated: return "Generated";
+        case StakeMint: return "StakeMint";
+        case StakeXION: return "StakeXION";
+        case SendToAddress: return "SendToAddress";
+        case SendToOther: return "SendToOther";
+        case RecvWithAddress: return "RecvWithAddress";
+        case MNReward: return "MNReward";
+        case RecvFromOther: return "RecvFromOther";
+        case SendToSelf: return "SendToSelf";
+        case ZerocoinMint: return "ZerocoinMint";
+        case ZerocoinSpend: return "ZerocoinSpend";
+        case RecvFromZerocoinSpend: return "RecvFromZerocoinSpend";
+        case ZerocoinSpend_Change_xIon: return "ZerocoinSpend_Change_xIon";
+        case ZerocoinSpend_FromMe: return "ZerocoinSpend_FromMe";
+        case RecvWithObfuscation: return "RecvWithObfuscation";
+        case ObfuscationDenominate: return "ObfuscationDenominate";
+        case ObfuscationCollateralPayment: return "ObfuscationCollateralPayment";
+        case ObfuscationMakeCollaterals: return "ObfuscationMakeCollaterals";
+        case ObfuscationCreateDenominations: return "ObfuscationCreateDenominations";
+        case Obfuscated: return "Obfuscated";
+    }
+    return NULL;
+}
+
+std::string TransactionRecord::GetTransactionStatus() const
+{
+    return GetTransactionStatus(status.status);
+}
+std::string TransactionRecord::GetTransactionStatus(TransactionStatus::Status status) const
+{
+    switch (status)
+    {
+        case TransactionStatus::Confirmed: return "Confirmed";           /**< Have 6 or more confirmations (normal tx) or fully mature (mined tx) **/
+            /// Normal (sent/received) transactions
+        case TransactionStatus::OpenUntilDate: return "OpenUntilDate";   /**< Transaction not yet final, waiting for date */
+        case TransactionStatus::OpenUntilBlock: return "OpenUntilBlock"; /**< Transaction not yet final, waiting for block */
+        case TransactionStatus::Offline: return "Offline";               /**< Not sent to any other nodes **/
+        case TransactionStatus::Unconfirmed: return "Unconfirmed";       /**< Not yet mined into a block **/
+        case TransactionStatus::Confirming: return "Confirmed";          /**< Confirmed, but waiting for the recommended number of confirmations **/
+        case TransactionStatus::Conflicted: return "Conflicted";         /**< Conflicts with other transaction or mempool **/
+            /// Generated (mined) transactions
+        case TransactionStatus::Immature: return "Immature";             /**< Mined but waiting for maturity */
+        case TransactionStatus::MaturesWarning: return "MaturesWarning"; /**< Transaction will likely not mature because no nodes have confirmed */
+        case TransactionStatus::NotAccepted: return "NotAccepted";       /**< Mined but not accepted */
+    }
+    return NULL;
 }
