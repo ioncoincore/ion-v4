@@ -1,7 +1,7 @@
 # Copyright (c) 2018-2019 The Ion developers
 name: ioncore
 base: core18
-version: 4.0.00
+version: 4.0.99
 summary:   gaming related peer-to-peer network based digital currency
 description: |
   Ion Core is an MIT licensed,  open source, gaming oriented,
@@ -62,46 +62,46 @@ description: |
   - Report a bug: https://tinyurl.com/y5wzybwe
   - Report some random issue: https://tinyurl.com/y5cgm2vp
   - Testing Report: https://tinyurl.com/y39n2hsv
-grade: stable
+grade: devel
 confinement: strict
 icon: src/qt/res/src/ion.svg
 apps:
   daemon:
     command: iond
     plugs: [network, network-bind, network-status, home, removable-media]
-    desktop: iond.desktop
+    desktop: daemon.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-testnet:
     command: iond --testnet
     plugs: [network, network-bind, network-status, home, removable-media]
-    desktop: iond_testnet.desktop
+    desktop: daemon-testnet.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-regtest:
     command: iond --regtest
-    desktop: iond_regtest.desktop
+    desktop: daemon-regtest.desktop
     plugs: [network, network-bind, network-status, home, removable-media]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt:
     command: ion-qt
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: ion-qt.desktop
+    desktop: qt.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-testnet:
     command: ion-qt --testnet
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: ion-qt_testnet.desktop
+    desktop: qt-testnet.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-regtest:
     command: ion-qt --regtest
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: ion-qt_regtest.desktop
+    desktop: qt-regtest.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
@@ -133,7 +133,7 @@ parts:
   ion:
     source: https://github.com/ioncoincore/ion
     source-type: git
-    source-tag: v4.0.00
+    source-tag: master
     plugin: nil
     override-build: |
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
