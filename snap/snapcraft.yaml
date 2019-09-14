@@ -189,15 +189,9 @@ parts:
       git apply $SNAPCRAFT_PART_BUILD/snap/local/patches/X003-fix-use-snap-instead-of-dirty.patch
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' ${SNAPCRAFT_PART_BUILD}/depends/funcs.mk
       echo "replace splash screen with snapcrafts"
-      mv -f $SNAPCRAFT_PART_BUILD/contrib/snap/images/splash.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash.png
-      mv -f $SNAPCRAFT_PART_BUILD/contrib/snap/images/splash_regtest.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_regtest.png
-      mv -f $SNAPCRAFT_PART_BUILD/contrib/snap/images/splash_testnet.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_testnet.png
-      mv -f $SNAPCRAFT_PART_BUILD/contrib/snap/icons/favicon.ico $SNAPCRAFT_PART_BUILD/share/pixmaps/favicon.ico
-      mv -f $SNAPCRAFT_PART_BUILD/contrib/snap/icons/favicon_testnet.ico $SNAPCRAFT_PART_BUILD/share/pixmaps/favicon_testnet.ico
-      mv -f $SNAPCRAFT_PART_BUILD/contrib/snap/icons/favicon_regtest.ico $SNAPCRAFT_PART_BUILD/share/pixmaps/favicon_regtest.ico
-      mv -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}.png
-      mv -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}_testnet.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_testnet.png
-      mv -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}_regtest.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_regtest.png
+      cp -f $SNAPCRAFT_PART_BUILD/contrib/snap/images/splash*png $SNAPCRAFT_PART_BUILD/src/qt/res/images/
+      cp -f $SNAPCRAFT_PART_BUILD/contrib/snap/icons/favicon*ico $SNAPCRAFT_PART_BUILD/share/pixmaps/
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/*.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/
       echo "-----------------------------------------------"
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       echo "BUILD DEPENDENCIES"
