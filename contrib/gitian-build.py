@@ -33,7 +33,7 @@ def setup():
     if not os.path.isdir('gitian-builder'):
         subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
     if not os.path.isdir('ion'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/cevap/ion.git'])
+        subprocess.check_call(['git', 'clone', 'https://github.com/ioncoincore/ion.git'])
     os.chdir('gitian-builder')
     make_image_prog = ['bin/make-base-vm', '--suite', 'bionic', '--arch', 'amd64']
     if args.docker:
