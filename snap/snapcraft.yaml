@@ -188,6 +188,11 @@ parts:
       git apply $SNAPCRAFT_PART_BUILD/snap/local/patches/X002-fix-bdb-tmp-folder.patch
       git apply $SNAPCRAFT_PART_BUILD/snap/local/patches/X003-fix-use-snap-instead-of-dirty.patch
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' ${SNAPCRAFT_PART_BUILD}/depends/funcs.mk
+      # Snap icon fix
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/icons/
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/*.png $SNAPCRAFT_PART_INSTALL/usr/share/icons/
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/*.ico $SNAPCRAFT_PART_INSTALL/usr/share/icons/
+      # patch splash screen with snapcrafts version
       echo "replace splash screen with snapcrafts"
       cp -f $SNAPCRAFT_PART_BUILD/contrib/snap/images/splash.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash.png
       cp -f $SNAPCRAFT_PART_BUILD/contrib/snap/images/splash_regtest.png $SNAPCRAFT_PART_BUILD/src/qt/res/images/splash_regtest.png
@@ -195,12 +200,12 @@ parts:
       cp -f $SNAPCRAFT_PART_BUILD/contrib/snap/icons/favicon.ico $SNAPCRAFT_PART_BUILD/share/pixmaps/favicon.ico
       cp -f $SNAPCRAFT_PART_BUILD/contrib/snap/icons/favicon_testnet.ico $SNAPCRAFT_PART_BUILD/share/pixmaps/favicon_testnet.ico
       cp -f $SNAPCRAFT_PART_BUILD/contrib/snap/icons/favicon_regtest.ico $SNAPCRAFT_PART_BUILD/share/pixmaps/favicon_regtest.ico
-      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/qt.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}.png
-      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/qt.ico $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}.ico
-      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/qt-testnet.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_testnet.png
-      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/qt-testnet.ico $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_testnet.ico
-      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/qt-regtest.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_regtest.png
-      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/qt-regtest.ico $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_regtest.ico
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}.png
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}.ico $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}.ico
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}_testnet.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_testnet.png
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}_testnet.ico $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_testnet.ico
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}_regtest.png $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_regtest.png
+      cp -f $SNAPCRAFT_PART_BUILD/snap/local/desktop/${BINPREF}_regtest.ico $SNAPCRAFT_PART_BUILD/src/qt/res/icons/${BINPREF}_regtest.ico
       echo "-----------------------------------------------"
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       echo "BUILD DEPENDENCIES"
