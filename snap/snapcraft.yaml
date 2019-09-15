@@ -69,39 +69,39 @@ apps:
   daemon:
     command: iond
     plugs: [network, network-bind, network-status, home, removable-media]
-    desktop: daemon.desktop
+    desktop: iond.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-testnet:
     command: iond --testnet
     plugs: [network, network-bind, network-status, home, removable-media]
-    desktop: daemon-testnet.desktop
+    desktop: iond_testnet.desktop
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   daemon-regtest:
     command: iond --regtest
-    desktop: daemon-regtest.desktop
+    desktop: iond_regtest.desktop
     plugs: [network, network-bind, network-status, home, removable-media]
     environment:
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt:
     command: ion-qt
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: qt.desktop
+    desktop: ion.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-testnet:
     command: ion-qt --testnet
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: qt-testnet.desktop
+    desktop: ion_testnet.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
   qt-regtest:
     command: ion-qt --regtest
     plugs: [network, network-bind, network-status, unity7, desktop, desktop-legacy, wayland, x11, mir, opengl, home, gsettings, removable-media, screen-inhibit-control, pulseaudio, media-hub]
-    desktop: qt-regtest.desktop
+    desktop: ion_regtest.desktop
     environment:
       QT_XKB_CONFIG_ROOT: $SNAP_USER_DATA:$SNAP/usr/share:$QT_XKB_CONFIG_ROOT
       XDG_DATA_DIRS: $SNAP_USER_DATA:$SNAP/usr/share:$XDG_DATA_DIRS
