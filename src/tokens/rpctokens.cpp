@@ -320,6 +320,31 @@ void ListGroupedTransactions(const CTokenGroupID &grp,
     }
 }
 
+void TokenGroupCreationToJSON(const CTokenGroupID &tgID, const CTokenGroupCreation& tgCreation, UniValue& entry, const bool extended = false) {
+    CTxOut creationOutput;
+    CTxDestination creationDestination;
+    GetGroupedCreationOutput(tgCreation.creationTransaction, creationOutput);
+    ExtractDestination(creationOutput.scriptPubKey, creationDestination);
+    entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgID)));
+    if (tgID.isSubgroup()) {
+        CTokenGroupID parentgrp = tgID.parentGroup();
+        const std::vector<unsigned char> subgroupData = tgID.GetSubGroupData();
+        entry.push_back(Pair("parentGroupIdentifier", EncodeTokenGroup(tgCreation.tokenGroupInfo.associatedGroup)));
+        entry.push_back(Pair("subgroup-data", std::string(subgroupData.begin(), subgroupData.end())));
+    }
+    entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
+    entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
+    entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.nDecimalPos));
+    entry.push_back(Pair("URL", tgCreation.tokenGroupDescription.strDocumentUrl));
+    entry.push_back(Pair("documentHash", tgCreation.tokenGroupDescription.documentHash.ToString()));
+    if (extended) {
+        UniValue extendedEntry(UniValue::VOBJ);
+        extendedEntry.push_back(Pair("txid", tgCreation.creationTransaction.GetHash().GetHex()));
+        extendedEntry.push_back(Pair("address", EncodeDestination(creationDestination)));
+        entry.push_back(Pair("creation", extendedEntry));
+    }
+}
+
 extern UniValue tokeninfo(const UniValue &params, bool fHelp)
 {
     if (!pwalletMain)
@@ -327,15 +352,16 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
 
     if (fHelp || params.size() < 1)
         throw std::runtime_error(
-            "tokeninfo [list, all, stats, groupid, ticker, name] ( \"specifier \" ) \n"
+            "tokeninfo [list, all, stats, groupid, ticker, name] ( \"specifier \" ) ( \"extended_info\" ) \n"
             "\nReturns information on all tokens configured on the blockchain.\n"
             "\nArguments:\n"
             "'list' lists all token groupID's and corresponding token tickers\n"
             "'all' shows extended information on all tokens\n"
             "'stats' shows statistical information on the management tokens in a specific block. Args: block height (optional)\n"
-            "'groupid' shows extended information on the token configuration with the specified grouID\n"
-            "'ticker' shows extended information on the token configuration with the specified ticker\n"
-            "'name' shows extended information on the token configuration with the specified name'\n"
+            "'groupid' shows information on the token configuration with the specified grouID\n"
+            "'ticker' shows information on the token configuration with the specified ticker\n"
+            "'name' shows information on the token configuration with the specified name'\n"
+            "'extended_info' (optional) show extended information'\n"
             "\n" +
             HelpExampleCli("tokeninfo", "ticker \"XDM\"") +
             "\n"
@@ -361,19 +387,20 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         }
         ret.push_back(entry);
     } else if (operation == "all") {
-        if (params.size() > curparam) {
+        if (params.size() > 2) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Too many parameters");
+        }
+        bool extended = false;
+        if (params.size() > curparam) {
+            std::string sExtended;
+            std::string p = params[curparam].get_str();
+            std::transform(p.begin(), p.end(), std::back_inserter(sExtended), ::tolower);
+            extended = (sExtended == "true");
         }
 
         for (auto tokenGroupMapping : tokenGroupManager->GetMapTokenGroups()) {
             UniValue entry(UniValue::VOBJ);
-            entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(tokenGroupMapping.second.tokenGroupInfo.associatedGroup)));
-            entry.push_back(Pair("txid", tokenGroupMapping.second.creationTransaction.GetHash().GetHex()));
-            entry.push_back(Pair("ticker", tokenGroupMapping.second.tokenGroupDescription.strTicker));
-            entry.push_back(Pair("name", tokenGroupMapping.second.tokenGroupDescription.strName));
-            entry.push_back(Pair("decimalPos", tokenGroupMapping.second.tokenGroupDescription.nDecimalPos));
-            entry.push_back(Pair("URL", tokenGroupMapping.second.tokenGroupDescription.strDocumentUrl));
-            entry.push_back(Pair("documentHash", tokenGroupMapping.second.tokenGroupDescription.documentHash.ToString()));
+            TokenGroupCreationToJSON(tokenGroupMapping.first, tokenGroupMapping.second, entry, extended);
             ret.push_back(entry);
         }
     } else if (operation == "stats") {
@@ -412,7 +439,7 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         ret.push_back(entry);
 
     } else if (operation == "groupid") {
-        if (params.size() > 2) {
+        if (params.size() > 3) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Too many parameters");
         }
 
@@ -422,28 +449,26 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         if (!grpID.isUserGroup()) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: No group specified");
         }
+        curparam++;
+        bool extended = false;
+        if (params.size() > curparam) {
+            std::string sExtended;
+            std::string p = params[curparam].get_str();
+            std::transform(p.begin(), p.end(), std::back_inserter(sExtended), ::tolower);
+            extended = (sExtended == "true");
+        }
         UniValue entry(UniValue::VOBJ);
-        entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
         CTokenGroupCreation tgCreation;
         if (grpID.isSubgroup()) {
             CTokenGroupID parentgrp = grpID.parentGroup();
-            std::vector<unsigned char> subgroupData = grpID.GetSubGroupData();
             tokenGroupManager->GetTokenGroupCreation(parentgrp, tgCreation);
-            entry.push_back(Pair("parentGroupIdentifier", EncodeTokenGroup(parentgrp)));
-            entry.push_back(Pair("subgroup-data", std::string(subgroupData.begin(), subgroupData.end())));
         } else {
             tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
         }
-        entry.push_back(Pair("txid", tgCreation.creationTransaction.GetHash().GetHex()));
-        entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
-        entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
-        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.nDecimalPos));
-        entry.push_back(Pair("URL", tgCreation.tokenGroupDescription.strDocumentUrl));
-        entry.push_back(Pair("documentHash", tgCreation.tokenGroupDescription.documentHash.ToString()));
-        entry.push_back(Pair("status", tgCreation.status.messages));
+        TokenGroupCreationToJSON(grpID, tgCreation, entry, extended);
         ret.push_back(entry);
     } else if (operation == "ticker") {
-        if (params.size() > 2) {
+        if (params.size() > 3) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Too many parameters");
         }
 
@@ -454,23 +479,24 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: could not find token group");
         }
+        curparam++;
+        bool extended = false;
+        if (params.size() > curparam) {
+            std::string sExtended;
+            std::string p = params[curparam].get_str();
+            std::transform(p.begin(), p.end(), std::back_inserter(sExtended), ::tolower);
+            extended = (sExtended == "true");
+        }
 
         CTokenGroupCreation tgCreation;
         tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
 
         LogPrint("token", "%s - tokenGroupCreation has [%s] [%s]\n", __func__, tgCreation.tokenGroupDescription.strTicker, EncodeTokenGroup(tgCreation.tokenGroupInfo.associatedGroup));
         UniValue entry(UniValue::VOBJ);
-        entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgCreation.tokenGroupInfo.associatedGroup)));
-        entry.push_back(Pair("txid", tgCreation.creationTransaction.GetHash().GetHex()));
-        entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
-        entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
-        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.nDecimalPos));
-        entry.push_back(Pair("URL", tgCreation.tokenGroupDescription.strDocumentUrl));
-        entry.push_back(Pair("documentHash", tgCreation.tokenGroupDescription.documentHash.ToString()));
-        entry.push_back(Pair("status", tgCreation.status.messages));
+        TokenGroupCreationToJSON(grpID, tgCreation, entry, extended);
         ret.push_back(entry);
     } else if (operation == "name") {
-        if (params.size() > 2) {
+        if (params.size() > 3) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Too many parameters");
         }
 
@@ -481,20 +507,21 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: Could not find token group");
         }
+        curparam++;
+        bool extended = false;
+        if (params.size() > curparam) {
+            std::string sExtended;
+            std::string p = params[curparam].get_str();
+            std::transform(p.begin(), p.end(), std::back_inserter(sExtended), ::tolower);
+            extended = (sExtended == "true");
+        }
 
         CTokenGroupCreation tgCreation;
         tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
 
         LogPrint("token", "%s - tokenGroupCreation has [%s] [%s]\n", __func__, tgCreation.tokenGroupDescription.strTicker, EncodeTokenGroup(tgCreation.tokenGroupInfo.associatedGroup));
         UniValue entry(UniValue::VOBJ);
-        entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgCreation.tokenGroupInfo.associatedGroup)));
-        entry.push_back(Pair("txid", tgCreation.creationTransaction.GetHash().GetHex()));
-        entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
-        entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
-        entry.push_back(Pair("decimalPos", tgCreation.tokenGroupDescription.nDecimalPos));
-        entry.push_back(Pair("URL", tgCreation.tokenGroupDescription.strDocumentUrl));
-        entry.push_back(Pair("documentHash", tgCreation.tokenGroupDescription.documentHash.ToString()));
-        entry.push_back(Pair("status", tgCreation.status.messages));
+        TokenGroupCreationToJSON(grpID, tgCreation, entry, extended);
         ret.push_back(entry);
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameter: unknown operation");

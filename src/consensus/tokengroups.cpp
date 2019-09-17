@@ -115,6 +115,20 @@ bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags 
     return false;
 }
 
+bool GetGroupedCreationOutput(const CTransaction &tx, CTxOut &creationOutput, const TokenGroupIdFlags tokenGroupIdFlags) {
+    creationOutput = CTxOut();
+    for (const CTxOut& txout : tx.vout) {
+        CTokenGroupInfo grp(txout.scriptPubKey);
+        if (grp.invalid)
+            return false;
+        if (grp.isGroupCreation(tokenGroupIdFlags)) {
+            creationOutput = txout;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID) {
     bool anyInputsGrouped = false;
     if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.HasZerocoinSpendInputs()) {
@@ -518,7 +532,7 @@ CTokenGroupID CTokenGroupID::parentGroup(void) const
         return CTokenGroupID(data);
     return CTokenGroupID(std::vector<unsigned char>(data.begin(), data.begin() + PARENT_GROUP_ID_SIZE));
 }
-std::vector<unsigned char> CTokenGroupID::GetSubGroupData() {
+const std::vector<unsigned char> &CTokenGroupID::GetSubGroupData() const {
     std::vector<unsigned char> subgroupData;
     if (data.size() > PARENT_GROUP_ID_SIZE) {
         subgroupData = std::vector<unsigned char>(data.begin() + PARENT_GROUP_ID_SIZE, data.end());
