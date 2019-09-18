@@ -1,7 +1,7 @@
 # Copyright (c) 2018-2019 The Ion developers
 name: ioncore
 base: core18
-version: 4.0.00
+version: 4.0.99
 summary:   gaming related peer-to-peer network based digital currency
 description: |
   Ion Core is an MIT licensed,  open source, gaming oriented,
@@ -62,7 +62,7 @@ description: |
   - Report a bug: https://tinyurl.com/y5wzybwe
   - Report some random issue: https://tinyurl.com/y5cgm2vp
   - Testing Report: https://tinyurl.com/y39n2hsv
-grade: stable
+grade: devel
 confinement: strict
 icon: src/qt/res/src/ion.svg
 apps:
@@ -133,7 +133,7 @@ parts:
   ion:
     source: https://github.com/ioncoincore/ion
     source-type: git
-    source-tag: v4.0.00
+    source-tag: master
     plugin: nil
     override-build: |
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
