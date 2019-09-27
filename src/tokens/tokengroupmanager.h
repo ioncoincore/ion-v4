@@ -35,6 +35,7 @@ public:
 
     bool GetTokenGroupCreation(const CTokenGroupID& tgID, CTokenGroupCreation& tgCreation);
     std::string GetTokenGroupNameByID(CTokenGroupID tokenGroupId);
+    std::string GetTokenGroupTickerByID(CTokenGroupID tokenGroupId);
     bool GetTokenGroupIdByTicker(std::string strTicker, CTokenGroupID &tokenGroupID);
     bool GetTokenGroupIdByName(std::string strName, CTokenGroupID &tokenGroupID);
     std::map<CTokenGroupID, CTokenGroupCreation> GetMapTokenGroups() { return mapTokenGroups; };

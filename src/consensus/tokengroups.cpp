@@ -557,7 +557,7 @@ CTokenGroupID CTokenGroupID::parentGroup(void) const
         return CTokenGroupID(data);
     return CTokenGroupID(std::vector<unsigned char>(data.begin(), data.begin() + PARENT_GROUP_ID_SIZE));
 }
-const std::vector<unsigned char> &CTokenGroupID::GetSubGroupData() const {
+const std::vector<unsigned char> CTokenGroupID::GetSubGroupData() const {
     std::vector<unsigned char> subgroupData;
     if (data.size() > PARENT_GROUP_ID_SIZE) {
         subgroupData = std::vector<unsigned char>(data.begin() + PARENT_GROUP_ID_SIZE, data.end());

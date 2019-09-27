@@ -121,8 +121,13 @@ bool CTokenGroupManager::GetTokenGroupCreation(const CTokenGroupID& tgID, CToken
     return true;
 }
 std::string CTokenGroupManager::GetTokenGroupNameByID(CTokenGroupID tokenGroupId) {
-    CTokenGroupCreation tokenGroupCreation = mapTokenGroups.at(tokenGroupId);
-    return "";
+    CTokenGroupCreation tokenGroupCreation;
+    return GetTokenGroupCreation(tokenGroupId, tokenGroupCreation) ? tokenGroupCreation.tokenGroupDescription.strName : "";
+}
+
+std::string CTokenGroupManager::GetTokenGroupTickerByID(CTokenGroupID tokenGroupId) {
+    CTokenGroupCreation tokenGroupCreation;
+    return GetTokenGroupCreation(tokenGroupId, tokenGroupCreation) ? tokenGroupCreation.tokenGroupDescription.strTicker : "";
 }
 
 bool CTokenGroupManager::GetTokenGroupIdByTicker(std::string strTicker, CTokenGroupID &tokenGroupID) {

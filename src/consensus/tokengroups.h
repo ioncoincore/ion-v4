@@ -102,7 +102,7 @@ public:
     //* returns the parent group if this is a subgroup or itself.
     CTokenGroupID parentGroup(void) const;
     //* returns the data field of a subgroup
-    const std::vector<unsigned char> &GetSubGroupData() const;
+    const std::vector<unsigned char> GetSubGroupData() const;
 
     const std::vector<unsigned char> &bytes(void) const { return data; }
 
