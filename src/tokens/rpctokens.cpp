@@ -7,6 +7,7 @@
 #include "coincontrol.h"
 #include "dstencode.h"
 #include "init.h"
+#include "ionaddrenc.h"
 #include "rpc/protocol.h"
 #include "rpc/server.h"
 #include "tokens/tokengroupmanager.h"

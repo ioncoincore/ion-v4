@@ -9,6 +9,7 @@
 #include "base58.h"
 #include "core_io.h"
 #include "init.h"
+#include "ionaddrenc.h"
 #include "net.h"
 #include "netbase.h"
 #include "rpc/server.h"

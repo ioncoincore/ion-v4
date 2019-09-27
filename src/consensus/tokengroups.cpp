@@ -26,6 +26,8 @@
 
 CTokenGroupID NoGroup; // No group specified.
 
+std::shared_ptr<CTokenGroupManager> tokenGroupManager;
+
 std::string EncodeGroupAuthority(const GroupAuthorityFlags flags) {
     std::string sflags = "none";
     if (hasCapability(flags, GroupAuthorityFlags::CTRL)) {
@@ -129,14 +131,14 @@ bool GetGroupedCreationOutput(const CTransaction &tx, CTxOut &creationOutput, co
     return false;
 }
 
-bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID) {
+bool AnyInputsGrouped(const CTransaction &transaction, const int nHeight, const CCoinsViewCache& view, const CTokenGroupID tgID) {
     bool anyInputsGrouped = false;
     if (!transaction.IsCoinBase() && !transaction.IsCoinStake() && !transaction.HasZerocoinSpendInputs()) {
 
         if (!view.HaveInputs(transaction))
             return false;
 
-        if (((int)chainActive.Tip()->nHeight >= Params().OpGroup_StartHeight())) {
+        if (nHeight >= Params().OpGroup_StartHeight()) {
             // Now iterate through the inputs to match to DarkMatter inputs
             for (const auto &inp : transaction.vin)
             {
@@ -342,6 +344,26 @@ CTokenGroupInfo::CTokenGroupInfo(const CScript &script)
     associatedGroup = groupId;
 }
 
+bool IsTokenManagementKey(CScript script) {
+    // Initially, the TokenManagementKey enables management token operations
+    // When the MagicToken is created, the MagicToken enables management token operations
+    if (!tokenGroupManager->MagicTokensCreated()) {
+        CTxDestination payeeDest;
+        ExtractDestination(script, payeeDest);
+        return EncodeDestination(payeeDest) == Params().TokenManagementKey();
+    }
+    return false;
+}
+
+bool IsMagicInput(CScript script) {
+    // Initially, the TokenManagementKey enables management token operations
+    // When the MagicToken is created, the MagicToken enables management token operations
+    if (tokenGroupManager->MagicTokensCreated()) {
+        CTokenGroupInfo grp(script);
+        return grp.associatedGroup == tokenGroupManager->GetMagicID();
+    }
+    return false;
+}
 
 bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCoinsViewCache &view, std::unordered_map<CTokenGroupID, CTokenGroupBalance>& gBalance)
 {
@@ -395,12 +417,15 @@ bool CheckTokenGroups(const CTransaction &tx, CValidationState &state, const CCo
             LogPrint("token", "%s - Checking token group for spent coin\n", __func__);
             return state.Invalid(false, REJECT_INVALID, "already-spent");
         }
+
+        const CScript &script = coin.out.scriptPubKey;
+        anyInputsGroupManagement = anyInputsGroupManagement || IsTokenManagementKey(script);
+
         // no prior coins can be grouped.
         if (coin.nHeight < Params().OpGroup_StartHeight())
             continue;
-        const CScript &script = coin.out.scriptPubKey;
-        if (tokenGroupManager->IsManagementTokenInput(script))
-            anyInputsGroupManagement = true;
+
+        anyInputsGroupManagement = anyInputsGroupManagement || IsMagicInput(script);
 
         CTokenGroupInfo tokenGrp(script);
         // The prevout should never be invalid because that would mean that this node accepted a block with an

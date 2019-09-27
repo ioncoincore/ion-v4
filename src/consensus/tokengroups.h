@@ -321,7 +321,7 @@ bool IsAnyOutputGroupedAuthority(const CTransaction &tx);
 bool IsAnyOutputGroupedCreation(const CTransaction &tx, const TokenGroupIdFlags tokenGroupIdFlags = TokenGroupIdFlags::NONE);
 bool GetGroupedCreationOutput(const CTransaction &tx, CTxOut &creationOutput, const TokenGroupIdFlags = TokenGroupIdFlags::NONE);
 
-bool AnyInputsGrouped(const CTransaction &transaction, const CCoinsViewCache& view, const CTokenGroupID tgID);
+bool AnyInputsGrouped(const CTransaction &transaction, const int nHeight, const CCoinsViewCache& view, const CTokenGroupID tgID);
 
 // Serialize a CAmount into an array of bytes.
 // This serialization does not store the length of the serialized data within the serialized data.
