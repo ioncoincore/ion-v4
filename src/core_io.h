@@ -13,6 +13,7 @@
 class CBlock;
 class CScript;
 class CTransaction;
+class CTxOut;
 class uint256;
 class UniValue;
 
@@ -31,5 +32,6 @@ extern void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     UniValue& out,
     bool fIncludeHex);
 extern void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry);
+extern void TokenTxnoutToUniv(const CTxOut& txout, UniValue& out, bool& fExpectFirstOpReturn);
 
 #endif // BITCOIN_CORE_IO_H

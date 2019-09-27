@@ -7,17 +7,18 @@
 #include "core_io.h"
 
 #include "base58.h"
+#include "consensus/tokengroups.h"
+#include "ionaddrenc.h"
 #include "primitives/transaction.h"
 #include "script/script.h"
 #include "script/standard.h"
 #include "serialize.h"
 #include "streams.h"
+#include "tokens/tokengroupdescription.h"
 #include <univalue.h>
 #include "util.h"
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
-
-
 
 std::string FormatScript(const CScript& script)
 {
@@ -87,6 +88,38 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("addresses", a);
 }
 
+void TokenTxnoutToUniv(const CTxOut& txout,
+    UniValue& out, bool& fExpectFirstOpReturn)
+{
+    CTokenGroupInfo tokenGroupInfo(txout.scriptPubKey);
+
+    if (fExpectFirstOpReturn && (txout.nValue == 0) && (txout.scriptPubKey[0] == OP_RETURN)) {
+        fExpectFirstOpReturn = false;
+
+        CTokenGroupDescription tokenGroupDescription = CTokenGroupDescription(txout.scriptPubKey);
+
+        out.pushKV("outputType", "description");
+        out.pushKV("ticker", tokenGroupDescription.strTicker);
+        out.pushKV("name", tokenGroupDescription.strName);
+        out.pushKV("decimalPos", tokenGroupDescription.nDecimalPos);
+        out.pushKV("URL", tokenGroupDescription.strDocumentUrl);
+        out.pushKV("documentHash", tokenGroupDescription.documentHash.ToString());
+    } else if (!tokenGroupInfo.invalid && tokenGroupInfo.associatedGroup != NoGroup) {
+        if (tokenGroupInfo.associatedGroup.isSubgroup()) {
+            CTokenGroupID parentgrp = tokenGroupInfo.associatedGroup.parentGroup();
+            out.pushKV("parentGroupIdentifier", EncodeTokenGroup(parentgrp));
+        }
+        out.pushKV("groupIdentifier", EncodeTokenGroup(tokenGroupInfo.associatedGroup));
+        if (tokenGroupInfo.isAuthority()){
+            out.pushKV("outputType", "authority");
+            out.pushKV("authorities", EncodeGroupAuthority(tokenGroupInfo.controllingGroupFlags()));
+        } else {
+            out.pushKV("outputType", "amount");
+            out.pushKV("amount", tokenGroupInfo.getAmount());
+        }
+    }
+}
+
 void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry)
 {
     entry.pushKV("txid", tx.GetHash().GetHex());
@@ -113,6 +146,8 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry)
     entry.pushKV("vin", vin);
 
     UniValue vout(UniValue::VARR);
+    CScript firstOpReturn;
+    bool fIsGroupConfigurationTX = IsAnyOutputGroupedCreation(tx);
     for (unsigned int i = 0; i < tx.vout.size(); i++) {
         const CTxOut& txout = tx.vout[i];
 
@@ -125,6 +160,12 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry)
         UniValue o(UniValue::VOBJ);
         ScriptPubKeyToUniv(txout.scriptPubKey, o, true);
         out.pushKV("scriptPubKey", o);
+
+        UniValue t(UniValue::VOBJ);
+        TokenTxnoutToUniv(txout, t, fIsGroupConfigurationTX);
+        if (t.size() > 0)
+            out.pushKV("token", t);
+
         vout.push_back(out);
     }
     entry.pushKV("vout", vout);
