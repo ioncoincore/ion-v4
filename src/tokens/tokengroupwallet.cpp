@@ -86,11 +86,6 @@ CTokenGroupID GetTokenGroup(const std::string &addr, const CChainParams &params)
     return CTokenGroupID();
 }
 
-std::string EncodeTokenGroup(const CTokenGroupID &grp, const CChainParams &params)
-{
-    return EncodeIONAddr(grp.bytes(), IONAddrType::GROUP_TYPE, params);
-}
-
 
 class CGroupScriptVisitor : public boost::static_visitor<bool>
 {

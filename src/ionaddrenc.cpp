@@ -5,6 +5,7 @@
 #include "ionaddrenc.h"
 #include "bech32.h"
 #include "chainparams.h"
+#include "consensus/tokengroups.h"
 #include "pubkey.h"
 #include "script/script.h"
 #include "utilstrencodings.h"
@@ -103,6 +104,16 @@ std::string EncodeIONAddr(const std::vector<uint8_t> &id, const IONAddrType addr
 std::string EncodeIONAddr(const CTxDestination &dst, const CChainParams &params)
 {
     return boost::apply_visitor(IONAddrEncoder(params), dst);
+}
+
+std::string EncodeTokenGroup(const CTokenGroupID &grp, const CChainParams &params)
+{
+    return EncodeIONAddr(grp.bytes(), IONAddrType::GROUP_TYPE, params);
+}
+
+std::string EncodeTokenGroup(const CTokenGroupID &grp)
+{
+    return EncodeTokenGroup(grp, Params());
 }
 
 CTxDestination DecodeIONAddr(const std::string &addr, const CChainParams &params)

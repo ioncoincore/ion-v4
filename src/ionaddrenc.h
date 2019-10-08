@@ -11,6 +11,7 @@
 #include <vector>
 
 class CChainParams;
+class CTokenGroupID;
 
 enum IONAddrType : uint8_t
 {
@@ -21,6 +22,8 @@ enum IONAddrType : uint8_t
 
 std::string EncodeIONAddr(const CTxDestination &, const CChainParams &);
 std::string EncodeIONAddr(const std::vector<uint8_t> &id, const IONAddrType addrtype, const CChainParams &params);
+std::string EncodeTokenGroup(const CTokenGroupID &grp, const CChainParams &params);
+std::string EncodeTokenGroup(const CTokenGroupID &grp);
 
 struct IONAddrContent
 {

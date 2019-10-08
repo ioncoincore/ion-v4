@@ -5,8 +5,10 @@
 
 #include "tokens/tokengroupwallet.h"
 #include "coincontrol.h"
+#include "core_io.h"
 #include "dstencode.h"
 #include "init.h"
+#include "ionaddrenc.h"
 #include "rpc/protocol.h"
 #include "rpc/server.h"
 #include "tokens/tokengroupmanager.h"
@@ -1982,4 +1984,179 @@ extern UniValue melttoken(const UniValue &params, bool fHelp)
     CWalletTx wtx;
     GroupMelt(wtx, grpID, totalNeeded, wallet);
     return wtx.GetHash().GetHex();
+}
+
+void RpcTokenTxnoutToUniv(const CTxOut& txout,
+    UniValue& out, bool& fExpectFirstOpReturn)
+{
+    CTokenGroupInfo tokenGroupInfo(txout.scriptPubKey);
+
+    if (fExpectFirstOpReturn && (txout.nValue == 0) && (txout.scriptPubKey[0] == OP_RETURN)) {
+        fExpectFirstOpReturn = false;
+
+        CTokenGroupDescription tokenGroupDescription = CTokenGroupDescription(txout.scriptPubKey);
+
+        out.pushKV("outputType", "description");
+        out.pushKV("ticker", tokenGroupDescription.strTicker);
+        out.pushKV("name", tokenGroupDescription.strName);
+        out.pushKV("decimalPos", tokenGroupDescription.nDecimalPos);
+        out.pushKV("URL", tokenGroupDescription.strDocumentUrl);
+        out.pushKV("documentHash", tokenGroupDescription.documentHash.ToString());
+    } else if (!tokenGroupInfo.invalid && tokenGroupInfo.associatedGroup != NoGroup) {
+        CTokenGroupCreation tgCreation;
+        std::string tgTicker;
+        if (tokenGroupInfo.associatedGroup.isSubgroup()) {
+            CTokenGroupID parentgrp = tokenGroupInfo.associatedGroup.parentGroup();
+            std::vector<unsigned char> subgroupData = tokenGroupInfo.associatedGroup.GetSubGroupData();
+            tgTicker = tokenGroupManager->GetTokenGroupTickerByID(parentgrp);
+            out.pushKV("parentGroupIdentifier", EncodeTokenGroup(parentgrp));
+            out.pushKV("subgroup-data", std::string(subgroupData.begin(), subgroupData.end()));
+        } else {
+            tgTicker = tokenGroupManager->GetTokenGroupTickerByID(tokenGroupInfo.associatedGroup);
+        }
+        out.pushKV("groupIdentifier", EncodeTokenGroup(tokenGroupInfo.associatedGroup));
+        if (tokenGroupInfo.isAuthority()){
+            out.pushKV("outputType", "authority");
+            out.pushKV("ticker", tgTicker);
+            out.pushKV("authorities", EncodeGroupAuthority(tokenGroupInfo.controllingGroupFlags()));
+        } else {
+            out.pushKV("outputtype", "amount");
+            out.pushKV("ticker", tgTicker);
+            out.pushKV("value", tokenGroupManager->TokenValueFromAmount(tokenGroupInfo.getAmount(), tokenGroupInfo.associatedGroup));
+        }
+    }
+}
+
+void TokenTxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry)
+{
+    entry.pushKV("txid", tx.GetHash().GetHex());
+    entry.pushKV("version", tx.nVersion);
+    entry.pushKV("size", (int)::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION));
+    entry.pushKV("locktime", (int64_t)tx.nLockTime);
+
+    UniValue vin(UniValue::VARR);
+    for (const CTxIn& txin : tx.vin) {
+        UniValue in(UniValue::VOBJ);
+        if (tx.IsCoinBase())
+            in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+        else {
+            in.pushKV("txid", txin.prevout.hash.GetHex());
+            in.pushKV("vout", (int64_t)txin.prevout.n);
+            UniValue o(UniValue::VOBJ);
+            o.pushKV("asm", txin.scriptSig.ToString());
+            o.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+            in.pushKV("scriptSig", o);
+        }
+        in.pushKV("sequence", (int64_t)txin.nSequence);
+        vin.push_back(in);
+    }
+    entry.pushKV("vin", vin);
+
+    UniValue vout(UniValue::VARR);
+    CScript firstOpReturn;
+    bool fIsGroupConfigurationTX = IsAnyOutputGroupedCreation(tx);
+    for (unsigned int i = 0; i < tx.vout.size(); i++) {
+        const CTxOut& txout = tx.vout[i];
+
+        UniValue out(UniValue::VOBJ);
+
+        UniValue outValue(UniValue::VNUM, FormatMoney(txout.nValue));
+        out.pushKV("value", outValue);
+        out.pushKV("n", (int64_t)i);
+
+        UniValue o(UniValue::VOBJ);
+        ScriptPubKeyToUniv(txout.scriptPubKey, o, true);
+        out.pushKV("scriptPubKey", o);
+
+        UniValue t(UniValue::VOBJ);
+        RpcTokenTxnoutToUniv(txout, t, fIsGroupConfigurationTX);
+        if (t.size() > 0)
+            out.pushKV("token", t);
+
+        vout.push_back(out);
+    }
+    entry.pushKV("vout", vout);
+
+    if (hashBlock != 0)
+        entry.pushKV("blockhash", hashBlock.GetHex());
+}
+
+void TokenTxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
+{
+    TokenTxToUniv(tx, uint256(), entry);
+
+    if (!hashBlock.IsNull()) {
+        entry.push_back(Pair("blockhash", hashBlock.GetHex()));
+        BlockMap::iterator mi = mapBlockIndex.find(hashBlock);
+        if (mi != mapBlockIndex.end() && (*mi).second) {
+            CBlockIndex* pindex = (*mi).second;
+            if (chainActive.Contains(pindex)) {
+                entry.push_back(Pair("confirmations", 1 + chainActive.Height() - pindex->nHeight));
+                entry.push_back(Pair("time", pindex->GetBlockTime()));
+                entry.push_back(Pair("blocktime", pindex->GetBlockTime()));
+            }
+            else
+                entry.push_back(Pair("confirmations", 0));
+        }
+    }
+}
+
+
+extern UniValue gettokentransaction(const UniValue &params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 2)
+        throw std::runtime_error(
+            "gettokentransaction \"txid\" ( \"blockhash\" )\n"
+
+            "\nReturn the token transaction data.\n"
+
+            "\nArguments:\n"
+            "1. \"txid\"      (string, required) The transaction id\n"
+            "2. \"blockhash\" (string, optional) The block in which to look for the transaction\n"
+
+            "\nExamples:\n"
+            + HelpExampleCli("gettokentransaction", "\"mytxid\"")
+            + HelpExampleCli("gettokentransaction", "\"mytxid\" true")
+            + HelpExampleRpc("gettokentransaction", "\"mytxid\", true")
+            + HelpExampleCli("gettokentransaction", "\"mytxid\" false \"myblockhash\"")
+            + HelpExampleCli("gettokentransaction", "\"mytxid\" true \"myblockhash\"")
+        );
+
+    LOCK(cs_main);
+
+    bool in_active_chain = true;
+    uint256 hash = ParseHashV(params[0], "parameter 1");
+    CBlockIndex* blockindex = nullptr;
+
+    if (!params[1].isNull()) {
+        uint256 blockhash = ParseHashV(params[1], "parameter 2");
+        BlockMap::iterator it = mapBlockIndex.find(blockhash);
+        if (it == mapBlockIndex.end()) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block hash not found");
+        }
+        blockindex = it->second;
+        in_active_chain = chainActive.Contains(blockindex);
+    }
+
+    CTransaction tx;
+    uint256 hash_block;
+    if (!GetTransaction(hash, tx, hash_block, true, blockindex)) {
+        std::string errmsg;
+        if (blockindex) {
+            if (!(blockindex->nStatus & BLOCK_HAVE_DATA)) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Block not available");
+            }
+            errmsg = "No such transaction found in the provided block";
+        } else {
+            errmsg = fTxIndex
+              ? "No such mempool or blockchain transaction"
+              : "No such mempool transaction. Use -txindex to enable blockchain transaction queries";
+        }
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, errmsg + ". Use gettransaction for wallet transactions.");
+    }
+
+    UniValue result(UniValue::VOBJ);
+    if (blockindex) result.push_back(Pair("in_active_chain", in_active_chain));
+    TokenTxToJSON(tx, hash_block, result);
+    return result;
 }

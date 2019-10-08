@@ -6,11 +6,10 @@
 #include "tokens/tokengroupwallet.h"
 
 #include "dstencode.h"
+#include "ionaddrenc.h"
 #include "rpc/protocol.h"
 #include "utilstrencodings.h"
 #include "tokens/tokengroupconfiguration.h"
-
-std::shared_ptr<CTokenGroupManager> tokenGroupManager;
 
 CTokenGroupManager::CTokenGroupManager() {
     vTokenGroupFilters.emplace_back(TGFilterCharacters);
@@ -51,31 +50,6 @@ bool CTokenGroupManager::MatchesDarkMatter(CTokenGroupID tgID) {
 bool CTokenGroupManager::MatchesAtom(CTokenGroupID tgID) {
     if (!tgAtomCreation) return false;
     return tgID == tgAtomCreation->tokenGroupInfo.associatedGroup;
-}
-
-bool CTokenGroupManager::MagicTokensCreated() {
-    return tgMagicCreation ? true : false;
-};
-
-bool CTokenGroupManager::DarkMatterTokensCreated() {
-    return tgDarkMatterCreation ? true : false;
-};
-
-bool CTokenGroupManager::AtomTokensCreated() {
-    return tgAtomCreation ? true : false;
-};
-
-bool CTokenGroupManager::IsManagementTokenInput(CScript script) {
-    // Initially, the TokenManagementKey enables management token operations
-    // When the MagicToken is created, the MagicToken enables management token operations
-    if (!tgMagicCreation) {
-        CTxDestination payeeDest;
-        ExtractDestination(script, payeeDest);
-        return EncodeDestination(payeeDest) == Params().TokenManagementKey();
-    } else {
-        CTokenGroupInfo grp(script);
-        return MatchesMagic(grp.associatedGroup);
-    }
 }
 
 bool CTokenGroupManager::AddTokenGroups(const std::vector<CTokenGroupCreation>& newTokenGroups) {
@@ -147,8 +121,13 @@ bool CTokenGroupManager::GetTokenGroupCreation(const CTokenGroupID& tgID, CToken
     return true;
 }
 std::string CTokenGroupManager::GetTokenGroupNameByID(CTokenGroupID tokenGroupId) {
-    CTokenGroupCreation tokenGroupCreation = mapTokenGroups.at(tokenGroupId);
-    return "";
+    CTokenGroupCreation tokenGroupCreation;
+    return GetTokenGroupCreation(tokenGroupId, tokenGroupCreation) ? tokenGroupCreation.tokenGroupDescription.strName : "";
+}
+
+std::string CTokenGroupManager::GetTokenGroupTickerByID(CTokenGroupID tokenGroupId) {
+    CTokenGroupCreation tokenGroupCreation;
+    return GetTokenGroupCreation(tokenGroupId, tokenGroupCreation) ? tokenGroupCreation.tokenGroupDescription.strTicker : "";
 }
 
 bool CTokenGroupManager::GetTokenGroupIdByTicker(std::string strTicker, CTokenGroupID &tokenGroupID) {
