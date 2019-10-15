@@ -19,6 +19,7 @@
 #include "utilmoneystr.h"
 #include "wallet.h"
 #include "walletdb.h"
+#include "tokens/tokengroupmanager.h"
 #include "tokens/tokengroupwallet.h"
 #include "xionchain.h"
 
@@ -1345,8 +1346,11 @@ void ListTransactions(const CWalletTx& wtx, const std::string& strAccount, int n
             entry.push_back(Pair("category", (it != wtx.mapValue.end() && it->second == "1") ? "darksent" : "send"));
             if (s.grp != NoGroup)
             {
-                entry.push_back(Pair("group", EncodeTokenGroup(s.grp)));
-                entry.push_back(Pair("groupAmount", -s.grpAmount));
+                CTokenGroupCreation tgCreation;
+                tokenGroupManager->GetTokenGroupCreation(s.grp, tgCreation);
+
+                entry.push_back(Pair("groupID", EncodeTokenGroup(s.grp)));
+                entry.push_back(Pair("tokenAmount", tokenGroupManager->TokenValueFromAmount(-s.amount, tgCreation.tokenGroupInfo.associatedGroup)));
             }
             entry.push_back(Pair("amount", ValueFromAmount(-s.amount)));
             entry.push_back(Pair("vout", s.vout));
@@ -1381,8 +1385,11 @@ void ListTransactions(const CWalletTx& wtx, const std::string& strAccount, int n
                 }
                 if (r.grp != NoGroup)
                 {
-                    entry.push_back(Pair("group", EncodeTokenGroup(r.grp)));
-                    entry.push_back(Pair("groupAmount", r.grpAmount));
+                    CTokenGroupCreation tgCreation;
+                    tokenGroupManager->GetTokenGroupCreation(r.grp, tgCreation);
+
+                    entry.push_back(Pair("groupID", EncodeTokenGroup(r.grp)));
+                    entry.push_back(Pair("tokenAmount", tokenGroupManager->TokenValueFromAmount(r.amount, tgCreation.tokenGroupInfo.associatedGroup)));
                 }
                 entry.push_back(Pair("amount", ValueFromAmount(r.amount)));
                 entry.push_back(Pair("vout", r.vout));

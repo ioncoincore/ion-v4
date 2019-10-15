@@ -165,11 +165,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getchecksumblock", 1},
         {"getchecksumblock", 2},
         {"enableautomintaddress", 0},
+        {"listtokentransactions", 1},
         {"listtokentransactions", 2},
         {"listtokentransactions", 3},
-        {"listtokentransactions", 4},
-        {"listtokenssinceblock", 1},
-        {"listtokenssinceblock", 2},
     };
 
 class CRPCConvertTable
