@@ -461,12 +461,7 @@ extern UniValue tokeninfo(const UniValue &params, bool fHelp)
         }
         UniValue entry(UniValue::VOBJ);
         CTokenGroupCreation tgCreation;
-        if (grpID.isSubgroup()) {
-            CTokenGroupID parentgrp = grpID.parentGroup();
-            tokenGroupManager->GetTokenGroupCreation(parentgrp, tgCreation);
-        } else {
-            tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
-        }
+        tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
         TokenGroupCreationToJSON(grpID, tgCreation, entry, extended);
         ret.push_back(entry);
     } else if (operation == "ticker") {
@@ -1635,12 +1630,7 @@ extern UniValue listtokenauthorities(const UniValue &params, bool fHelp)
         ExtractDestination(coin.GetScriptPubKey(), dest);
 
         CTokenGroupCreation tgCreation;
-        if (tgInfo.associatedGroup.isSubgroup()) {
-            CTokenGroupID parentgrp = tgInfo.associatedGroup.parentGroup();
-            tokenGroupManager->GetTokenGroupCreation(parentgrp, tgCreation);
-        } else {
-            tokenGroupManager->GetTokenGroupCreation(tgInfo.associatedGroup, tgCreation);
-        }
+        tokenGroupManager->GetTokenGroupCreation(tgInfo.associatedGroup, tgCreation);
 
         UniValue retobj(UniValue::VOBJ);
         retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgInfo.associatedGroup)));
