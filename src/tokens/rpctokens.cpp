@@ -255,6 +255,9 @@ void ListGroupedTransactions(const CTokenGroupID &grp,
 
     wtx.GetGroupAmounts(grp, listReceived, listSent, nFee, strSentAccount, filter);
 
+    CTokenGroupCreation tgCreation;
+    tokenGroupManager->GetTokenGroupCreation(grp, tgCreation);
+
     bool fAllAccounts = (strAccount == std::string("*"));
     bool involvesWatchonly = wtx.IsFromMe(ISMINE_WATCH_ONLY);
 
@@ -269,8 +272,8 @@ void ListGroupedTransactions(const CTokenGroupID &grp,
             entry.push_back(Pair("account", strSentAccount));
             MaybePushAddress(entry, s.destination);
             entry.push_back(Pair("category", "send"));
-            entry.push_back(Pair("group", EncodeTokenGroup(grp)));
-            entry.push_back(Pair("amount", UniValue(-s.amount)));
+            entry.push_back(Pair("groupID", EncodeTokenGroup(grp)));
+            entry.push_back(Pair("tokenAmount", tokenGroupManager->TokenValueFromAmount(-s.amount, tgCreation.tokenGroupInfo.associatedGroup)));
             if (pwalletMain->mapAddressBook.count(s.destination))
                 entry.push_back(Pair("label", pwalletMain->mapAddressBook[s.destination].name));
             entry.push_back(Pair("vout", s.vout));
@@ -309,8 +312,8 @@ void ListGroupedTransactions(const CTokenGroupID &grp,
                 {
                     entry.push_back(Pair("category", "receive"));
                 }
-                entry.push_back(Pair("amount", UniValue(r.amount)));
-                entry.push_back(Pair("group", EncodeTokenGroup(grp)));
+                entry.push_back(Pair("groupID", EncodeTokenGroup(grp)));
+                entry.push_back(Pair("tokenAmount", tokenGroupManager->TokenValueFromAmount(r.amount, tgCreation.tokenGroupInfo.associatedGroup)));
                 if (pwalletMain->mapAddressBook.count(r.destination))
                     entry.push_back(Pair("label", account));
                 entry.push_back(Pair("vout", r.vout));
@@ -327,12 +330,12 @@ void TokenGroupCreationToJSON(const CTokenGroupID &tgID, const CTokenGroupCreati
     CTxDestination creationDestination;
     GetGroupedCreationOutput(tgCreation.creationTransaction, creationOutput);
     ExtractDestination(creationOutput.scriptPubKey, creationDestination);
-    entry.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgID)));
+    entry.push_back(Pair("groupID", EncodeTokenGroup(tgID)));
     if (tgID.isSubgroup()) {
         CTokenGroupID parentgrp = tgID.parentGroup();
         const std::vector<unsigned char> subgroupData = tgID.GetSubGroupData();
-        entry.push_back(Pair("parentGroupIdentifier", EncodeTokenGroup(tgCreation.tokenGroupInfo.associatedGroup)));
-        entry.push_back(Pair("subgroup-data", std::string(subgroupData.begin(), subgroupData.end())));
+        entry.push_back(Pair("parentGroupID", EncodeTokenGroup(tgCreation.tokenGroupInfo.associatedGroup)));
+        entry.push_back(Pair("subgroupData", std::string(subgroupData.begin(), subgroupData.end())));
     }
     entry.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
     entry.push_back(Pair("name", tgCreation.tokenGroupDescription.strName));
@@ -562,15 +565,15 @@ extern UniValue gettokenbalance(const UniValue &params, bool fHelp)
         {
             CTokenGroupID grpID = item.first;
             UniValue retobj(UniValue::VOBJ);
-            retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
+            retobj.push_back(Pair("groupID", EncodeTokenGroup(grpID)));
 
             CTokenGroupCreation tgCreation;
             if (grpID.isSubgroup()) {
                 CTokenGroupID parentgrp = grpID.parentGroup();
                 std::vector<unsigned char> subgroupData = grpID.GetSubGroupData();
                 tokenGroupManager->GetTokenGroupCreation(parentgrp, tgCreation);
-                retobj.push_back(Pair("parentGroupIdentifier", EncodeTokenGroup(parentgrp)));
-                retobj.push_back(Pair("subgroup-data", std::string(subgroupData.begin(), subgroupData.end())));
+                retobj.push_back(Pair("parentGroupID", EncodeTokenGroup(parentgrp)));
+                retobj.push_back(Pair("subgroupData", std::string(subgroupData.begin(), subgroupData.end())));
             } else {
                 tokenGroupManager->GetTokenGroupCreation(grpID, tgCreation);
             }
@@ -601,7 +604,7 @@ extern UniValue gettokenbalance(const UniValue &params, bool fHelp)
         GroupAuthorityFlags authorities;
         GetGroupBalanceAndAuthorities(balance, authorities, grpID, dst, wallet);
         UniValue retobj(UniValue::VOBJ);
-        retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
+        retobj.push_back(Pair("groupID", EncodeTokenGroup(grpID)));
         retobj.push_back(Pair("balance", tokenGroupManager->TokenValueFromAmount(balance, grpID)));
         if (hasCapability(authorities, GroupAuthorityFlags::CTRL))
             retobj.push_back(Pair("authorities", EncodeGroupAuthority(authorities)));
@@ -641,7 +644,7 @@ extern UniValue listtokentransactions(const UniValue &params, bool fHelp)
             "transactions are \n"
             "                                                associated with an address, transaction id and block "
             "details\n"
-            "    \"amount\": x.xxx,          (numeric) The amount in ION."
+            "    \"tokenAmount\": x.xxx,          (numeric) The amount of tokens. "
             "This is negative for the 'send' category, and for the\n"
                             "                                         'move' category for moves outbound. It is "
                             "positive for the 'receive' category,\n"
@@ -1078,7 +1081,7 @@ extern UniValue configuretokendryrun(const UniValue &params, bool fHelp)
         ret.push_back(Pair("xdm_available", tokenGroupManager->TokenValueFromAmount(totalXDMAvailable, tokenGroupManager->GetDarkMatterID())));
         ret.push_back(Pair("xdm_needed", tokenGroupManager->TokenValueFromAmount(XDMFeeNeeded, tokenGroupManager->GetDarkMatterID())));
     }
-    ret.push_back(Pair("group_identifier", EncodeTokenGroup(grpID)));
+    ret.push_back(Pair("groupID", EncodeTokenGroup(grpID)));
 
     CTokenGroupInfo tokenGroupInfo(opretScript);
     CTokenGroupDescription tokenGroupDescription(opretScript);
@@ -1231,7 +1234,7 @@ extern UniValue configuretoken(const UniValue &params, bool fHelp)
     ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, totalXDMAvailable, XDMFeeNeeded, grpID, wallet);
     authKeyReservation.KeepKey();
     UniValue ret(UniValue::VOBJ);
-    ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
+    ret.push_back(Pair("groupID", EncodeTokenGroup(grpID)));
     ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
     return ret;
 }
@@ -1375,7 +1378,7 @@ extern UniValue configuremanagementtoken(const UniValue &params, bool fHelp)
         CWalletTx wtx;
         ConstructTx(wtx, chosenCoins, outputs, coin.GetValue(), 0, 0, 0, 0, 0, grpID, wallet);
         authKeyReservation.KeepKey();
-        ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(grpID)));
+        ret.push_back(Pair("groupID", EncodeTokenGroup(grpID)));
         ret.push_back(Pair("transaction", wtx.GetHash().GetHex()));
     }
     return ret;
@@ -1633,12 +1636,12 @@ extern UniValue listtokenauthorities(const UniValue &params, bool fHelp)
         tokenGroupManager->GetTokenGroupCreation(tgInfo.associatedGroup, tgCreation);
 
         UniValue retobj(UniValue::VOBJ);
-        retobj.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgInfo.associatedGroup)));
+        retobj.push_back(Pair("groupID", EncodeTokenGroup(tgInfo.associatedGroup)));
         retobj.push_back(Pair("txid", coin.tx->GetHash().ToString()));
         retobj.push_back(Pair("vout", coin.i));
         retobj.push_back(Pair("ticker", tgCreation.tokenGroupDescription.strTicker));
         retobj.push_back(Pair("address", EncodeDestination(dest)));
-        retobj.push_back(Pair("token_authorities", EncodeGroupAuthority(tgInfo.controllingGroupFlags())));
+        retobj.push_back(Pair("groupAuthorities", EncodeGroupAuthority(tgInfo.controllingGroupFlags())));
         ret.push_back(retobj);
     }
     return ret;
@@ -1773,7 +1776,7 @@ extern UniValue droptokenauthorities(const UniValue &params, bool fHelp)
     GroupAuthorityFlags authoritiesToKeep = tgInfo.controllingGroupFlags() & ~authoritiesToDrop;
 
     UniValue ret(UniValue::VOBJ);
-    ret.push_back(Pair("groupIdentifier", EncodeTokenGroup(tgInfo.associatedGroup)));
+    ret.push_back(Pair("groupID", EncodeTokenGroup(tgInfo.associatedGroup)));
     ret.push_back(Pair("transaction", txid.GetHex()));
     ret.push_back(Pair("vout", voutN));
     ret.push_back(Pair("coin", chosenCoins.at(0).ToString()));
@@ -1999,8 +2002,8 @@ void RpcTokenTxnoutToUniv(const CTxOut& txout,
             CTokenGroupID parentgrp = tokenGroupInfo.associatedGroup.parentGroup();
             std::vector<unsigned char> subgroupData = tokenGroupInfo.associatedGroup.GetSubGroupData();
             tgTicker = tokenGroupManager->GetTokenGroupTickerByID(parentgrp);
-            out.pushKV("parentGroupIdentifier", EncodeTokenGroup(parentgrp));
-            out.pushKV("subgroup-data", std::string(subgroupData.begin(), subgroupData.end()));
+            out.pushKV("parentGroupID", EncodeTokenGroup(parentgrp));
+            out.pushKV("subgroupData", std::string(subgroupData.begin(), subgroupData.end()));
         } else {
             tgTicker = tokenGroupManager->GetTokenGroupTickerByID(tokenGroupInfo.associatedGroup);
         }
@@ -2010,7 +2013,7 @@ void RpcTokenTxnoutToUniv(const CTxOut& txout,
             out.pushKV("ticker", tgTicker);
             out.pushKV("authorities", EncodeGroupAuthority(tokenGroupInfo.controllingGroupFlags()));
         } else {
-            out.pushKV("outputtype", "amount");
+            out.pushKV("outputType", "amount");
             out.pushKV("ticker", tgTicker);
             out.pushKV("value", tokenGroupManager->TokenValueFromAmount(tokenGroupInfo.getAmount(), tokenGroupInfo.associatedGroup));
         }

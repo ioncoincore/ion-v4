@@ -107,9 +107,9 @@ void TokenTxnoutToUniv(const CTxOut& txout,
     } else if (!tokenGroupInfo.invalid && tokenGroupInfo.associatedGroup != NoGroup) {
         if (tokenGroupInfo.associatedGroup.isSubgroup()) {
             CTokenGroupID parentgrp = tokenGroupInfo.associatedGroup.parentGroup();
-            out.pushKV("parentGroupIdentifier", EncodeTokenGroup(parentgrp));
+            out.pushKV("parentGroupID", EncodeTokenGroup(parentgrp));
         }
-        out.pushKV("groupIdentifier", EncodeTokenGroup(tokenGroupInfo.associatedGroup));
+        out.pushKV("groupID", EncodeTokenGroup(tokenGroupInfo.associatedGroup));
         if (tokenGroupInfo.isAuthority()){
             out.pushKV("outputType", "authority");
             out.pushKV("authorities", EncodeGroupAuthority(tokenGroupInfo.controllingGroupFlags()));

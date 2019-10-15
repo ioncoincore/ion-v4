@@ -1951,8 +1951,8 @@ UniValue scantokens(const UniValue& params, bool fHelp)
             "    \"vout\" : n,                 (numeric) the vout value\n"
             "    \"address\" : \"address\",      (string) the address that received the tokens\n"
             "    \"scriptPubKey\" : \"script\",  (string) the script key\n"
-            "    \"ION_amount\" : x.xxx,       (numeric) The total amount in ION of the unspent output\n"
-            "    \"token_amount\" : xxx,       (numeric) The total token amount of the unspent output\n"
+            "    \"amount\" : x.xxx,       (numeric) The total amount in ION of the unspent output\n"
+            "    \"tokenAmount\" : xxx,       (numeric) The total token amount of the unspent output\n"
             "    \"height\" : n,               (numeric) Height of the unspent transaction output\n"
             "   }\n"
             "   ,...], \n"
@@ -2035,11 +2035,11 @@ UniValue scantokens(const UniValue& params, bool fHelp)
                 unspent.push_back(Pair("address", EncodeDestination(dest)));
             }
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey.begin(), txo.scriptPubKey.end()));
-            unspent.pushKV("ION_amount", ValueFromAmount(txo.nValue));
+            unspent.pushKV("amount", ValueFromAmount(txo.nValue));
             if (tokenGroupInfo.isAuthority()){
-                unspent.pushKV("token_authorities", EncodeGroupAuthority(tokenGroupInfo.controllingGroupFlags()));
+                unspent.pushKV("groupAuthorities", EncodeGroupAuthority(tokenGroupInfo.controllingGroupFlags()));
             } else {
-                unspent.pushKV("token_amount", tokenGroupManager->TokenValueFromAmount(tokenGroupInfo.getAmount(), needle));
+                unspent.pushKV("tokenAmount", tokenGroupManager->TokenValueFromAmount(tokenGroupInfo.getAmount(), needle));
             }
             unspent.pushKV("height", (int32_t)coin.nHeight);
 
@@ -2047,8 +2047,8 @@ UniValue scantokens(const UniValue& params, bool fHelp)
         }
 
         result.pushKV("unspents", unspents);
-        result.pushKV("total_amount", tokenGroupManager->TokenValueFromAmount(total_in, needle));
-        result.pushKV("token_authorities", EncodeGroupAuthority(total_authorities));
+        result.pushKV("total_tokenAmount", tokenGroupManager->TokenValueFromAmount(total_in, needle));
+        result.pushKV("total_groupAuthorities", EncodeGroupAuthority(total_authorities));
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid command");
     }
