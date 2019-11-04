@@ -1,5 +1,5 @@
 # Copyright (c) 2018-2019 The Ion developers
-name: ioncore
+name: ckti-ioncorer-current
 base: core18
 version: 4.0.00
 summary:   gaming related peer-to-peer network based digital currency
