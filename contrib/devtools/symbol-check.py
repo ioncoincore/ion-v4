@@ -66,6 +66,8 @@ ALLOWED_LIBRARIES = {
 'ld-linux-aarch64.so.1', # 64-bit ARM dynamic linker
 'ld-linux-armhf.so.3', # 32-bit ARM dynamic linker
 'ld-linux-riscv64-lp64d.so.1', # 64-bit RISC-V dynamic linker
+'ld64.so.2', # For powerpc64le
+'ld64.so.1', # For S390x
 # bitcoin-qt only
 'libX11-xcb.so.1', # part of X11
 'libX11.so.6', # part of X11
@@ -79,7 +81,9 @@ ARCH_MIN_GLIBC_VER = {
 'X86-64': (2,2,5),
 'ARM':    (2,4),
 'AArch64':(2,17),
-'RISC-V': (2,27)
+'RISC-V': (2,27),
+'S/390': (2,27),
+'PowerPC64': (2,27)
 }
 class CPPFilt(object):
     '''
@@ -160,7 +164,7 @@ if __name__ == '__main__':
                 print('%s: symbol %s from unsupported version %s' % (filename, cppfilt(sym), version))
                 retval = 1
         # Check exported symbols
-        if arch != 'RISC-V':
+        if arch != 'RISC-V' and arch != 'PowerPC64' and arch != 'S/390':
             for sym,version,arch in read_symbols(filename, False):
                 if sym in IGNORE_EXPORTS:
                     continue
