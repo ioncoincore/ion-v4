@@ -545,6 +545,18 @@ class WalletCLITest (BitcoinTestFramework):
         self.log.info("Balance of new account %s\n%s" % (movaddr, self.nodes[0].getbalance('Move')))
         self.nodes[0].move('', 'Move', 1000)
         self.log.info("New Balance of account %s\n%s" % (movaddr, self.nodes[0].getbalance('Move')))
+        ###
+        # Send & Read data
+        ###
+        self.log.info("Sending and reading data A B C")
+        sdtx = self.nodes[0].senddata("A", "B", "C")
+        self.log.info("Send data %s" % sdtx)
+        rd = self.nodes[0].readdata(sdtx)
+        self.log.info("Read data %s" % rd)
+        assert_equal(3, len(rd))
+        assert_equal("A", rd[0])
+        assert_equal("B", rd[1])
+        assert_equal("C", rd[2])
 
 
 if __name__ == '__main__':
