@@ -4044,3 +4044,146 @@ UniValue clearspendcache(const UniValue& params, bool fHelp)
     }
     throw JSONRPCError(RPC_WALLET_ERROR, "Error: Spend cache not cleared!");
 }
+
+CScript BuildDataScript(const std::vector<std::vector<unsigned char> > &desc)
+{
+    CScript ret;
+    uint32_t OpRetDataId = 78787878;
+    ret << OP_RETURN << OpRetDataId;
+    for(auto &dataItem : desc) {
+        ret << dataItem;
+    }
+    return ret;
+}
+
+bool BuildDataVector(CScript script, std::vector<std::vector<unsigned char> > &dataVector)
+{
+    CScript::const_iterator pc = script.begin();
+    std::vector<unsigned char> data;
+    opcodetype opcode;
+            
+    if (!script.GetOp(pc, opcode, data)) return false;
+    if (opcode != OP_RETURN) return false;
+
+    if (!script.GetOp(pc, opcode, data)) return false;
+    if (data.size()!=4) return false;
+
+    uint32_t OpRetDataId;
+    OpRetDataId = (uint32_t)data[3] << 24 | (uint32_t)data[2] << 16 | (uint32_t)data[1] << 8 | (uint32_t)data[0];
+    if (OpRetDataId != 78787878)  return false;
+
+    while (script.GetOp(pc, opcode, data)) {
+        dataVector.push_back(data);
+    }
+
+    return true;
+}
+
+UniValue readdata(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 6) {
+        throw std::runtime_error(   "readdata \"transactionid\"\n"
+                                    "\nScans the provided transaction for OP_RETURN data encoded "
+                                    "according to the simple data protocol.\n" +
+                                    HelpRequiringPassphrase() + "\n"
+                                    "\nArguments:\n"
+                                    "1. \"transactionid\" (string, required) The transaction ID "
+                                    "that should be scanned for data.\n"
+                                    "\nExamples:\n" +
+                                    HelpExampleCli("readdata",
+                                    "\"7b26308ace0b46aa3c60a8b7c6de08e054205d07fa205b9dccc4373edfb3d076\""));
+    }
+    LOCK(cs_main);
+
+    uint256 hash = ParseHashV(params[0], "parameter 1");
+    CTransaction tx;
+    uint256 hashBlock = 0;
+
+    if (!GetTransaction(hash, tx, hashBlock)) {
+        // todo
+    }
+
+    std::vector<std::vector<unsigned char> > dataVec;
+    for (const auto &txout : tx.vout) {
+        const CScript &script = txout.scriptPubKey;
+        if (BuildDataVector(script, dataVec)) {
+            break;
+        }
+    }
+    // Create a JSON object with the data values as strings
+    UniValue ret(UniValue::VARR);
+    for (const auto &data : dataVec) {
+        std::string str(data.begin(), data.end());
+        ret.push_back(str);
+    }
+    return ret;
+}
+
+UniValue senddata(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 6) {
+        throw std::runtime_error("senddata \"toionaddress\" \"text\" (\"text\" ... \"text\"))\n"
+                            "\nCreate a transaction that sends data using OP_RETURN to an ION address.\n" +
+                            HelpRequiringPassphrase() + "\n"
+
+                            "\nArguments:\n"
+                            "1...n \"text\" (string, required) The text to send.\n"
+                            
+                            "\nResult:\n"
+                            "\"transactionid\" (string) The transaction id.\n"
+
+                            "\nExamples:\n"
+                            "\nSend 'hello' to an address\n" +
+                            HelpExampleCli("senddata", "\"hello\" \"world\""));
+    }
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    EnsureWalletIsUnlocked();
+    unsigned int curparam = 0;
+
+    std::string strError;
+
+    std::vector<std::vector<unsigned char> > strings;
+    for (int i = 0; i < params.size(); ++i) {
+        if (params[i].isStr()) {
+            std::string str = params[i].get_str();
+            std::vector<unsigned char> v(str.begin(), str.end());
+            strings.push_back(v);
+        }
+        else {
+            break;
+        }
+    }
+    
+    CScript s = BuildDataScript(strings);
+    std::vector<CRecipient> vecRecipients;
+    CAmount a = 0;
+    vecRecipients.push_back({s, a, false});
+
+    // Create the transaction
+    CWalletTx   wtxNew;
+    CAmount     nFeeRequired;               // CreateTransaction adds the fee
+    CReserveKey reservekey(pwalletMain);    // The change address
+    int         nChangePosRet = -1;         // CreateTransaction adds the change string strError;
+    
+    if (!pwalletMain->CreateTransaction(vecRecipients, 
+                                        wtxNew, 
+                                        reservekey, 
+                                        nFeeRequired, 
+                                        nChangePosRet, 
+                                        strError, 
+                                        NULL, 
+                                        ALL_COINS, 
+                                        false, 
+                                        (CAmount)0)) {
+        if (nFeeRequired > pwalletMain->GetBalance()) {
+            strError = strprintf("Error: This transaction requires a transaction fee of at least %s because of its amount, complexity, or use of recently received funds!", FormatMoney(nFeeRequired));
+        }
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    // Send the transaction
+    if (!pwalletMain->CommitTransaction(wtxNew, reservekey)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Transaction commit failed");
+    }
+
+    return wtxNew.GetHash().GetHex();
+}

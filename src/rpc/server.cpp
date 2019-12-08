@@ -448,6 +448,9 @@ static const CRPCCommand vRPCCommands[] =
         {"wallet", "walletpassphrasechange", &walletpassphrasechange, true, false, true},
         {"wallet", "walletpassphrase", &walletpassphrase, true, false, true},
 
+        {"wallet", "senddata", &senddata, true, false, false},
+        {"wallet", "readdata", &readdata, true, false, false},
+
         {"tokens", "tokeninfo", &tokeninfo, false, false, true},
         {"tokens", "gettokenbalance", &gettokenbalance, false, false, true},
         {"tokens", "gettokentransaction", &gettokentransaction, false, false, true},
@@ -686,3 +689,5 @@ void RPCRunLater(const std::string& name, boost::function<void(void)> func, int6
 }
 
 const CRPCTable tableRPC;
+
+

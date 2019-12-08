@@ -370,6 +370,11 @@ extern UniValue droptokenauthorities(const UniValue &params, bool fHelp);
 extern UniValue minttoken(const UniValue &params, bool fHelp);
 extern UniValue melttoken(const UniValue &params, bool fHelp);
 
+extern CScript BuildDataScript(const std::vector<std::vector<unsigned char> > &desc);
+extern bool BuildDataVector(CScript script, std::vector<std::vector<unsigned char> > &dataVector);
+extern UniValue senddata(const UniValue& params, bool fHelp);
+extern UniValue readdata(const UniValue& params, bool fHelp);
+
 bool StartRPC();
 void InterruptRPC();
 void StopRPC();
