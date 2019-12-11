@@ -1,8 +1,0 @@
-/usr/bin/ion-cli		--	gen_context(system_u:object_r:ion_exec_t,s0)
-/usr/sbin/iond		--	gen_context(system_u:object_r:ion_exec_t,s0)
-/usr/lib(64)?/ion/iond		--	gen_context(system_u:object_r:ion_exec_t,s0)
-
-/etc/ion(/.*)?		gen_context(system_u:object_r:ion_conf_t,s0)
-/var/lib/ion(/.*)?		gen_context(system_u:object_r:ion_var_lib_t,s0)
-
-(/var)?/run/iond(/.*)?   gen_context(system_u:object_r:ion_var_run_t,s0)
