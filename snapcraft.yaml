@@ -1,7 +1,7 @@
-# Copyright (c) 2018-2019 The Ion developers
+# Copyright (c) 2018-2019 The Dash developers
 name: ioncore
 base: core18
-version: 5.0.00
+version: 5.0.99
 summary:   gaming related peer-to-peer network based digital currency
 description: |
   Ion Core is an MIT licensed,  open source, gaming oriented,
@@ -45,7 +45,7 @@ description: |
   - Whitepaper: https://ionomy.com/en/whitepaper
   - Technical whitepaper: https://tinyurl.com/y3st8jfb
   
-  Get source code from Github: https://github.com/ioncoincore/ion.git
+  Get source code from Github: https://bitbucket.org/ioncoin/ion.git
   Get CE source code from Github: https://github.com/cevap/ion.git
   
   Chat with Support on Discord: https://discord.gg/vuZn7gC
@@ -135,7 +135,7 @@ parts:
   ion:
     source: https://bitbucket.org/ioncoin/ion
     source-type: git
-    source-tag: v5.0.00
+    source-tag: develop
     plugin: nil
     override-build: |
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
