@@ -1,7 +1,7 @@
-# Copyright (c) 2018-2019 The Ion developers
+# Copyright (c) 2018-2020 The Ion developers
 name: ioncore
 base: core18
-version: 4.0.00
+version: 5.0.99
 summary:   gaming related peer-to-peer network based digital currency
 description: |
   Ion Core is an MIT licensed,  open source, gaming oriented,
@@ -45,7 +45,7 @@ description: |
   - Whitepaper: https://ionomy.com/en/whitepaper
   - Technical whitepaper: https://tinyurl.com/y3st8jfb
   
-  Get source code from Github: https://github.com/ioncoincore/ion.git
+  Get source code from Github: https://bitbucket.org/ioncoin/ion.git
   Get CE source code from Github: https://github.com/cevap/ion.git
   
   Chat with Support on Discord: https://discord.gg/vuZn7gC
@@ -64,7 +64,7 @@ description: |
   - Testing Report: https://tinyurl.com/y39n2hsv
 
   Warning: Please do not use shady snapcraft's shady forum for questions
-grade: stable
+grade: devel
 confinement: strict
 icon: src/qt/res/src/ion.svg
 apps:
@@ -133,9 +133,9 @@ apps:
     plugs: [home]
 parts:
   ion:
-    source: https://github.com/ioncoincore/ion
+    source: https://bitbucket.org/ioncoin/ion
     source-type: git
-    source-tag: v4.0.00
+    source-tag: v5.0.99
     plugin: nil
     override-build: |
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
@@ -182,11 +182,22 @@ parts:
       fi
       echo "-----------------------------------------------"
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "Set gcc to gcc-8"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo $HOST
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
+      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
+      update-alternatives --install /usr/bin/${HOST}-gcc ${HOST}-gcc /usr/bin/${HOST}-gcc-8 100
+      update-alternatives --install /usr/bin/${HOST}-g++ ${HOST}-g++ /usr/bin/${HOST}-g++-8 100
+      echo "-----------------------------------------------"
+      echo "-----------------------------------------------"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       echo "APPLY PATCHES ${BINPREF}-${SNAPCRAFT_PROJECT_VERSION}" # patches which have to be applied for compilation, replace splash screen
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       cd ${SNAPCRAFT_PART_BUILD}
       echo "apply patches:"
-      git apply $SNAPCRAFT_PART_BUILD/snap/local/patches/X001-default_data_dir.patch
+      sed s/HOME/SNAP_USER_COMMON/g $SNAPCRAFT_PART_BUILD/src/util.cpp
+      #git apply $SNAPCRAFT_PART_BUILD/snap/local/patches/X001-default_data_dir.patch
       git apply $SNAPCRAFT_PART_BUILD/snap/local/patches/X002-fix-bdb-tmp-folder.patch
       git apply $SNAPCRAFT_PART_BUILD/snap/local/patches/X003-fix-use-snap-instead-of-dirty.patch
       sed -i 's/tar --strip-components/tar --no-same-owner --strip-components/' ${SNAPCRAFT_PART_BUILD}/depends/funcs.mk
