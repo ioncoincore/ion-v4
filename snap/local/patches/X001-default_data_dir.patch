@@ -1,13 +1,11 @@
-diff --git a/src/util.cpp b/src/util.cpp
-index 4659ff7..b63edd0 100644
---- a/src/util.cpp
-+++ b/src/util.cpp
-@@ -435,7 +435,7 @@ boost::filesystem::path GetDefaultDataDir()
+--- a/src/util.cpp	2019-12-19 14:24:30.776766691 +0000
++++ b/src/util.cpp	2019-12-19 14:26:04.852766691 +0000
+@@ -632,7 +632,7 @@
      return GetSpecialFolderPath(CSIDL_APPDATA) / "ioncoin";
  #else
      fs::path pathRet;
 -    char* pszHome = getenv("HOME");
 +    char* pszHome = getenv("SNAP_USER_COMMON");
-     if (pszHome == NULL || strlen(pszHome) == 0)
+     if (pszHome == nullptr || strlen(pszHome) == 0)
          pathRet = fs::path("/");
      else
