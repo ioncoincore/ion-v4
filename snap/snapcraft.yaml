@@ -180,6 +180,13 @@ parts:
       else
         HOST="${SNAPCRAFT_ARCH_TRIPLET}"
       fi
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      echo "Set gcc to gcc8"
+      echo "+++++++++++++++++++++++++++++++++++++++++++++++"
+      update-alternatives --install /usr/bin/${HOST}-gcc ${HOST}-gcc /usr/bin/${HOST}-gcc-8 100
+      update-alternatives --install /usr/bin/${HOST}-g++ ${HOST}-g++ /usr/bin/${HOST}-g++-8 100
+      update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
+      update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
       echo "-----------------------------------------------"
       echo "+++++++++++++++++++++++++++++++++++++++++++++++"
       echo "Set gcc to gcc-8"
